@@ -3,9 +3,14 @@
 import json
 from jasentool.database import Database
 from jasentool.utils import Utils
+from jasentool.matrix import Matrix
 
 class Validate:
     """Class to validate old pipeline (cgviz) with new pipeline (jasen)"""
+    def __init__(self, input_dir, db_collection):
+        self.input_dir = input_dir
+        self.db_collection = db_collection
+
     def get_sample_id(self, results):
         """Get sample ID from mongodb"""
         return results["run_metadata"]["run"]["sample_name"]
@@ -14,9 +19,9 @@ class Validate:
         """Get species name from mongodb"""
         return results["species_prediction"][0]["scientific_name"]
 
-    def _check_exists(self, db_collection, sample_id):
+    def _check_exists(self, sample_id):
         """Check if sample ID exists in mongodb"""
-        return bool(list(Database.find(db_collection, {"id": sample_id}, {})))
+        return bool(list(Database.find(self.db_collection, {"id": sample_id}, {})))
 
     def search(self, search_query, search_kw, search_list):
         """Search for query in list of arrays"""
@@ -39,11 +44,11 @@ class Validate:
         """Get cgmlst result"""
         return self.search("cgmlst", "type", results["typing_result"])
 
-    def get_mdb_cgv_data(self, db_collection, sample_id):
+    def get_mdb_cgv_data(self, sample_id):
         """Get sample mongodb data"""
-        mdb_pvl = list(Database.get_pvl(db_collection, {"id": sample_id, "metadata.QC": "OK"}))
-        mdb_mlst = list(Database.get_mlst(db_collection, {"id": sample_id, "metadata.QC": "OK"}))
-        mdb_cgmlst = list(Database.get_cgmlst(db_collection, {"id": sample_id, "metadata.QC": "OK"}))
+        mdb_pvl = list(Database.get_pvl(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
+        mdb_mlst = list(Database.get_mlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
+        mdb_cgmlst = list(Database.get_cgmlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
         try:
             mdb_pvl_present = int(mdb_pvl[0]["aribavir"]["lukS_PV"]["present"])
             mdb_mlst_seqtype = str(mdb_mlst[0]["mlst"]["sequence_type"]) if mdb_mlst[0]["mlst"]["sequence_type"] != "-" else str(None)
@@ -96,20 +101,22 @@ class Validate:
         cgmlst_alleles = self.compare_cgmlst_alleles(old_data["cgmlst_alleles"], new_data["cgmlst_alleles"])
         return True, f"{sample_id},{pvl_comp},{mlst_seqtype_comp},{mlst_alleles},{cgmlst_alleles}"
 
-    def run(self, input_files, output_fpaths, db_collection, combined_output):
+    def run(self, input_files, output_fpaths, combined_output):
         """Execute validation of new pipeline (jasen)"""
         utils = Utils()
+        matrix = Matrix(self.input_dir, self.db_collection)
         csv_output = "sample_id,pvl,mlst_seqtype,mlst_allele_matches(%),cgmlst_allele_matches(%)"
         mlst_at_header = "old_arcC,new_arcC,old_aroE,new_aroE,old_glpF,new_glpF,old_gmk,new_gmk,old_pta,new_pta,old_tpi,new_tpi,old_yqiL,new_yqiL"
         failed_csv_output = f"sample_id,old_mlst_seqtype,new_mlst_allele_matches(%),{mlst_at_header}"
+        matrix.run(input_files, output_fpaths)
         for input_idx, input_file in enumerate(input_files):
             with open(input_file, 'r', encoding="utf-8") as fin:
                 sample_json = json.load(fin)
                 sample_id = self.get_sample_id(sample_json)
-                if not self._check_exists(db_collection, sample_id):
-                    print(f"The sample provided ({sample_id}) does not exist in the provided database ({Database.db_name}) or collection ({db_collection}).")
+                if not self._check_exists(self.db_collection, sample_id):
+                    print(f"The sample provided ({sample_id}) does not exist in the provided database ({Database.db_name}) or collection ({self.db_collection}).")
                     continue
-                mdb_data_dict = self.get_mdb_cgv_data(db_collection, sample_id)
+                mdb_data_dict = self.get_mdb_cgv_data(self.db_collection, sample_id)
                 if mdb_data_dict:
                     #species_name = self.get_species_name(sample_json)
                     fin_data_dict = self.get_fin_data(sample_json)
