@@ -85,7 +85,7 @@ class OptionsParser:
                                                 options.output_file, options.prefix,
                                                 options.combined_output)
         validate = Validate(options.input_dir, options.db_collection)
-        validate.run(input_files, output_fpaths, options.combined_output)
+        validate.run(input_files, output_fpaths, options.combined_output, options.generate_matrix)
 
     def missing(self, options):
         """Execute search for missing samples from new pipeline results"""
