@@ -102,7 +102,7 @@ class Matrix:
 
         print(f"The number of alleles that aren't null for more than 1000 samples is {len(categories)}")
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(10, 8))
         bars = plt.bar(categories, counts, color='skyblue')
 
         # Add titles and labels
@@ -121,9 +121,19 @@ class Matrix:
         plt.tight_layout()
         plt.savefig(output_plot_fpath, dpi=600)
 
+    def plot_matrix_barplot(self, df, output_plot_fpath):
+        plt.figure(figsize=(10, 8))
+        plt.bar(df.index, df['sum'], color='skyblue')
+        plt.xlabel('Sample')
+        plt.ylabel('Sum of sample allele differences')
+        plt.title("Summed differential matrix of distances between pipelines' cgMLST results")
+        plt.xticks(rotation=90)
+        plt.tight_layout()
+        plt.savefig(output_plot_fpath, dpi=600)
+
     def plot_boxplot(self, count_dict, output_plot_fpath):
         counts = list(count_dict.values())
-        plt.figure(figsize=(10, 6))  # Optional: set the figure size
+        plt.figure(figsize=(10, 8))  # Optional: set the figure size
         plt.boxplot(counts, vert=True, patch_artist=True)  # `vert=True` for vertical boxplot, `patch_artist=True` for filled boxes
 
         # Add title and labels
@@ -141,13 +151,14 @@ class Matrix:
 
     def run(self, input_files, output_fpaths, generate_matrix):
         # heatmap_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_heatmap.png")
+        output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
+        barplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_barplot.png")
         barplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "null_alleles_barplot.png")
         boxplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "sample_null_boxplot.png")
         null_alleles_count, sample_null_count = self.get_null_allele_counts(input_files)
         self.plot_boxplot(sample_null_count, boxplot_fpath)
         self.plot_barplot(null_alleles_count, barplot_fpath)
         if generate_matrix:
-            output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
             sample_ids = [os.path.basename(input_file).replace("_result.json", "") for input_file in input_files]
             cgviz_matrix_df = self.generate_matrix(sample_ids, self.get_cgviz_cgmlst_data)
             jasen_matrix_df = self.generate_matrix(sample_ids, self.get_jasen_cgmlst_data)
@@ -155,3 +166,8 @@ class Matrix:
             distance_df = distance_df.astype(float)
             distance_df.to_csv(output_csv_fpath, index=True, header=True)
             # self.plot_heatmap(distance_df, output_plot_fpath)
+        if os.path.exists(output_csv_fpath):
+            distance_df = pd.read_csv(output_csv_fpath, index_col=0)
+            distance_df['sum'] = distance_df.sum(axis=1)
+            filtered_df = distance_df[distance_df['sum'] >= 100]
+            self.plot_matrix_barplot(filtered_df, barplot_matrix_fpath)
