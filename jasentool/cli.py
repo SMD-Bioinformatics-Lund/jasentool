@@ -179,6 +179,12 @@ def __sample_sheet(group, required):
     group.add_argument('--sample_sheet', required=required, dest='sample_sheet',
                        action='store_true', help='sample sheet input')
 
+def __alter_sample_id(group, required):
+    """Add sample_sheet argument to group"""
+    group.add_argument('--alter_sample_id', required=required,
+                       dest='alter_sample_id', action='store_true', default=False,
+                       help='alter sample id to be lims ID + sequencing run')
+
 def __cpus(group):
     """Add cpus argument to group"""
     group.add_argument('--cpus', dest='cpus', type=int, default=2, help='input cpus')
@@ -247,6 +253,7 @@ def get_main_parser():
             __assay(group, required=False)
             __platform(group, required=False)
             __sample_sheet(group, required=False)
+            __alter_sample_id(group, required=False)
             __help(group)
 
     with subparser(sub_parsers, 'convert', 'Convert file format') as parser:

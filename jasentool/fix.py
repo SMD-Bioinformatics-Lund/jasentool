@@ -7,14 +7,14 @@ from jasentool.utils import Utils
 class Fix:
     """Class that fixes csvs for start_nextflow_analysis.pl"""
     @staticmethod
-    def fix_csv(input_file, output_fpath):
+    def fix_csv(input_file, output_fpath, alter_sample_id):
         """Convert the provided bjorn csvs into new jasen-compatible csvs"""
         assays = []
         out_fpaths = []
         with open(input_file, 'r', encoding="utf-8") as csvfile:
             samples = pd.read_csv(csvfile)
             samples.insert(2, 'sample_name', samples['id'])
-            samples['id'] = samples['clarity_sample_id'].str.lower() + "_" + samples['sequencing_run'].str.lower()
+            samples['id'] = str(samples['clarity_sample_id'].str.lower() + "_" + samples['sequencing_run'].str.lower()) if alter_sample_id else samples['id']
             samples['assay'] = samples['species']
             for assay, df_assay in samples.groupby('assay'):
                 out_fpath = f'{os.path.splitext(output_fpath)[0]}_{assay}.csv'
