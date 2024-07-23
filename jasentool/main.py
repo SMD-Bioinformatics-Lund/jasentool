@@ -127,7 +127,7 @@ class OptionsParser:
         utils = Utils()
         fix = Fix()
         csv_files, assays = fix.fix_csv(options.csv_file, options.output_file, options.alter_sample_id)
-        batch_files = fix.fix_sh(options.sh_file, options.output_file, assays)
+        batch_files = fix.fix_sh(options.sh_file, options.output_file, assays) if options.sh_file else options.sh_file
         if (options.remote or options.auto_start) and batch_files:
             utils.copy_batch_and_csv_files(batch_files, csv_files, options.remote_dir, options.remote_hostname, options.auto_start or options.remote)
             if options.auto_start:
