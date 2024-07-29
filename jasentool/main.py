@@ -84,8 +84,8 @@ class OptionsParser:
         output_fpaths = self._get_output_fpaths(input_files, options.output_dir,
                                                 options.output_file, options.prefix,
                                                 options.combined_output)
-        validate = Validate()
-        validate.run(input_files, output_fpaths, options.db_collection, options.combined_output)
+        validate = Validate(options.input_dir, options.db_collection)
+        validate.run(input_files, output_fpaths, options.combined_output, options.generate_matrix)
 
     def missing(self, options):
         """Execute search for missing samples from new pipeline results"""
@@ -95,7 +95,7 @@ class OptionsParser:
         db.initialize(options.db_name)
         if options.sample_sheet:
             csv_dict = missing.parse_sample_sheet(options.input_file[0], options.restore_dir)
-            utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file)
+            utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
         if options.analysis_dir:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"
             empty_fpath = os.path.splitext(options.output_file)[0] + "_empty.csv"
@@ -103,8 +103,8 @@ class OptionsParser:
             analysis_dir_fnames = missing.parse_dir(options.analysis_dir)
             csv_dict, missing_samples_txt = missing.find_missing(meta_dict, analysis_dir_fnames, options.restore_dir)
             empty_files_dict, csv_dict = missing.remove_empty_files(csv_dict)
-            utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file)
-            utils.write_out_csv(empty_files_dict, options.assay, options.platform, empty_fpath)
+            utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
+            utils.write_out_csv(empty_files_dict, options.assay, options.platform, empty_fpath, options.alter_sample_id)
             utils.write_out_txt(missing_samples_txt, log_fpath)
         if options.restore_file:
             bash_fpath = os.path.splitext(options.restore_file)[0] + ".sh"
@@ -126,8 +126,8 @@ class OptionsParser:
         """Execute fixing of file to desired format(s)"""
         utils = Utils()
         fix = Fix()
-        csv_files, assays = fix.fix_csv(options.csv_file, options.output_file)
-        batch_files = fix.fix_sh(options.sh_file, options.output_file, assays)
+        csv_files, assays = fix.fix_csv(options.csv_file, options.output_file, options.alter_sample_id)
+        batch_files = fix.fix_sh(options.sh_file, options.output_file, assays) if options.sh_file else options.sh_file
         if (options.remote or options.auto_start) and batch_files:
             utils.copy_batch_and_csv_files(batch_files, csv_files, options.remote_dir, options.remote_hostname, options.auto_start or options.remote)
             if options.auto_start:

@@ -12,18 +12,23 @@ import requests
 class Utils:
     """Class containing utilities used throughout jasentool"""
     @staticmethod
-    def write_out_csv(csv_dict, assay, platform, out_fpath):
+    def write_out_csv(csv_dict, assay, platform, out_fpath, alter_sample_id=False):
         """Write out file as csv"""
         with open(out_fpath, 'w+', encoding="utf-8") as csvfile:
-            fieldnames = ["id", "clarity_sample_id", "group", "species", "assay",
+            fieldnames = ["id", "clarity_sample_id", "sample_name", "group", "species", "assay",
                           "platform", "sequencing_run", "read1", "read2"] #header
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             for sample in csv_dict:
-                row_dict = {"id": sample, "clarity_sample_id": csv_dict[sample][0],
+                lims_id = csv_dict[sample][0]
+                sequencing_run = csv_dict[sample][3]
+                sample_id = str(lims_id.lower() + "_" + sequencing_run.lower()) if alter_sample_id else sample
+                row_dict = {"id": sample_id,
+                            "clarity_sample_id": lims_id,
+                            "sample_name": sample,
                             "group": csv_dict[sample][1], "species": csv_dict[sample][2],
                             "assay": assay, "platform": platform,
-                            "sequencing_run": csv_dict[sample][3],
+                            "sequencing_run": sequencing_run,
                             "read1": csv_dict[sample][4][0],
                             "read2": csv_dict[sample][4][1]} #write rows to CSV
                 writer.writerow(row_dict)

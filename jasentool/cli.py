@@ -43,7 +43,7 @@ def __csv_file(group, required, help):
 
 def __sh_file(group, required, help):
     """Add sh_file argument to group"""
-    group.add_argument('--sh_file', required=required, help=help)
+    group.add_argument('--sh_file', required=required, default=None, help=help)
 
 def __bam_file(group, required):
     """Add bam_file argument to group"""
@@ -164,6 +164,11 @@ def __combined_output(group):
     group.add_argument('--combined_output', dest='combined_output', action='store_true',
                        help='combine all of the outputs into one output')
 
+def __generate_matrix(group):
+    """Add generate_matrix argument to group"""
+    group.add_argument('--generate_matrix', dest='generate_matrix', action='store_true',
+                       help='generate cgmlst matrix')
+
 def __save_dbs(group):
     """Save all intermediary dbs created for TBProfiler db convergence"""
     group.add_argument('--save_dbs', dest='save_dbs', action='store_true',
@@ -173,6 +178,12 @@ def __sample_sheet(group, required):
     """Add sample_sheet argument to group"""
     group.add_argument('--sample_sheet', required=required, dest='sample_sheet',
                        action='store_true', help='sample sheet input')
+
+def __alter_sample_id(group, required):
+    """Add sample_sheet argument to group"""
+    group.add_argument('--alter_sample_id', required=required,
+                       dest='alter_sample_id', action='store_true', default=False,
+                       help='alter sample id to be lims ID + sequencing run')
 
 def __cpus(group):
     """Add cpus argument to group"""
@@ -224,6 +235,7 @@ def get_main_parser():
             __db_collection(group, required=True)
         with arg_group(parser, 'optional arguments') as group:
             __combined_output(group)
+            __generate_matrix(group)
             __uri(group)
             __prefix(group)
             __help(group)
@@ -241,6 +253,7 @@ def get_main_parser():
             __assay(group, required=False)
             __platform(group, required=False)
             __sample_sheet(group, required=False)
+            __alter_sample_id(group, required=False)
             __help(group)
 
     with subparser(sub_parsers, 'convert', 'Convert file format') as parser:
@@ -255,13 +268,14 @@ def get_main_parser():
     with subparser(sub_parsers, 'fix', 'Fix bjorn microbiology csv file') as parser:
         with arg_group(parser, 'required named arguments') as group:
             __csv_file(group, required=True, help='path to bjorn csv file')
-            __sh_file(group, required=True, help='path to bjorn sh file')
             __output_file(group, required=True, help='path to fixed output csv file')
         with arg_group(parser, 'optional arguments') as group:
+            __sh_file(group, required=False, help='path to bjorn sh file')
             __remote_dir(group, required=False)
             __remote_hostname(group, required=False)
             __remote(group, required=False)
             __auto_start(group, required=False)
+            __alter_sample_id(group, required=False)
             __help(group)
 
     with subparser(sub_parsers, 'converge', 'Converge TB mutation catalogues') as parser:
