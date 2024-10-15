@@ -2,6 +2,7 @@
 
 import os
 import re
+import json
 # import pymongo
 
 class Missing:
@@ -92,7 +93,7 @@ class Missing:
                             #print(f"WARN: The following sample({sample_id}) seqrun ({seqrun}) doesn't match cgviz ({id_seqrun_dict[sample_id]})")
                             continue
                     except KeyError:
-                        #print(f"WARN: The following sample({sample_id}) isn't OK'd in cgviz") 
+                        #print(f"WARN: The following sample({sample_id}) isn't OK'd in cgviz")
                         continue
                     species = line.split(",")[-1].split("_")[2]
                     try:
@@ -234,9 +235,34 @@ class Missing:
         return fpath
 
     @staticmethod
-    def parse_dir(dir_fpath):
+    def get_sample_name(json_fpath):
+        """Reads a JSON file and retrieves the 'sample_name' from the JSON structure."""
+        try:
+            with open(json_fpath, 'r') as file:
+                result_json = json.load(file)
+
+            sample_name = result_json["sample_name"]
+            return sample_name
+        except KeyError as e:
+            print(f"KeyError: {e} {json_fpath}")
+            return None
+        except json.JSONDecodeError:
+            print(f"JSONError: {json_fpath}")
+            return None
+
+    @staticmethod
+    def parse_dir(dir_fpath, alter_sample_id):
         """Return filenames in directory"""
-        return [filename.split("_")[0] for filename in os.listdir(dir_fpath)]
+        dir_fpaths = []
+        for filename in os.listdir(dir_fpath):
+            if filename.endswith(".json"):
+                if alter_sample_id:
+                    sample_name = Missing.get_sample_name(os.path.join(dir_fpath, filename))
+                    if sample_name:
+                        dir_fpaths.append(sample_name)
+                else:
+                    dir_fpaths.append(filename.split("_")[0])
+        return dir_fpaths
 
     @staticmethod
     def filter_csv_dict(csv_dict, missing_samples):

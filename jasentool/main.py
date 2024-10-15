@@ -100,7 +100,7 @@ class OptionsParser:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"
             empty_fpath = os.path.splitext(options.output_file)[0] + "_empty.csv"
             meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
-            analysis_dir_fnames = missing.parse_dir(options.analysis_dir)
+            analysis_dir_fnames = missing.parse_dir(options.analysis_dir, options.alter_sample_id)
             csv_dict, missing_samples_txt = missing.find_missing(meta_dict, analysis_dir_fnames, options.restore_dir)
             empty_files_dict, csv_dict = missing.remove_empty_files(csv_dict)
             utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
