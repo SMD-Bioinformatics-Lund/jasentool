@@ -93,7 +93,7 @@ class Missing:
                             #print(f"WARN: The following sample({sample_id}) seqrun ({seqrun}) doesn't match cgviz ({id_seqrun_dict[sample_id]})")
                             continue
                     except KeyError:
-                        #print(f"WARN: The following sample({sample_id}) isn't OK'd in cgviz") 
+                        #print(f"WARN: The following sample({sample_id}) isn't OK'd in cgviz")
                         continue
                     species = line.split(",")[-1].split("_")[2]
                     try:
@@ -233,14 +233,14 @@ class Missing:
                 return fpath.rstrip("Data/Intensities/BaseCalls/")
             print(f"WARN: Base calls for {fpath} cannot be found.")
         return fpath
-    
+
     @staticmethod
     def get_sample_name(json_fpath):
         """Reads a JSON file and retrieves the 'sample_name' from the JSON structure."""
         try:
             with open(json_fpath, 'r') as file:
                 result_json = json.load(file)
-            
+
             sample_name = result_json["sample_name"]
             return sample_name
         except KeyError as e:
