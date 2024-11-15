@@ -121,57 +121,85 @@ class Matrix:
         plt.tight_layout()
         plt.savefig(output_plot_fpath, dpi=600)
 
-    def plot_matrix_boxplot(self, df, output_plot_fpath):
+    def plot_matrix_violin(self, df, output_plot_fpath):
         plt.figure(figsize=(10, 8))
         counts = list(df["sum"])
         sample_ids = list(df["SampleID"])
-        plt.boxplot(counts)
 
-        # Add jittered data points
-        jitter = 0.04  # Adjust the jitter as needed
-        x_jitter = np.random.normal(1, jitter, size=len(counts))
-        plt.scatter(x_jitter, counts, alpha=0.5, color="blue")
+        # Violin plot for data distribution
+        plt.violinplot(counts, showmeans=True)
+
+        # Calculate outliers based on the 1.5 * IQR rule
+        q1, q3 = np.percentile(counts, [25, 75])
+        iqr = q3 - q1
+        multiplier = 1.5
+        lower_bound = q1 - multiplier * iqr
+        upper_bound = q3 + multiplier * iqr
+
+        # Plot outliers
+        outlier_counts = []
+        outliers = []
+        for i, count in enumerate(counts):
+            if count < lower_bound or count > upper_bound:
+                outlier_counts.append(count)
+                outliers.append(sample_ids[i])
+                plt.annotate(
+                    f"{sample_ids[i]}",
+                    xy=(1, count),
+                    xytext=(1.05, count),
+                    fontsize=8,
+                    ha="left",
+                    color="black"
+                )
+
+        plt.scatter([1] * len(outlier_counts), outlier_counts, color="red", alpha=0.6, label="Outliers")
 
         # Set labels and title
         plt.xlabel("Samples")
         plt.ylabel("Sum of sample allele differences")
-        plt.title("Summed differential matrix of distances between pipelines' cgMLST results")
-
-        # Annotate outliers
-        for i, count in enumerate(counts):
-            if count > 250000 or count < -750000:
-                if float(x_jitter[i]) < 1:
-                    plt.annotate(f"{sample_ids[i]}", xy=(x_jitter[i] - 0.01, count), xytext=(x_jitter[i] - 0.01, count),
-                                horizontalalignment="right", fontsize=8)
-                else:
-                    plt.annotate(f"{sample_ids[i]}", xy=(x_jitter[i] - 0.01, count), xytext=(x_jitter[i] + 0.01, count),
-                                horizontalalignment="left", fontsize=8)
+        plt.title("Summed differential matrix of distances between pipelines' cgMLST results with Outliers")
 
         plt.tight_layout()
         plt.savefig(output_plot_fpath, dpi=600)
+        return outliers
 
     def plot_boxplot(self, count_dict, output_plot_fpath):
         counts = list(count_dict.values())
-        plt.figure(figsize=(10, 8))  # Optional: set the figure size
-        plt.boxplot(counts, vert=True, patch_artist=True)  # `vert=True` for vertical boxplot, `patch_artist=True` for filled boxes
+        sample_ids = list(count_dict.keys())
+        
+        plt.figure(figsize=(10, 8))
+        plt.boxplot(counts, vert=True, patch_artist=True)
 
         # Add title and labels
         plt.xlabel("Null allele count")
         plt.title("Number of null alleles per sample")
 
-        min_value = np.min(counts)
+        # Calculate outliers based on 3 standard deviations
+        mean = np.mean(counts)
+        std_dev = np.std(counts)
+        lower_bound = mean - 3 * std_dev
+        upper_bound = mean + 3 * std_dev
 
-        # Label the minimum value on the plot
-        plt.annotate(f"Min: {min_value}", xy=(1, min_value), xytext=(1.05, min_value),
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            horizontalalignment="left")
+        # Label each outlier
+        for i, count in enumerate(counts):
+            if count < lower_bound or count > upper_bound:
+                plt.annotate(
+                    f"{sample_ids[i]}",
+                    xy=(1, count),
+                    xytext=(1.05, count),
+                    arrowprops=dict(facecolor="black", shrink=0.05),
+                    horizontalalignment="left",
+                    fontsize=8,
+                    color="black"
+                )
 
         plt.savefig(output_plot_fpath, dpi=600)
 
     def run(self, input_files, output_fpaths, generate_matrix):
         # heatmap_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_heatmap.png")
         output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
-        boxplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_boxplot.png")
+        output_txt_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_outliers.txt")
+        violinplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_violinplot.png")
         barplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "null_alleles_barplot.png")
         boxplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "sample_null_boxplot.png")
         null_alleles_count, sample_null_count = self.get_null_allele_counts(input_files)
@@ -191,4 +219,7 @@ class Matrix:
             distance_df = distance_df.reset_index()
             distance_df.rename(columns={'index': 'SampleID'}, inplace=True)
             filtered_df = distance_df[["SampleID", "sum"]]
-            self.plot_matrix_boxplot(filtered_df, boxplot_matrix_fpath)
+            outliers = self.plot_matrix_violin(filtered_df, violinplot_matrix_fpath)
+            with open(output_txt_fpath, "w") as fout:
+                for outlier in outliers:
+                    fout.write(f"{outlier}\n")

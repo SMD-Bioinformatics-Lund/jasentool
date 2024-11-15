@@ -49,13 +49,16 @@ class Validate:
         mdb_pvl = list(Database.get_pvl(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
         mdb_mlst = list(Database.get_mlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
         mdb_cgmlst = list(Database.get_cgmlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
+        mdb_missing = list(Database.get_missing_loci(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
         try:
             mdb_pvl_present = int(mdb_pvl[0]["aribavir"]["lukS_PV"]["present"])
             mdb_mlst_seqtype = str(mdb_mlst[0]["mlst"]["sequence_type"]) if mdb_mlst[0]["mlst"]["sequence_type"] != "-" else str(None)
             mdb_mlst_alleles = mdb_mlst[0]["mlst"]["alleles"]
             mdb_cgmlst_alleles = mdb_cgmlst[0]["alleles"]
+            mdb_missing_loci = int(mdb_missing[0]["missing"])
             return {"pvl": mdb_pvl_present, "mlst_seqtype": mdb_mlst_seqtype,
-                    "mlst_alleles": mdb_mlst_alleles, "cgmlst_alleles": mdb_cgmlst_alleles}
+                    "mlst_alleles": mdb_mlst_alleles, "cgmlst_alleles": mdb_cgmlst_alleles,
+                    "missing_loci": mdb_missing_loci}
         except IndexError:
             return False
 
@@ -67,8 +70,10 @@ class Validate:
         fin_mlst_seqtype = str(fin_mlst[0]["result"]["sequence_type"])
         fin_mlst_alleles = fin_mlst[0]["result"]["alleles"]
         fin_cgmlst_alleles = list(fin_cgmlst[0]["result"]["alleles"].values())
+        fin_missing_loci = int(fin_cgmlst[0]["result"]["n_missing"])
         return {"pvl": fin_pvl_present, "mlst_seqtype": fin_mlst_seqtype,
-                "mlst_alleles": fin_mlst_alleles, "cgmlst_alleles": fin_cgmlst_alleles}
+                "mlst_alleles": fin_mlst_alleles, "cgmlst_alleles": fin_cgmlst_alleles,
+                "missing_loci": fin_missing_loci}
 
     def compare_mlst_alleles(self, old_mlst_alleles, new_mlst_alleles):
         """Parse through mlst alleles of old and new pipeline and compare results"""
@@ -87,6 +92,12 @@ class Validate:
                 match_count += 1
             total_count += 1
         return 100*(match_count/total_count)
+    
+    def compare_missing_loci(self, old_missing_loci, new_missing_loci):
+        """Compare diff in missing loci"""
+        old_missing_count = int(old_missing_loci)
+        new_missing_count = int(new_missing_loci)
+        return f"{old_missing_count},{new_missing_count},{old_missing_count - new_missing_count}"
 
     def compare_data(self, sample_id, old_data, new_data):
         """Compare data between old pipeline and new pipeline"""
@@ -99,7 +110,10 @@ class Validate:
             return False, f'{sample_id},{old_data["mlst_seqtype"]},{new_data["mlst_seqtype"]},{mlst_at_str}'
         mlst_alleles = self.compare_mlst_alleles(old_data["mlst_alleles"], new_data["mlst_alleles"])
         cgmlst_alleles = self.compare_cgmlst_alleles(old_data["cgmlst_alleles"], new_data["cgmlst_alleles"])
-        return True, f"{sample_id},{pvl_comp},{mlst_seqtype_comp},{mlst_alleles},{cgmlst_alleles}"
+        missing_loci = self.compare_missing_loci(old_data["missing_loci"], new_data["missing_loci"])
+        print(sample_id)
+        print(missing_loci)
+        return True, f"{sample_id},{pvl_comp},{mlst_seqtype_comp},{mlst_alleles},{cgmlst_alleles}", f"{sample_id},{missing_loci}"
 
     def run(self, input_files, output_fpaths, combined_output, generate_matrix):
         """Execute validation of new pipeline (jasen)"""
@@ -108,6 +122,7 @@ class Validate:
         csv_output = "sample_id,pvl,mlst_seqtype,mlst_allele_matches(%),cgmlst_allele_matches(%)"
         mlst_at_header = "old_arcC,new_arcC,old_aroE,new_aroE,old_glpF,new_glpF,old_gmk,new_gmk,old_pta,new_pta,old_tpi,new_tpi,old_yqiL,new_yqiL"
         failed_csv_output = f"sample_id,old_mlst_seqtype,new_mlst_allele_matches(%),{mlst_at_header}"
+        missing_loci_csv_output = f"sample_id,cgviz_missing_loci,jasen_missing_loci,difference"
         matrix.run(input_files, output_fpaths, generate_matrix)
         for input_idx, input_file in enumerate(input_files):
             with open(input_file, 'r', encoding="utf-8") as fin:
@@ -120,7 +135,8 @@ class Validate:
                 if mdb_data_dict:
                     #species_name = self.get_species_name(sample_json)
                     fin_data_dict = self.get_fin_data(sample_json)
-                    passed_val, compared_data_output = self.compare_data(sample_id, mdb_data_dict, fin_data_dict)
+                    passed_val, compared_data_output, missing_loci = self.compare_data(sample_id, mdb_data_dict, fin_data_dict)
+                    missing_loci_csv_output += "\n" + missing_loci
                     if passed_val:
                         csv_output += "\n" + compared_data_output
                     else:
@@ -130,6 +146,8 @@ class Validate:
                 utils.write_out_txt(failed_csv_output, f"{output_fpaths[input_idx]}_failed.csv")
                 csv_output = "pvl,mlst_seqtype,mlst_allele_matches(%),cgmlst_allele_matches(%)"
                 failed_csv_output = "pvl,mlst_seqtype,mlst_allele_matches(%),cgmlst_allele_matches(%)"
+        # write out missing loci stats
+        utils.write_out_txt(missing_loci_csv_output, f"{output_fpaths[0]}_missing_loci.csv")
 
         if combined_output:
             utils.write_out_txt(csv_output, f"{output_fpaths[0]}.csv")
