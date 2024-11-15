@@ -44,6 +44,10 @@ class Database:
         """Get cgmlst result data from mongodb"""
         return Database.db[collection].find(query, {"_id": 0, "alleles": 1})
 
+    def get_missing_loci(collection, query):
+        """Get cgmlst result data from mongodb"""
+        return Database.db[collection].find(query, {"_id": 0, "missing": 1})
+
     @staticmethod
     def get_meta_fields():
         """Get respective metadata from mongodb"""
