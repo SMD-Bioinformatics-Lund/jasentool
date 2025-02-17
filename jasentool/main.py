@@ -131,7 +131,7 @@ class OptionsParser:
         if (options.remote or options.auto_start) and batch_files:
             utils.copy_batch_and_csv_files(batch_files, csv_files, options.remote_dir, options.remote_hostname, options.auto_start or options.remote)
             if options.auto_start:
-                utils.start_remote_pipelines(batch_files, options.remote_dir)
+                utils.start_remote_pipelines(batch_files, options.remote_hostname, options.remote_dir)
 
     def converge(self, options):
         """Execute convergence of mutation catalogues"""
