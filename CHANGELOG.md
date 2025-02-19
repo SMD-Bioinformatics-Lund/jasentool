@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
  - Fixed cronjob bugs
+ - Fixed cronjob missing execution
 
 ### Changed
 
