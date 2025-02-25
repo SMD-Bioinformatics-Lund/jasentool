@@ -19,27 +19,6 @@ class Matrix:
         """Search for query in list of arrays"""
         return [element for element in search_list if element[search_kw] == search_query]
     
-    def get_null_allele_counts(self, input_files):
-        """Get null position counts"""
-        null_alleles_count = {}
-        sample_null_count = {}
-        for input_file in input_files:
-            sample_id = os.path.basename(input_file).replace("_result.json", "")
-            sample_null_count[sample_id] = 0
-            with open(input_file, 'r', encoding="utf-8") as fin:
-                sample_json = json.load(fin)
-                jasen_cgmlst = self.search("cgmlst", "type", sample_json["typing_result"])
-                jasen_cgmlst_alleles = dict(jasen_cgmlst[0]["result"]["alleles"])
-                for allele in jasen_cgmlst_alleles:
-                    if type(jasen_cgmlst_alleles[allele]) == str:
-                        sample_null_count[sample_id] += 1
-                        if allele in null_alleles_count:
-                            null_alleles_count[allele] += 1
-                        else:
-                            null_alleles_count[allele] = 1
-        print(f"The average number of missing alleles per sample is {sum(sample_null_count.values()) / len(sample_null_count.values())}")
-        return null_alleles_count, sample_null_count
-
     def get_cgviz_cgmlst_data(self, sample_id):
         """Get sample mongodb data"""
         mdb_cgmlst = list(Database.get_cgmlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
@@ -94,33 +73,6 @@ class Matrix:
         plt.ylabel("Cgviz")
         plt.savefig(output_plot_fpath, dpi=600)
 
-    def plot_barplot(self, count_dict, output_plot_fpath):
-        filtered_dict = {k: v for k, v in count_dict.items() if v >= 1000}
-        sorted_filtered_dict = dict(sorted(filtered_dict.items(), key=lambda item: item[1]))
-        categories = list(sorted_filtered_dict.keys())
-        counts = list(sorted_filtered_dict.values())
-
-        print(f"The number of alleles that aren't null for more than 1000 samples is {len(categories)}")
-
-        plt.figure(figsize=(10, 8))
-        bars = plt.bar(categories, counts, color="skyblue")
-
-        # Add titles and labels
-        plt.xlabel("Alleles")
-        plt.ylabel("Count")
-        plt.title("Null Allele Count Bar Plot")
-
-        # Rotate the x-axis labels by 90 degrees
-        plt.xticks(rotation=90)
-
-        # Add value labels on top of the bars
-        for bar in bars:
-            yval = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width()/2, yval + 1, yval, ha="center", va="bottom")
-
-        plt.tight_layout()
-        plt.savefig(output_plot_fpath, dpi=600)
-
     def plot_matrix_boxplot(self, df, output_plot_fpath):
         plt.figure(figsize=(10, 8))
         counts = list(df["sum"])
@@ -150,41 +102,17 @@ class Matrix:
         plt.tight_layout()
         plt.savefig(output_plot_fpath, dpi=600)
 
-    def plot_boxplot(self, count_dict, output_plot_fpath):
-        counts = list(count_dict.values())
-        plt.figure(figsize=(10, 8))  # Optional: set the figure size
-        plt.boxplot(counts, vert=True, patch_artist=True)  # `vert=True` for vertical boxplot, `patch_artist=True` for filled boxes
-
-        # Add title and labels
-        plt.xlabel("Null allele count")
-        plt.title("Number of null alleles per sample")
-
-        min_value = np.min(counts)
-
-        # Label the minimum value on the plot
-        plt.annotate(f"Min: {min_value}", xy=(1, min_value), xytext=(1.05, min_value),
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            horizontalalignment="left")
-
-        plt.savefig(output_plot_fpath, dpi=600)
-
-    def run(self, input_files, output_fpaths, generate_matrix):
+    def run(self, input_files, output_fpaths):
         # heatmap_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_heatmap.png")
         output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
         boxplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_boxplot.png")
-        barplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "null_alleles_barplot.png")
-        boxplot_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "sample_null_boxplot.png")
-        null_alleles_count, sample_null_count = self.get_null_allele_counts(input_files)
-        self.plot_boxplot(sample_null_count, boxplot_fpath)
-        self.plot_barplot(null_alleles_count, barplot_fpath)
-        if generate_matrix:
-            sample_ids = [os.path.basename(input_file).replace("_result.json", "") for input_file in input_files]
-            cgviz_matrix_df = self.generate_matrix(sample_ids, self.get_cgviz_cgmlst_data)
-            jasen_matrix_df = self.generate_matrix(sample_ids, self.get_jasen_cgmlst_data)
-            distance_df = jasen_matrix_df - cgviz_matrix_df
-            distance_df = distance_df.astype(float)
-            distance_df.to_csv(output_csv_fpath, index=True, header=True)
-            # self.plot_heatmap(distance_df, output_plot_fpath)
+        sample_ids = [os.path.basename(input_file).replace("_result.json", "") for input_file in input_files]
+        cgviz_matrix_df = self.generate_matrix(sample_ids, self.get_cgviz_cgmlst_data)
+        jasen_matrix_df = self.generate_matrix(sample_ids, self.get_jasen_cgmlst_data)
+        distance_df = jasen_matrix_df - cgviz_matrix_df
+        distance_df = distance_df.astype(float)
+        distance_df.to_csv(output_csv_fpath, index=True, header=True)
+        # self.plot_heatmap(distance_df, output_plot_fpath)
         if os.path.exists(output_csv_fpath):
             distance_df = pd.read_csv(output_csv_fpath, index_col=0)
             distance_df["sum"] = distance_df.sum(axis=1)

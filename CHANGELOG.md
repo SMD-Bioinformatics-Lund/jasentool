@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+ - Added `plot.py` for all plotting functions
+ - Added plotting of `n_missing_loci` barplot
+
 ### Fixed
 
  - Fixed cronjob bugs
  - Fixed cronjob missing execution
+ - Fixed parsing of jasen `.json` files
 
 ### Changed
+
+ - Changed cronjob to use environmental variables
+ - Changed default `--remote_hostname`
 
 ## [v0.2.0]
 
