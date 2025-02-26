@@ -22,19 +22,21 @@ class Missing:
 
     @staticmethod
     def find_files(search_term, parent_dir):
-        """Find files in given directory using regex search term"""
+        """Find files in a given directory using a regex search term."""
+        if not os.path.exists(parent_dir):
+            print(f"WARN: {parent_dir} does not exist! Skipping search.")
+            return []
+
         try:
             search_files = os.listdir(parent_dir)
-        except FileNotFoundError:
-            print(f"WARN: {parent_dir} does not exist! Trying to fix.")
-        finally:
-            search_files = os.listdir(parent_dir)
-            found_files = sorted([os.path.join(parent_dir, search_file)
-                                  for search_file in search_files
-                                  if re.search(search_term, search_file) and
-                                  not search_file.endswith("~")
-                                ])
+            found_files = sorted(
+                os.path.join(parent_dir, search_file) for search_file in search_files
+                if re.search(search_term, search_file) and not search_file.endswith("~")
+            )
             return found_files
+        except Exception as e:
+            print(f"ERROR: Could not list files in {parent_dir}: {e}")
+            return []
 
     @staticmethod
     def edit_read_paths(reads, restore_dir):
@@ -45,12 +47,12 @@ class Missing:
 
     @staticmethod
     def get_seqrun_from_filepath(filepath):
-        dirs = filepath.split("/")
+        path_segments = filepath.split("/")
         pattern = r'^\d{6}'  # Regular expression pattern for YYMMDD format
-        for dir in dirs:
-            match = re.search(pattern, dir)
+        for path_segment in path_segments:
+            match = re.search(pattern, path_segment)
             if match:
-                return dir
+                return path_segment
         return None
 
     @staticmethod

@@ -1,16 +1,12 @@
 #!/bin/bash
 
-
-RERUNSDIR=/data/bnf/dev/ryan/pipelines/jasen/reruns
-CRONDIR=/data/bnf/dev/ryan/jobs/cron
 CURRENT_DATE=$(date +"%y%m%d")
-DEST_HOST="rs-fe1.lunarc.lu.se"
 
 if [ "$1" == "missing" ]; then
   cd $RERUNSDIR
   conda run -n jasentool jasentool missing --db_name cgviz --db_collection sample --analysis_dir /fs1/results_dev/jasen/saureus/analysis_result/ --restore_dir /fs1/ryan/jasen/reruns/seqdata/ --missing_log ${RERUNSDIR}/saureus_${CURRENT_DATE}_missing_reads.log --restore_file ${RERUNSDIR}/saureus_${CURRENT_DATE}.sh -o ${RERUNSDIR}/saureus_${CURRENT_DATE}.csv --alter_sample_id
-  scp ${RERUNSDIR}/saureus_${CURRENT_DATE}.csv ${DEST_HOST}:/fs1/ryan/jasen/bjorn/${CURRENT_DATE}_jasen_missing.csv
-  ssh ${DEST_HOST} /fs2/sw/bnf-scripts/start_nextflow_analysis_dev.pl /fs1/ryan/jasen/bjorn/${CURRENT_DATE}_jasen_missing.csv
+  scp ${RERUNSDIR}/saureus_${CURRENT_DATE}.csv ${HOPPER_HOST}:/fs1/ryan/jasen/bjorn/${CURRENT_DATE}_jasen_missing.csv
+  ssh ${HOPPER_HOST} /fs2/sw/bnf-scripts/start_nextflow_analysis_dev.pl /fs1/ryan/jasen/bjorn/${CURRENT_DATE}_jasen_missing.csv
 else
   cd $CRONDIR
   SEARCH_PATH="/fs2/seqdata/NovaSeq/*/pipeline/multi_microbiology.csv"

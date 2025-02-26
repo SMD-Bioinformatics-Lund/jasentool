@@ -142,7 +142,7 @@ def __accession(group, required):
 def __remote_hostname(group, required):
     """Add remote_hostname argument to group"""
     group.add_argument('--remote_hostname', required=required, type=str,
-                       default='rs-fs1.lunarc.lu.se', help='remote hostname')
+                       default='rs-fe1.lunarc.lu.se', help='remote hostname')
 
 def __prefix(group):
     """Add prefix argument to group"""
