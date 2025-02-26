@@ -49,6 +49,7 @@ class Converge:
         return intersection_df, unique_tbdb_df, unique_who_df
 
     def rm_intermediary_files(self):
+        """Remove intermediary files"""
         files = os.listdir(self.download_dir)
         for filename in ['converged_who_fohm_tbdb.csv', 'unique_tbdb.csv', 'unique_who.csv', 'fohm.csv']:
             files.remove(filename)

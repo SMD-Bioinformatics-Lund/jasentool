@@ -61,7 +61,7 @@ class Validate:
                 n_missing_loci[sample_id] = n_missing
                 jasen_cgmlst_alleles = dict(jasen_cgmlst[0]["result"]["alleles"])
                 for allele in jasen_cgmlst_alleles:
-                    if type(jasen_cgmlst_alleles[allele]) == str:
+                    if isinstance(jasen_cgmlst_alleles[allele], str):
                         sample_null_count[sample_id] += 1
                         if allele in null_alleles_count:
                             null_alleles_count[allele] += 1

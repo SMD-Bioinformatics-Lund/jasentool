@@ -35,6 +35,9 @@ class OptionsParser:
             valid_inputs = self._traverse_input_dir(input_dir)
         elif input_file:
             valid_inputs = input_file
+        else:
+            print('No input was provided.')
+            sys.exit(1)
         return valid_inputs
 
     def _get_output_fpaths(self, input_files, output_dir, output_file, prefix, combined_output):
@@ -94,7 +97,10 @@ class OptionsParser:
         db = Database()
         db.initialize(options.db_name)
         if options.sample_sheet:
-            csv_dict = missing.parse_sample_sheet(options.input_file[0], options.restore_dir)
+            meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
+            sorted_meta_dict = sorted(meta_dict, key=lambda x: x["run"], reverse=False)
+            id_seqrun_dict = {sample["id"]: sample["run"].split("/")[-1] for sample in sorted_meta_dict}
+            csv_dict = missing.parse_sample_sheet(options.input_file[0], options.restore_dir, id_seqrun_dict)
             utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
         if options.analysis_dir:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"

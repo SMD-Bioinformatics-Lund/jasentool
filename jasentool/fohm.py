@@ -21,7 +21,10 @@ class Fohm:
     def read_file(self, csv_filepath, xlsx_filepath):
         """Read excel and csv files"""
         catalogue = pd.read_csv(csv_filepath, header=True)
-        catalogue = pd.read_excel(xlsx_filepath, sheet_name='Mutation_catalogue', header=[0,1]).set_index([('variant (common_name)', 'Unnamed: 2_level_1')])
+        catalogue = (
+            pd.read_excel(xlsx_filepath, sheet_name='Mutation_catalogue', header=[0,1])
+            .set_index([('variant (common_name)', 'Unnamed: 2_level_1')])
+            )
         return catalogue
 
     def convert2hgvs(self, mutation):

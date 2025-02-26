@@ -14,11 +14,11 @@ class Matrix:
     def __init__(self, input_dir, db_collection):
         self.input_dir = input_dir
         self.db_collection = db_collection
-    
+
     def search(self, search_query, search_kw, search_list):
         """Search for query in list of arrays"""
         return [element for element in search_list if element[search_kw] == search_query]
-    
+
     def get_cgviz_cgmlst_data(self, sample_id):
         """Get sample mongodb data"""
         mdb_cgmlst = list(Database.get_cgmlst(self.db_collection, {"id": sample_id, "metadata.QC": "OK"}))
@@ -52,8 +52,9 @@ class Matrix:
             except ValueError:
                 print(f"One following alleles are not in integer format: {row_allele} (row) or {col_allele} (column)")
         return mismatch_count
-    
+
     def generate_matrix(self, sample_ids, get_cgmlst_data):
+        """Generate pairwise matrix by comparing cgmlst alleles"""
         matrix_df = pd.DataFrame(index=sample_ids, columns=sample_ids)
         id_allele_dict = {sample_id: get_cgmlst_data(sample_id) for sample_id in sample_ids}
         print(f"The sample id - alleles dict is approximately {sys.getsizeof(id_allele_dict)} bytes in size")
@@ -64,8 +65,9 @@ class Matrix:
                 if row_sample_cgmlst and col_sample_cgmlst:
                     matrix_df.loc[row_sample, col_sample] = self.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
         return matrix_df
-    
+
     def plot_heatmap(self, distance_df, output_plot_fpath):
+        """Plot heatmap"""
         plt.figure(figsize=(10, 8))
         sns.heatmap(distance_df, annot=True, cmap="coolwarm", center=0)
         plt.title("Differential Matrix Heatmap of cgmlst")
@@ -74,6 +76,7 @@ class Matrix:
         plt.savefig(output_plot_fpath, dpi=600)
 
     def plot_matrix_boxplot(self, df, output_plot_fpath):
+        """Plot boxplot of matrix"""
         plt.figure(figsize=(10, 8))
         counts = list(df["sum"])
         sample_ids = list(df["SampleID"])
@@ -103,6 +106,7 @@ class Matrix:
         plt.savefig(output_plot_fpath, dpi=600)
 
     def run(self, input_files, output_fpaths):
+        """Run the matrix analyses"""
         # heatmap_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_heatmap.png")
         output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
         boxplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_boxplot.png")

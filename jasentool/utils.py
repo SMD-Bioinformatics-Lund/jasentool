@@ -82,11 +82,11 @@ class Utils:
                 )
 
     @staticmethod
-    def download_and_save_file(url, output_filepath):
-        """Download the file and save it to the user-specified path"""
+    def download_and_save_file(url, output_filepath, timeout=600):
+        """Download the file and save it to the user-specified path with a timeout."""
         try:
-            # Make a request to the URL
-            response = requests.get(url, stream=True)
+            # Make a request to the URL with a timeout
+            response = requests.get(url, stream=True, timeout=timeout)
             response.raise_for_status()  # Raise an error for bad responses
 
             # Open the output file in binary write mode
@@ -97,6 +97,8 @@ class Utils:
 
             print(f"File downloaded and saved to: {output_filepath}")
 
+        except requests.exceptions.Timeout:
+            print(f"Error: The request timed out after {timeout} seconds.")
         except requests.exceptions.RequestException as error_code:
             print(f"Error downloading the file: {error_code}")
 
