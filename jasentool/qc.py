@@ -4,6 +4,10 @@ import os
 import json
 import subprocess
 
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
+
 class QC:
     """Class for retrieving qc results"""
     def __init__(self, args):
@@ -76,14 +80,13 @@ class QC:
 
     def system_p(self, *cmd):
         """Execute subproces"""
-        print(f"RUNNING: {' '.join(cmd)}")
-        print()
+        logger.debug("RUNNING: %s", ' '.join(cmd))
         subprocess.run(cmd, check=True)
 
     def run(self):
         """Run QC info extraction"""
         if self.baits and self.reference:
-            print("Calculating HS-metrics...")
+            logger.info("Calculating HS-metrics...")
             dict_file = self.reference
             if not dict_file.endswith(".dict"):
                 dict_file += ".dict"
@@ -103,14 +106,14 @@ class QC:
                         self.results['median_coverage'] = vals[23]
                         self.results['fold_80'] = vals[33]
 
-        print("Collecting basic stats...")
+        logger.info("Collecting basic stats...")
         flagstat = subprocess.check_output(f"sambamba flagstat {'-t '+str(self.cpus) if self.cpus else ''} {self.bam}", shell=True, text=True).splitlines()
         num_reads = int(flagstat[0].split()[0])
         dup_reads = int(flagstat[3].split()[0])
         mapped_reads = int(flagstat[4].split()[0])
 
         if self.paired:
-            print("Collect insert sizes...")
+            logger.info("Collect insert sizes...")
             self.system_p(f"picard CollectInsertSizeMetrics -I {self.bam} -O {self.bam}.inssize -H {self.bam}.ins.pdf -STOP_AFTER 1000000")
             with open(f"{self.bam}.inssize", "r", encoding="utf-8") as ins:
                 for line in ins:
@@ -126,7 +129,7 @@ class QC:
         out_prefix = f"{self.bam}_postalnQC"
         thresholds = [1, 10, 30, 100, 250, 500, 1000]
 
-        print("Collecting depth stats...")
+        logger.info("Collecting depth stats...")
         self.system_p(f"sambamba depth base -c 0 {'-t '+str(self.cpus) if self.cpus else ''} -L {self.bed} {self.bam} > {out_prefix}.basecov.bed")
         pct_above, mean_cov, iqr_median = self.parse_basecov_bed(f"{out_prefix}.basecov.bed", thresholds)
         os.remove(f"{out_prefix}.basecov.bed")

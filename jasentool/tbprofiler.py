@@ -5,6 +5,9 @@ import re
 import sys
 import pandas as pd
 from jasentool.utils import Utils
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Tbprofiler:
     """Class that handles TBProfiler tb mutation catalogue"""

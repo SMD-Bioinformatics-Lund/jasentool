@@ -6,6 +6,9 @@ from jasentool.database import Database
 from jasentool.utils import Utils
 from jasentool.matrix import Matrix
 from jasentool.plot import Plot
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Validate:
     """Class to validate old pipeline (cgviz) with new pipeline (jasen)"""
@@ -67,7 +70,7 @@ class Validate:
                             null_alleles_count[allele] += 1
                         else:
                             null_alleles_count[allele] = 1
-        print(f"The average number of missing alleles per sample is {sum(sample_null_count.values()) / len(sample_null_count.values())}")
+        logger.info("The average number of missing alleles per sample is %s", sum(sample_null_count.values()) / len(sample_null_count.values()))
         return null_alleles_count, sample_null_count, n_missing_loci
 
     def get_mdb_cgv_data(self, sample_name):
@@ -153,7 +156,7 @@ class Validate:
                 sample_json = json.load(fin)
                 sample_name = self.get_sample_name(sample_json)
                 if not self._check_exists(sample_name):
-                    print(f"The sample provided ({sample_name}) does not exist in the provided database ({Database.db_name}) or collection ({self.db_collection}).")
+                    logger.warning("The sample provided (%s) does not exist in the provided database (%s) or collection (%s).", sample_name, Database.db_name, self.db_collection)
                     continue
                 mdb_data_dict = self.get_mdb_cgv_data(sample_name)
                 if mdb_data_dict:
@@ -161,7 +164,7 @@ class Validate:
                     passed_val, compared_data_output = self.compare_data(sample_name, mdb_data_dict, fin_data_dict)
                     species_name = self.get_species_name(sample_json)
                     if species_name != "Staphylococcus aureus":
-                        print(f"WARN: This sample is not saureus: {sample_name} (species prediction: {species_name})")
+                        logger.warning("This sample is not saureus: %s (species prediction: %s)", sample_name, species_name)
                     if passed_val:
                         csv_output += "\n" + compared_data_output
                     else:

@@ -35,6 +35,7 @@ dependencies = [
 Repository = "https://github.com/ryanjameskennedy/jasentool"
 Issues = "https://github.com/ryanjameskennedy/jasentool/issues"
 Changelog = "https://github.com/ryanjameskennedy/jasentool/CHANGELOG.md"
+Documentation = "https://jasentool.readthedocs.io"
 
 [project.scripts]
 jasentool = "jasentool.__main__:main"

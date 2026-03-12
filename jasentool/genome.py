@@ -3,6 +3,9 @@
 import os
 from Bio import Entrez, SeqIO
 from jasentool.utils import Utils
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Genome:
     """Class for handling genome download in multiple formats (fasta, genbank, gff) from NCBI"""
@@ -28,10 +31,10 @@ class Genome:
             # Save the fasta record to a file
             SeqIO.write(fasta_record, self.fasta_filepath, "fasta")
 
-            print(f"Fasta downloaded and saved to {self.fasta_filepath}")
+            logger.info("Fasta downloaded and saved to %s", self.fasta_filepath)
 
         except Exception as error_code:
-            print(f"Error downloading the genome: {error_code}")
+            logger.error("Error downloading the genome: %s", error_code)
         return self.fasta_filepath
 
     def download_genbank(self):
@@ -46,10 +49,10 @@ class Genome:
             # Save the GenBank record to a file
             SeqIO.write(genbank_record, self.genbank_filepath, "genbank")
 
-            print(f"Genbank file downloaded and saved to {self.genbank_filepath}")
+            logger.info("Genbank file downloaded and saved to %s", self.genbank_filepath)
 
         except Exception as error_code:
-            print(f"Error downloading the genbank file: {error_code}")
+            logger.error("Error downloading the genbank file: %s", error_code)
         return self.genbank_filepath
 
     def download_gff(self):
@@ -63,5 +66,5 @@ class Genome:
             destination = os.path.join(self.download_dir, "h37rv.gff")
             utils.copy_file(source, destination)
         except Exception as error_code:
-            print(f"Error downloading the gff file: {error_code}")
+            logger.error("Error downloading the gff file: %s", error_code)
         return self.gff_filepath

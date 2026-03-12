@@ -2,3 +2,26 @@ jasentool/data/dbs/*
 !jasentool/data/dbs/fohm.csv
 build/
 *.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Distribution / packaging
+dist/
+*.egg-info/
+
+# Docs (generated / config)
+docs/
+.readthedocs.yaml
+mkdocs.yml
+
+# Notebooks
+notebooks/
+*.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/

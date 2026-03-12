@@ -8,6 +8,9 @@ import subprocess
 from time import sleep
 from zipfile import ZipFile
 import requests
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Utils:
     """Class containing utilities used throughout jasentool"""
@@ -53,11 +56,11 @@ class Utils:
         """Copy shell and csv files to desired (remote) location"""
         if remote:
             # Copy files to remote server using ssh/scp
-            process = subprocess.run(
+            _ = subprocess.run(
                 f'ssh {remote_hostname} mkdir -p {remote_dir}',
                 shell=True
             )
-            process = subprocess.run(
+            _ = subprocess.run(
                 f'scp {" ".join(batch_files)} {" ".join(csv_files)} {remote_hostname}:{remote_dir}',
                 shell=True,
                 stdout=subprocess.PIPE,
@@ -75,7 +78,7 @@ class Utils:
         for batch_file in batch_files:
             if Utils.pipeline_ready(batch_file):
                 sleep(10.0) # Avoid maxing SSH auth connections
-                process = subprocess.Popen(
+                _ = subprocess.Popen(
                     ["ssh", remote_hostname,
                      "bash", f"{remote_dir}/{os.path.basename(batch_file)}"],
                     close_fds=True
@@ -95,12 +98,12 @@ class Utils:
                 for chunk in response.iter_content(chunk_size=8192):
                     output_file.write(chunk)
 
-            print(f"File downloaded and saved to: {output_filepath}")
+            logger.info("File downloaded and saved to: %s", output_filepath)
 
         except requests.exceptions.Timeout:
-            print(f"Error: The request timed out after {timeout} seconds.")
+            logger.error("The request timed out after %d seconds.", timeout)
         except requests.exceptions.RequestException as error_code:
-            print(f"Error downloading the file: {error_code}")
+            logger.error("Error downloading the file: %s", error_code)
 
     @staticmethod
     def unzip(zip_file, outdir):
@@ -113,9 +116,9 @@ class Utils:
         """Copy file from source to destination"""
         try:
             shutil.copy(source, destination)
-            print(f"File copied from {source} to {destination}")
+            logger.debug("File copied from %s to %s", source, destination)
         except Exception as error_code:
-            print(f"Error copying file: {error_code}")
+            logger.error("Error copying file: %s", error_code)
 
     @staticmethod
     def get_aa_dict():

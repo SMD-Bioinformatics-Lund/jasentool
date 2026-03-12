@@ -9,7 +9,7 @@ from jasentool.tbprofiler import Tbprofiler
 from jasentool.utils import Utils
 
 class Converge:
-    """Class that converges mutation catalogues"""
+    """Converge WHO, TBProfiler (tbdb), and FoHM TB mutation catalogues into a single unified catalogue."""
     def __init__(self, download_dir):
         self.download_dir = download_dir
         self.fohm_fpath = os.path.join(os.path.dirname(__file__), "data/dbs/fohm.csv")
