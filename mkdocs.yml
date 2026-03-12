@@ -1,0 +1,19 @@
+site_name: Jasentool
+site_description: Multipurpose tool for the JASEN pipeline and Bonsai.
+repo_url: https://github.com/SMD-Bioinformatics-Lund/jasentool
+repo_name: SMD-Bioinformatics-Lund/jasentool
+
+theme:
+  name: material
+  palette:
+    primary: teal
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - Changelog: changelog.md

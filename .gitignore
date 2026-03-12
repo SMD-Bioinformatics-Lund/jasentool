@@ -13,10 +13,8 @@ __pycache__/
 dist/
 *.egg-info/
 
-# Docs (generated / config)
-docs/
-.readthedocs.yaml
-mkdocs.yml
+# Docs (generated output only)
+site/
 
 # Notebooks
 notebooks/
