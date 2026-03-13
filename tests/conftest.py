@@ -1,0 +1,30 @@
+"""Shared pytest fixtures."""
+import gzip
+import pytest
+
+FASTQ_RECORD = "@read1\nACGT\n+\nIIII\n"
+
+
+@pytest.fixture()
+def fastq_file(tmp_path):
+    """Write a small plain FASTQ file and return its path."""
+    p = tmp_path / "test.fastq"
+    p.write_text(FASTQ_RECORD * 10)  # 10 reads
+    return p
+
+
+@pytest.fixture()
+def fastq_gz_file(tmp_path):
+    """Write a small gzipped FASTQ file and return its path."""
+    p = tmp_path / "test.fastq.gz"
+    with gzip.open(p, "wt") as fh:
+        fh.write(FASTQ_RECORD * 10)
+    return p
+
+
+@pytest.fixture()
+def targets_tsv(tmp_path):
+    """Write a minimal targets TSV and return its path."""
+    p = tmp_path / "targets.tsv"
+    p.write_text("chrom\tstart\tend\tname\nCHR1\t100\t200\tgene1\n")
+    return p

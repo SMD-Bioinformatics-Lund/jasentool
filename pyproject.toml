@@ -28,7 +28,8 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "pylint==3.3.4",
-    "pytest"
+    "pytest",
+    "click>=8.1",
 ]
 
 [project.urls]
@@ -45,6 +46,10 @@ dev = [
     "pylint ~=3.0.2",
     "black ~=23.11.0",
     "isort ~=5.12.0",
+]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.1",
 ]
 
 [tool.setuptools]
