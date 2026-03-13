@@ -13,7 +13,7 @@ runner = CliRunner()
 
 def test_count_reads_plain_fastq(fastq_file, tmp_path):
     out = tmp_path / "out.json"
-    result = runner.invoke(cli, ["count-reads", "-i", str(fastq_file), "-o", str(out)])
+    result = runner.invoke(cli, ["count-reads", "--fastq1", str(fastq_file), "-o", str(out)])
     assert result.exit_code == 0, result.output
     data = json.loads(out.read_text())
     assert data["n_reads"] == 10
@@ -22,14 +22,14 @@ def test_count_reads_plain_fastq(fastq_file, tmp_path):
 
 def test_count_reads_gzipped(fastq_gz_file, tmp_path):
     out = tmp_path / "out.json"
-    result = runner.invoke(cli, ["count-reads", "-i", str(fastq_gz_file), "-o", str(out)])
+    result = runner.invoke(cli, ["count-reads", "--fastq1", str(fastq_gz_file), "-o", str(out)])
     assert result.exit_code == 0, result.output
 
 
 def test_count_reads_two_files(fastq_file, tmp_path):
     out = tmp_path / "out.json"
     result = runner.invoke(cli, [
-        "count-reads", "-i", str(fastq_file), "-i", str(fastq_file), "-o", str(out)
+        "count-reads", "--fastq1", str(fastq_file), "--fastq2", str(fastq_file), "-o", str(out)
     ])
     assert result.exit_code == 0, result.output
     data = json.loads(out.read_text())
@@ -39,7 +39,7 @@ def test_count_reads_two_files(fastq_file, tmp_path):
 def test_count_reads_with_sample_id(fastq_file, tmp_path):
     out = tmp_path / "out.json"
     result = runner.invoke(cli, [
-        "count-reads", "-i", str(fastq_file), "-o", str(out), "--sample-id", "SAMP1"
+        "count-reads", "--fastq1", str(fastq_file), "-o", str(out), "--sample-id", "SAMP1"
     ])
     assert result.exit_code == 0, result.output
     assert json.loads(out.read_text())["sample_id"] == "SAMP1"

@@ -125,7 +125,7 @@ def identify_missing_cmd(output_file, db_name, db_collection, analysis_dir, rest
 @click.option('-f', '--out-format', default='bed', help='Output format')
 @click.option('-a', '--accession', default=None, help='Accession number')
 def transform_file_format_cmd(input_file, output_file, out_format, accession):
-    """Convert file format."""
+    """Transform file format from cgmlst.org target file to bed file."""
     options = types.SimpleNamespace(
         input_file=list(input_file), output_file=output_file,
         out_format=out_format, accession=accession,
@@ -148,7 +148,7 @@ def transform_file_format_cmd(input_file, output_file, out_format, accession):
               help='Alter sample ID to be LIMS ID + sequencing run')
 def reformat_csv_cmd(csv_file, output_file, sh_file, remote_dir, remote_hostname,
                      remote, auto_start, alter_sample_id):
-    """Fix bjorn microbiology CSV file."""
+    """Reformat bjorn microbiology CSV file."""
     options = types.SimpleNamespace(
         csv_file=csv_file, output_file=output_file, sh_file=sh_file,
         remote_dir=remote_dir, remote_hostname=remote_hostname,
@@ -186,13 +186,14 @@ def post_align_qc_cmd(sample_id, bam_file, reference, output_file, bed_file,
 
 
 @cli.command('count-reads')
-@click.option('-i', '--input-file', required=True, multiple=True,
-              help='Path to FASTQ file(s); provide R1 only or R1 + R2')
+@click.option('--fastq1', required=True, help='Path to R1 FASTQ file')
+@click.option('--fastq2', default=None, help='Path to R2 FASTQ file (optional, paired-end)')
 @click.option('-o', '--output-file', required=True, help='Path to JSON output file')
 @click.option('--sample-id', default=None, help='Sample ID')
-def count_reads_cmd(input_file, output_file, sample_id):
+def count_reads_cmd(fastq1, fastq2, output_file, sample_id):
     """Count reads in FASTQ file(s)."""
+    input_files = [fastq1] if fastq2 is None else [fastq1, fastq2]
     options = types.SimpleNamespace(
-        input_file=list(input_file), output_file=output_file, sample_id=sample_id,
+        input_file=input_files, output_file=output_file, sample_id=sample_id,
     )
     _parser().count_reads(options)
