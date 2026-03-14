@@ -1,8 +1,6 @@
 """Module for retrieving qc results"""
 
-import os
 import json
-import subprocess
 
 import pysam
 import numpy as np
@@ -11,7 +9,7 @@ from jasentool.log import get_logger
 
 logger = get_logger(__name__)
 
-class QC:  # pylint: disable=too-many-instance-attributes
+class QC:
     """Class for retrieving qc results"""
     def __init__(self, args):
         self.results = {}
@@ -19,8 +17,6 @@ class QC:  # pylint: disable=too-many-instance-attributes
         self.bed = args.bed
         self.sample_id = args.sample_id
         self.cpus = args.cpus
-        self.baits = args.baits
-        self.reference = args.reference
         self.paired = self.is_paired()
 
     def write_json_result(self, json_result, output_filepath):
@@ -34,25 +30,6 @@ class QC:  # pylint: disable=too-many-instance-attributes
             first_read = next(bam.fetch(), None)
             return bool(first_read and first_read.is_paired)
 
-    def system_p(self, cmd):
-        """Execute subprocess"""
-        logger.debug("RUNNING: %s", cmd)
-        subprocess.run(cmd, shell=True, check=True)
-
-    def bed_to_interval_list(self, bed_file, dict_file, output_file):
-        """Convert BED file to Picard interval_list format"""
-        with open(dict_file, "r", encoding="utf-8") as dict_fh, \
-             open(bed_file, "r", encoding="utf-8") as bed_fh, \
-             open(output_file, "w", encoding="utf-8") as out_fh:
-            for line in dict_fh:
-                if line.startswith("@HD") or line.startswith("@SQ"):
-                    out_fh.write(line)
-            for line in bed_fh:
-                parts = line.strip().split("\t")
-                chrom, start, end = parts[0], int(parts[1]) + 1, int(parts[2])
-                name = parts[3] if len(parts) > 3 else f"{chrom}:{start}-{end}"
-                out_fh.write(f"{chrom}\t{start}\t{end}\t+\t{name}\n")
-
     def get_base_coverage(self):
         """Compute per-base coverage across BED regions using pysam pileup"""
         depths = []
@@ -65,28 +42,6 @@ class QC:  # pylint: disable=too-many-instance-attributes
                                           min_base_quality=0, stepper="nofilter"):
                         depths.append(col.nsegments)
         return depths
-
-    def _run_hs_metrics(self, dict_file):
-        """Run Picard HS metrics and store results"""
-        if not os.path.isfile(f"{self.bed}.interval_list"):
-            self.bed_to_interval_list(self.bed, dict_file, f"{self.bed}.interval_list")
-        if not os.path.isfile(f"{self.baits}.interval_list"):
-            self.bed_to_interval_list(self.baits, dict_file, f"{self.baits}.interval_list")
-        self.system_p(
-            f"picard CollectHsMetrics -I {self.bam} -O {self.bam}.hsmetrics"
-            f" -R {self.reference}"
-            f" -BAIT_INTERVALS {self.baits}.interval_list"
-            f" -TARGET_INTERVALS {self.bed}.interval_list"
-        )
-        with open(f"{self.bam}.hsmetrics", "r", encoding="utf-8") as fin:
-            for line in fin:
-                if line.startswith("## METRICS CLASS"):
-                    next(fin)
-                    vals = next(fin).split("\t")
-                    self.results['pct_on_target'] = vals[18]
-                    self.results['fold_enrichment'] = vals[26]
-                    self.results['median_coverage'] = vals[23]
-                    self.results['fold_80'] = vals[33]
 
     def _collect_flagstats(self):
         """Count total, duplicate, and mapped reads via pysam"""
@@ -118,13 +73,6 @@ class QC:  # pylint: disable=too-many-instance-attributes
 
     def run(self):
         """Run QC info extraction"""
-        if self.baits and self.reference:
-            logger.info("Calculating HS-metrics...")
-            dict_file = self.reference
-            if not dict_file.endswith(".dict"):
-                dict_file += ".dict"
-            self._run_hs_metrics(dict_file)
-
         logger.info("Collecting basic stats...")
         num_reads, dup_reads, mapped_reads = self._collect_flagstats()
 

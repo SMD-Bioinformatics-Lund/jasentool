@@ -170,17 +170,14 @@ def converge_catalogues_cmd(output_dir, save_dbs):
 @cli.command('post-align-qc')
 @click.option('--sample-id', required=True, help='Sample ID')
 @click.option('--bam-file', required=True, help='Input BAM file')
-@click.option('--reference', required=True, help='Reference FASTA file')
 @click.option('-o', '--output-file', required=True, help='Path to QC JSON output file')
 @click.option('--bed-file', default=None, help='Input BED file')
-@click.option('--baits-file', default=None, help='Input baits file')
 @click.option('--cpus', default=2, type=int, help='Number of CPUs')
-def post_align_qc_cmd(sample_id, bam_file, reference, output_file, bed_file,
-                      baits_file, cpus):
+def post_align_qc_cmd(sample_id, bam_file, output_file, bed_file, cpus):
     """Run QC on BWA alignment."""
     options = types.SimpleNamespace(
-        sample_id=sample_id, bam_file=bam_file, reference=reference,
-        output_file=output_file, bed_file=bed_file, baits_file=baits_file, cpus=cpus,
+        sample_id=sample_id, bam_file=bam_file,
+        output_file=output_file, bed_file=bed_file, cpus=cpus,
     )
     _parser().post_align_qc(options)
 

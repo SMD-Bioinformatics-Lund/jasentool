@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added plotting of `n_missing_loci` barplot
  - `post-align-qc` subcommand — computes post-alignment QC metrics from a BAM file
  - `count-reads` subcommand — counts reads from FASTQ file(s), outputs JSON
+ - Added readthedocs
+ - Added pytesting
+ - Added `Dockerfile`
 
 ### Fixed
 
@@ -29,10 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `fix` → `reformat-csv`
  - `converge` → `converge-catalogues`
  - All subcommand argument names changed from underscore style (`--db_name`) to hyphen style (`--db-name`)
-
-### Removed
-
- - `insert` subcommand
+ - Removed `insert` subcommand
+ - Change sambamba for pysam
+ - Removed picard hs metrics and `--reference` arg
 
 ## [v0.2.0]
 
