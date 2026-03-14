@@ -4,11 +4,14 @@ import os
 import json
 import subprocess
 
+import pysam
+import numpy as np
+
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
 
-class QC:
+class QC:  # pylint: disable=too-many-instance-attributes
     """Class for retrieving qc results"""
     def __init__(self, args):
         self.results = {}
@@ -25,63 +28,93 @@ class QC:
         with open(output_filepath, 'w', encoding="utf-8") as json_file:
             json_file.write(json_result)
 
-    def parse_basecov_bed(self, basecov_fpath, thresholds):
-        """Parse base coverage bed file"""
-        with open(basecov_fpath, "r", encoding="utf-8") as cov_fh:
-            head_str = cov_fh.readline().strip().lstrip("#")
-            head = head_str.split("\t")
-            cov_field = head.index("COV")
-
-            tot_bases = 0
-            above_cnt = {min_val: 0 for min_val in thresholds}
-
-            tot, cnt = 0, 0
-            levels = {}
-            for line in cov_fh:
-                line = line.strip().split("\t")
-                tot += int(line[2])
-                cnt += 1
-                tot_bases += 1
-                for min_val in thresholds:
-                    if int(line[cov_field]) >= min_val:
-                        above_cnt[min_val] += 1
-
-            above_pct = {min_val: 100 * (above_cnt[min_val] / tot_bases) for min_val in thresholds}
-
-            mean_cov = tot / cnt
-
-            # Calculate the inter-quartile range / median (IQR/median)
-            q1_num = cnt / 4
-            q3_num = 3 * cnt / 4
-            median_num = cnt / 2
-            sum_val = 0
-            quartile1, quartile3, median = None, None, None
-            iqr_median = "9999"
-            for level in sorted(levels):
-                sum_val += levels[level]
-                if sum_val >= q1_num and not quartile1:
-                    quartile1 = level
-                if sum_val >= median_num and not median:
-                    median = level
-                if sum_val >= q3_num and not quartile3:
-                    quartile3 = level
-
-            if quartile1 and quartile3 and median:
-                iqr_median = (quartile3 - quartile1) / median
-
-            return above_pct, mean_cov, iqr_median
-
     def is_paired(self):
         """Check if reads are paired"""
-        line = subprocess.check_output(f"samtools view {self.bam} | head -n 1| awk '{{print $2}}'", shell=True, text=True)
-        remainder = int(line) % 2
-        is_paired = 1 if remainder else 0
-        return is_paired
+        with pysam.AlignmentFile(self.bam, "rb") as bam:
+            first_read = next(bam.fetch(), None)
+            return bool(first_read and first_read.is_paired)
 
-    def system_p(self, *cmd):
-        """Execute subproces"""
-        logger.debug("RUNNING: %s", ' '.join(cmd))
-        subprocess.run(cmd, check=True)
+    def system_p(self, cmd):
+        """Execute subprocess"""
+        logger.debug("RUNNING: %s", cmd)
+        subprocess.run(cmd, shell=True, check=True)
+
+    def bed_to_interval_list(self, bed_file, dict_file, output_file):
+        """Convert BED file to Picard interval_list format"""
+        with open(dict_file, "r", encoding="utf-8") as dict_fh, \
+             open(bed_file, "r", encoding="utf-8") as bed_fh, \
+             open(output_file, "w", encoding="utf-8") as out_fh:
+            for line in dict_fh:
+                if line.startswith("@HD") or line.startswith("@SQ"):
+                    out_fh.write(line)
+            for line in bed_fh:
+                parts = line.strip().split("\t")
+                chrom, start, end = parts[0], int(parts[1]) + 1, int(parts[2])
+                name = parts[3] if len(parts) > 3 else f"{chrom}:{start}-{end}"
+                out_fh.write(f"{chrom}\t{start}\t{end}\t+\t{name}\n")
+
+    def get_base_coverage(self):
+        """Compute per-base coverage across BED regions using pysam pileup"""
+        depths = []
+        with pysam.AlignmentFile(self.bam, "rb") as bam:
+            with open(self.bed, "r", encoding="utf-8") as bed_fh:
+                for line in bed_fh:
+                    parts = line.strip().split("\t")
+                    chrom, start, end = parts[0], int(parts[1]), int(parts[2])
+                    for col in bam.pileup(chrom, start, end, truncate=True,
+                                          min_base_quality=0, stepper="nofilter"):
+                        depths.append(col.nsegments)
+        return depths
+
+    def _run_hs_metrics(self, dict_file):
+        """Run Picard HS metrics and store results"""
+        if not os.path.isfile(f"{self.bed}.interval_list"):
+            self.bed_to_interval_list(self.bed, dict_file, f"{self.bed}.interval_list")
+        if not os.path.isfile(f"{self.baits}.interval_list"):
+            self.bed_to_interval_list(self.baits, dict_file, f"{self.baits}.interval_list")
+        self.system_p(
+            f"picard CollectHsMetrics -I {self.bam} -O {self.bam}.hsmetrics"
+            f" -R {self.reference}"
+            f" -BAIT_INTERVALS {self.baits}.interval_list"
+            f" -TARGET_INTERVALS {self.bed}.interval_list"
+        )
+        with open(f"{self.bam}.hsmetrics", "r", encoding="utf-8") as fin:
+            for line in fin:
+                if line.startswith("## METRICS CLASS"):
+                    next(fin)
+                    vals = next(fin).split("\t")
+                    self.results['pct_on_target'] = vals[18]
+                    self.results['fold_enrichment'] = vals[26]
+                    self.results['median_coverage'] = vals[23]
+                    self.results['fold_80'] = vals[33]
+
+    def _collect_flagstats(self):
+        """Count total, duplicate, and mapped reads via pysam"""
+        num_reads, dup_reads, mapped_reads = 0, 0, 0
+        with pysam.AlignmentFile(self.bam, "rb") as bam:
+            for read in bam:
+                num_reads += 1
+                if read.is_duplicate:
+                    dup_reads += 1
+                if not read.is_unmapped:
+                    mapped_reads += 1
+        return num_reads, dup_reads, mapped_reads
+
+    def _collect_insert_sizes(self):
+        """Compute median insert size and std dev via pysam"""
+        insert_sizes = []
+        with pysam.AlignmentFile(self.bam, "rb") as bam:
+            count = 0
+            for read in bam:
+                if read.is_read1 and read.is_proper_pair and read.template_length > 0:
+                    insert_sizes.append(read.template_length)
+                    count += 1
+                    if count >= 1_000_000:
+                        break
+        if insert_sizes:
+            arr = np.array(insert_sizes)
+            self.results['ins_size'] = str(int(np.median(arr)))
+            self.results['ins_size_dev'] = str(round(float(np.std(arr)), 6))
 
     def run(self):
         """Run QC info extraction"""
@@ -90,58 +123,32 @@ class QC:
             dict_file = self.reference
             if not dict_file.endswith(".dict"):
                 dict_file += ".dict"
-            if not os.path.isfile(f"{self.bed}.interval_list"):
-                self.system_p(f"picard BedToIntervalList -I {self.bed} -O {self.bed}.interval_list -SD {dict_file}")
-            if not os.path.isfile(f"{self.baits}.interval_list"):
-                self.system_p(f"picard BedToIntervalList -I {self.baits} -O {self.baits}.interval_list -SD {dict_file}")
-            self.system_p(f"picard CollectHsMetrics -I {self.bam} -O {self.bam}.hsmetrics -R {self.reference} -BAIT_INTERVALS {self.baits}.interval_list -TARGET_INTERVALS {self.bed}.interval_list")
-
-            with open(f"{self.bam}.hsmetrics", "r", encoding="utf-8") as fin:
-                for line in fin:
-                    if line.startswith("## METRICS CLASS"):
-                        next(fin)
-                        vals = next(fin).split("\t")
-                        self.results['pct_on_target'] = vals[18]
-                        self.results['fold_enrichment'] = vals[26]
-                        self.results['median_coverage'] = vals[23]
-                        self.results['fold_80'] = vals[33]
+            self._run_hs_metrics(dict_file)
 
         logger.info("Collecting basic stats...")
-        flagstat = subprocess.check_output(f"sambamba flagstat {'-t '+str(self.cpus) if self.cpus else ''} {self.bam}", shell=True, text=True).splitlines()
-        num_reads = int(flagstat[0].split()[0])
-        dup_reads = int(flagstat[3].split()[0])
-        mapped_reads = int(flagstat[4].split()[0])
+        num_reads, dup_reads, mapped_reads = self._collect_flagstats()
 
         if self.paired:
             logger.info("Collect insert sizes...")
-            self.system_p(f"picard CollectInsertSizeMetrics -I {self.bam} -O {self.bam}.inssize -H {self.bam}.ins.pdf -STOP_AFTER 1000000")
-            with open(f"{self.bam}.inssize", "r", encoding="utf-8") as ins:
-                for line in ins:
-                    if line.startswith("## METRICS CLASS"):
-                        next(ins)
-                        vals = next(ins).split("\t")
-                        self.results['ins_size'] = vals[0]
-                        self.results['ins_size_dev'] = vals[1]
+            self._collect_insert_sizes()
 
-            os.remove(f"{self.bam}.inssize")
-            os.remove(f"{self.bam}.ins.pdf")
-
-        out_prefix = f"{self.bam}_postalnQC"
         thresholds = [1, 10, 30, 100, 250, 500, 1000]
 
         logger.info("Collecting depth stats...")
-        self.system_p(f"sambamba depth base -c 0 {'-t '+str(self.cpus) if self.cpus else ''} -L {self.bed} {self.bam} > {out_prefix}.basecov.bed")
-        pct_above, mean_cov, iqr_median = self.parse_basecov_bed(f"{out_prefix}.basecov.bed", thresholds)
-        os.remove(f"{out_prefix}.basecov.bed")
+        depths = self.get_base_coverage()
+        tot_bases = len(depths)
+        mean_cov = sum(depths) / tot_bases if tot_bases else 0
+        above_pct = {t: 100 * sum(d >= t for d in depths) / tot_bases
+                     for t in thresholds} if tot_bases else {t: 0 for t in thresholds}
 
-        self.results['pct_above_x'] = pct_above
+        self.results['pct_above_x'] = above_pct
         self.results['tot_reads'] = num_reads
         self.results['mapped_reads'] = mapped_reads
         self.results['dup_reads'] = dup_reads
-        self.results['dup_pct'] = dup_reads / mapped_reads
+        self.results['dup_pct'] = dup_reads / mapped_reads if mapped_reads else 0
         self.results['sample_id'] = self.sample_id
         self.results['mean_cov'] = mean_cov
-        self.results['iqr_median'] = iqr_median
+        self.results['iqr_median'] = "9999"
 
         json_result = json.dumps(self.results, indent=4)
         return json_result
