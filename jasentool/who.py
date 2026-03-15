@@ -5,6 +5,9 @@ import re
 import pandas as pd
 from tqdm import tqdm
 from jasentool.utils import Utils
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class WHO:
     """Class for handling WHO tb mutation catalogue"""
@@ -154,7 +157,7 @@ class WHO:
             match = self.re_attr.search(info_string)
             if match:
                 if len(match.groups([1, 2])) != 2:
-                    print(match.groups([1, 2]))
+                    logger.warning("Unexpected groups in extract_info: %s", match.groups([1, 2]))
                 return pd.Series(match.groups([1, 2]))
         return pd.Series([None, None])
 
@@ -233,7 +236,7 @@ class WHO:
                     try:
                         complete_variant = f'{d_match[1]}_{d_match[2]}_del_{d_match[3]}_{h37rv[start:end].lower()}_{d_match[5]}'
                     except TypeError:
-                        print(f"{start}: {type(start)}\n{end}: {type(end)}")
+                        logger.error("%s: %s  %s: %s", start, type(start), end, type(end))
                     classified.loc[idx, 'complete_variant'] = complete_variant
                     classified.loc[idx, 'complete_variant_fail'] = False
                 else:

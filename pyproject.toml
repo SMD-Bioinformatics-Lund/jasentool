@@ -22,28 +22,34 @@ dependencies = [
     "requests",
     "tqdm",
     "pandas",
-    "pymongo==3.13",
+    "pymongo~=4.16",
     "openpyxl",
     "biopython",
     "matplotlib",
     "seaborn",
-    "pylint==3.3.4",
-    "pytest"
+    "click>=8.1",
+    "pysam>=0.22",
+    "numpy>=1.24",
 ]
 
 [project.urls]
 Repository = "https://github.com/ryanjameskennedy/jasentool"
 Issues = "https://github.com/ryanjameskennedy/jasentool/issues"
 Changelog = "https://github.com/ryanjameskennedy/jasentool/CHANGELOG.md"
+Documentation = "https://jasentool.readthedocs.io"
 
 [project.scripts]
 jasentool = "jasentool.__main__:main"
 
 [project.optional-dependencies]
 dev = [
-    "pylint ~=3.0.2",
-    "black ~=23.11.0",
-    "isort ~=5.12.0",
+    "pylint~=4.0",
+    "black~=26.3",
+    "isort~=8.0",
+]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.1",
 ]
 
 [tool.setuptools]
@@ -55,6 +61,9 @@ include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "jasentool.__version__"}
+
+[tool.pylint.main]
+extension-pkg-allow-list = ["pysam"]
 
 [tool.coverage.run]
 source = ["jasentool"]

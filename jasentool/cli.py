@@ -1,299 +1,196 @@
 """Command line interface module"""
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 
-import argparse
-from contextlib import contextmanager
+import types
+import logging
 
-@contextmanager
-def subparser(parser, name, desc):
-    """Yield subparser"""
-    yield parser.add_parser(name, conflict_handler='resolve', help=desc,
-                            formatter_class=argparse.RawDescriptionHelpFormatter)
+import click
 
-@contextmanager
-def mutex_group(parser, required):
-    """Yield mutually exclusive group"""
-    arg_type = "required" if required else "optional"
-    group = parser.add_argument_group(f'mutually exclusive {arg_type} arguments')
-    yield group.add_mutually_exclusive_group(required=required)
+from jasentool import __version__
+from jasentool.log import setup_logging
+from jasentool.main import OptionsParser
 
-@contextmanager
-def arg_group(parser, name):
-    """Yield mutually argument group"""
-    yield parser.add_argument_group(name)
 
-def __query(group, required):
-    """Add query argument to group"""
-    group.add_argument('-q', '--query', required=required, nargs='+', help='sample query')
+def _parser():
+    return OptionsParser(__version__)
 
-def __sample_id(group, required):
-    """Add sample_id argument to group"""
-    group.add_argument('--sample_id', required=required, type=str, help='sample ID')
 
-def __input_dir(group, required, help):
-    """Add input_dir argument to group"""
-    group.add_argument('--input_dir', required=required, help=help)
+@click.group()
+@click.version_option(__version__)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='Enable debug logging')
+def cli(verbose):
+    """Multipurpose tool for the JASEN pipeline and Bonsai."""
+    setup_logging(level=logging.DEBUG if verbose else logging.INFO)
 
-def __input_file(group, required, help):
-    """Add input_file argument to group"""
-    group.add_argument('-i', '--input_file', required=required, nargs='+', help=help)
 
-def __csv_file(group, required, help):
-    """Add csv_file argument to group"""
-    group.add_argument('--csv_file', required=required, help=help)
+@cli.command('find')
+@click.option('-q', '--query', required=True, multiple=True, help='Sample query')
+@click.option('--db-name', required=True, help='MongoDB database name')
+@click.option('--db-collection', required=True, help='MongoDB collection name')
+@click.option('-o', '--output-file', default=None, help='Path to output file')
+@click.option('--output-dir', default=None, help='Path to output directory')
+@click.option('--combined-output', is_flag=True, default=False,
+              help='Combine all outputs into one output')
+@click.option('--address', '--uri', default='mongodb://localhost:27017/',
+              help='MongoDB address')
+@click.option('--prefix', default='jasentool_results_', help='Output file prefix')
+def find_cmd(query, db_name, db_collection, output_file, output_dir,
+             combined_output, address, prefix):
+    """Find sample from given MongoDB."""
+    if not output_file and not output_dir:
+        raise click.UsageError("One of --output-file or --output-dir is required.")
+    if output_file and output_dir:
+        raise click.UsageError("--output-file and --output-dir are mutually exclusive.")
+    options = types.SimpleNamespace(
+        query=list(query), db_name=db_name, db_collection=db_collection,
+        output_file=output_file, output_dir=output_dir,
+        combined_output=combined_output, address=address, prefix=prefix,
+    )
+    _parser().find(options)
 
-def __sh_file(group, required, help):
-    """Add sh_file argument to group"""
-    group.add_argument('--sh_file', required=required, default=None, help=help)
 
-def __bam_file(group, required):
-    """Add bam_file argument to group"""
-    group.add_argument('--bam_file', required=required, type=str, help='input bam file')
+@cli.command('validate-pipelines')
+@click.option('-i', '--input-file', multiple=True, default=None,
+              help='Input filepath(s)')
+@click.option('--input-dir', default=None,
+              help='Path to directory containing sample files')
+@click.option('-o', '--output-file', default=None, help='Path to output file')
+@click.option('--output-dir', default=None, help='Path to output directory')
+@click.option('--db-name', required=True, help='MongoDB database name')
+@click.option('--db-collection', required=True, help='MongoDB collection name')
+@click.option('--combined-output', is_flag=True, default=False,
+              help='Combine all outputs into one output')
+@click.option('--generate-matrix', is_flag=True, default=False,
+              help='Generate cgMLST matrix')
+@click.option('--address', '--uri', default='mongodb://localhost:27017/',
+              help='MongoDB address')
+@click.option('--prefix', default='jasentool_results_', help='Output file prefix')
+def validate_pipelines_cmd(input_file, input_dir, output_file, output_dir, db_name,
+                           db_collection, combined_output, generate_matrix, address, prefix):
+    """Compare results from new pipeline to old results."""
+    if not input_file and not input_dir:
+        raise click.UsageError("One of --input-file or --input-dir is required.")
+    if input_file and input_dir:
+        raise click.UsageError("--input-file and --input-dir are mutually exclusive.")
+    if not output_file and not output_dir:
+        raise click.UsageError("One of --output-file or --output-dir is required.")
+    if output_file and output_dir:
+        raise click.UsageError("--output-file and --output-dir are mutually exclusive.")
+    options = types.SimpleNamespace(
+        input_file=list(input_file) if input_file else None,
+        input_dir=input_dir,
+        output_file=output_file, output_dir=output_dir,
+        db_name=db_name, db_collection=db_collection,
+        combined_output=combined_output, generate_matrix=generate_matrix,
+        address=address, prefix=prefix,
+    )
+    _parser().validate_pipelines(options)
 
-def __bed_file(group, required):
-    """Add bed_file argument to group"""
-    group.add_argument('--bed_file', required=required, type=str, help='input bed file')
 
-def __baits_file(group, required):
-    """Add baits_file argument to group"""
-    group.add_argument('--baits_file', required=required, type=str, default=None,
-                       help='input baits file')
+@cli.command('identify-missing')
+@click.option('-o', '--output-file', required=True, help='Path to output file')
+@click.option('--db-name', required=True, help='MongoDB database name')
+@click.option('--db-collection', required=True, help='MongoDB collection name')
+@click.option('--analysis-dir', default=None,
+              help='Analysis results dir containing JASEN results')
+@click.option('--restore-dir', default='/fs2/seqdata/restored',
+              help='Directory to restore spring files to')
+@click.option('--restore-file', default=None, help='Filepath for bash restore script')
+@click.option('--missing-log', default='missing_samples.log',
+              help='File containing missing files')
+@click.option('--assay', default='jasen-saureus-dev', help='Assay for JASEN to run')
+@click.option('--platform', default='illumina', help='Sequencing platform')
+@click.option('--sample-sheet', is_flag=True, default=False, help='Sample sheet input')
+@click.option('--alter-sample-id', is_flag=True, default=False,
+              help='Alter sample ID to be LIMS ID + sequencing run')
+@click.option('-i', '--input-file', multiple=True, default=None, help='Input filepath(s)')
+def identify_missing_cmd(output_file, db_name, db_collection, analysis_dir, restore_dir,
+                         restore_file, missing_log, assay, platform, sample_sheet,
+                         alter_sample_id, input_file):
+    """Find missing sample data from old runs."""
+    options = types.SimpleNamespace(
+        output_file=output_file, db_name=db_name, db_collection=db_collection,
+        analysis_dir=analysis_dir, restore_dir=restore_dir, restore_file=restore_file,
+        missing_log=missing_log, assay=assay, platform=platform,
+        sample_sheet=sample_sheet, alter_sample_id=alter_sample_id,
+        input_file=list(input_file) if input_file else None,
+    )
+    _parser().identify_missing(options)
 
-def __reference(group, required, help):
-    """Add reference argument to group"""
-    group.add_argument('--reference', required=required, type=str, help=help)
 
-def __output_file(group, required, help):
-    """Add output_file argument to group"""
-    group.add_argument('-o', '--output_file', required=required, type=str, help=help)
+@cli.command('transform-file-format')
+@click.option('-i', '--input-file', required=True, multiple=True,
+              help='Path to targets TSV file')
+@click.option('-o', '--output-file', required=True, help='Path to output file')
+@click.option('-f', '--out-format', default='bed', help='Output format')
+@click.option('-a', '--accession', default=None, help='Accession number')
+def transform_file_format_cmd(input_file, output_file, out_format, accession):
+    """Transform file format from cgmlst.org target file to bed file."""
+    options = types.SimpleNamespace(
+        input_file=list(input_file), output_file=output_file,
+        out_format=out_format, accession=accession,
+    )
+    _parser().transform_file_format(options)
 
-def __output_dir(group, required):
-    """Add output_dir argument to group"""
-    group.add_argument('--output_dir', required=required, type=str,
-                       help='directory to output files')
 
-def __analysis_dir(group, required):
-    """Add analysis_dir argument to group"""
-    group.add_argument('--analysis_dir', required=required, type=str,
-                       help='analysis results dir containing jasen results')
+@cli.command('reformat-csv')
+@click.option('--csv-file', required=True, help='Path to bjorn CSV file')
+@click.option('-o', '--output-file', required=True, help='Path to fixed output CSV file')
+@click.option('--sh-file', default=None, help='Path to bjorn SH file')
+@click.option('--remote-dir', default='/fs1/bjorn/jasen',
+              help='Remote directory for spring files')
+@click.option('--remote-hostname', default='rs-fe1.lunarc.lu.se',
+              help='Remote hostname')
+@click.option('--remote', is_flag=True, default=False, help='Remote copy')
+@click.option('--auto-start', is_flag=True, default=False,
+              help='Automatically start')
+@click.option('--alter-sample-id', is_flag=True, default=False,
+              help='Alter sample ID to be LIMS ID + sequencing run')
+def reformat_csv_cmd(csv_file, output_file, sh_file, remote_dir, remote_hostname,
+                     remote, auto_start, alter_sample_id):
+    """Reformat bjorn microbiology CSV file."""
+    options = types.SimpleNamespace(
+        csv_file=csv_file, output_file=output_file, sh_file=sh_file,
+        remote_dir=remote_dir, remote_hostname=remote_hostname,
+        remote=remote, auto_start=auto_start, alter_sample_id=alter_sample_id,
+    )
+    _parser().reformat_csv(options)
 
-def __restore_dir(group, required):
-    """Add restore_dir argument to group"""
-    group.add_argument('--restore_dir', required=required, type=str,
-                       default='/fs2/seqdata/restored',
-                       help='directory user wishes spring files to be restored to')
 
-def __remote_dir(group, required):
-    """Add remote_dir argument to group"""
-    group.add_argument('--remote_dir', required=required, type=str,
-                       default='/fs1/bjorn/jasen',
-                       help='directory user wishes spring files to be restored to')
+@cli.command('converge-catalogues')
+@click.option('--output-dir', default=None, help='Path to output directory')
+@click.option('--save-dbs', is_flag=True, default=False,
+              help='Save all intermediary DBs created for TBProfiler DB convergence')
+def converge_catalogues_cmd(output_dir, save_dbs):
+    """Converge TB mutation catalogues."""
+    options = types.SimpleNamespace(output_dir=output_dir, save_dbs=save_dbs)
+    _parser().converge_catalogues(options)
 
-def __restore_file(group, required):
-    """Add restore_file argument to group"""
-    group.add_argument('--restore_file', required=required, type=str,
-                       help='filepath bash shell script (.sh) to be output')
 
-def __missing_log(group, required):
-    """Add missing_log argument to group"""
-    group.add_argument('--missing_log', required=required, type=str,
-                       default='missing_samples.log',
-                       help='file containing missing files')
+@cli.command('post-align-qc')
+@click.option('--sample-id', required=True, help='Sample ID')
+@click.option('--bam-file', required=True, help='Input BAM file')
+@click.option('-o', '--output-file', required=True, help='Path to QC JSON output file')
+@click.option('--bed-file', default=None, help='Input BED file')
+@click.option('--cpus', default=2, type=int, help='Number of CPUs')
+def post_align_qc_cmd(sample_id, bam_file, output_file, bed_file, cpus):
+    """Run QC on BWA alignment."""
+    options = types.SimpleNamespace(
+        sample_id=sample_id, bam_file=bam_file,
+        output_file=output_file, bed_file=bed_file, cpus=cpus,
+    )
+    _parser().post_align_qc(options)
 
-def __assay(group, required):
-    """Add assay argument to group"""
-    group.add_argument('--assay', required=required, type=str,
-                       default='jasen-saureus-dev',
-                       help='assay for jasen to run')
 
-def __platform(group, required):
-    """Add platform argument to group"""
-    group.add_argument('--platform', required=required, type=str,
-                       default='illumina',
-                       help='sequencing platform for jasen to run')
-
-def __uri(group):
-    """Add mongodb address argument to group"""
-    group.add_argument('--address', '--uri',
-                       default='mongodb://localhost:27017/',
-                       help='Mongodb host address. \
-                        Use: `sudo lsof -iTCP -sTCP:LISTEN | grep mongo` to get address')
-
-def __db_name(group, required):
-    """Add db_name argument to group"""
-    group.add_argument('--db_name', required=required,
-                       help='Mongodb database name address. \
-                        Use: `show dbs` to get db name')
-
-def __db_collection(group, required):
-    """Add db_collection argument to group"""
-    group.add_argument('--db_collection', required=required,
-                       help='Mongodb collection name. \
-                        Use: `show collections` to get db collection')
-
-def __out_format(group, required):
-    """Add out_format argument to group"""
-    group.add_argument('-f', '--out_format', required=required, type=str,
-                       default="bed", help='output format')
-
-def __accession(group, required):
-    """Add accession argument to group"""
-    group.add_argument('-a', '--accession', required=required, type=str, help='accession number')
-
-def __remote_hostname(group, required):
-    """Add remote_hostname argument to group"""
-    group.add_argument('--remote_hostname', required=required, type=str,
-                       default='rs-fe1.lunarc.lu.se', help='remote hostname')
-
-def __prefix(group):
-    """Add prefix argument to group"""
-    group.add_argument('--prefix', type=str, default='jasentool_results_',
-                       help='prefix for all output files')
-
-def __auto_start(group, required):
-    """Add auto_start argument to group"""
-    group.add_argument('--auto_start', required=required, dest='auto_start', action='store_true',
-                       default=False, help='automatically start')
-
-def __remote(group, required):
-    """Add remote argument to group"""
-    group.add_argument('--remote', required=required, dest='remote', action='store_true',
-                       default=False, help='remote copy')
-
-def __combined_output(group):
-    """Add combined_output argument to group"""
-    group.add_argument('--combined_output', dest='combined_output', action='store_true',
-                       help='combine all of the outputs into one output')
-
-def __generate_matrix(group):
-    """Add generate_matrix argument to group"""
-    group.add_argument('--generate_matrix', dest='generate_matrix', action='store_true',
-                       help='generate cgmlst matrix')
-
-def __save_dbs(group):
-    """Save all intermediary dbs created for TBProfiler db convergence"""
-    group.add_argument('--save_dbs', dest='save_dbs', action='store_true',
-                       help='save all intermediary dbs created for TBProfiler db convergence')
-
-def __sample_sheet(group, required):
-    """Add sample_sheet argument to group"""
-    group.add_argument('--sample_sheet', required=required, dest='sample_sheet',
-                       action='store_true', help='sample sheet input')
-
-def __alter_sample_id(group, required):
-    """Add sample_sheet argument to group"""
-    group.add_argument('--alter_sample_id', required=required,
-                       dest='alter_sample_id', action='store_true', default=False,
-                       help='alter sample id to be lims ID + sequencing run')
-
-def __cpus(group):
-    """Add cpus argument to group"""
-    group.add_argument('--cpus', dest='cpus', type=int, default=2, help='input cpus')
-
-def __help(group):
-    """Add help argument to group"""
-    group.add_argument('-h', '--help', action='help', help='show help message')
-
-def get_main_parser():
-    """Get/build the main argument parser"""
-    main_parser = argparse.ArgumentParser(prog='jasentool', conflict_handler='resolve')
-    sub_parsers = main_parser.add_subparsers(help='--', dest='subparser_name')
-    with subparser(sub_parsers, 'find', 'Find sample from given mongo db') as parser:
-        with mutex_group(parser, required=True) as group:
-            __output_dir(group, required=False)
-            __output_file(group, required=False, help='path to mongo db output file')
-        with arg_group(parser, 'required named arguments') as group:
-            __query(group, required=True)
-            __db_name(group, required=True)
-            __db_collection(group, required=True)
-        with arg_group(parser, 'optional arguments') as group:
-            __combined_output(group)
-            __uri(group)
-            __prefix(group)
-            __help(group)
-
-    with subparser(sub_parsers, 'insert', 'Insert sample(s) into db') as parser:
-        with mutex_group(parser, required=True) as group:
-            __input_file(group, required=False, help='path to json file to be inserted into db')
-            __input_dir(group, required=False, help='path to directory containing sample files')
-        with arg_group(parser, 'required named arguments') as group:
-            __db_name(group, required=True)
-            __db_collection(group, required=True)
-        with arg_group(parser, 'optional arguments') as group:
-            __combined_output(group)
-            __uri(group)
-            __help(group)
-
-    with subparser(sub_parsers, 'validate', 'Compare results from new pipeline to old results') as parser:
-        with mutex_group(parser, required=True) as group:
-            __input_file(group, required=False, help='input filepath(s)')
-            __input_dir(group, required=False, help='path to directory containing sample files')
-        with mutex_group(parser, required=True) as group:
-            __output_dir(group, required=False)
-            __output_file(group, required=False, help='path to mongo db output file')
-        with arg_group(parser, 'required named arguments') as group:
-            __db_name(group, required=True)
-            __db_collection(group, required=True)
-        with arg_group(parser, 'optional arguments') as group:
-            __combined_output(group)
-            __generate_matrix(group)
-            __uri(group)
-            __prefix(group)
-            __help(group)
-
-    with subparser(sub_parsers, 'missing', 'Find missing sample data from old runs') as parser:
-        with arg_group(parser, 'required named arguments') as group:
-            __output_file(group, required=True, help='path to mongo db output file')
-            __db_name(group, required=True)
-            __db_collection(group, required=True)
-        with arg_group(parser, 'optional arguments') as group:
-            __analysis_dir(group, required=False)
-            __restore_dir(group, required=False)
-            __restore_file(group, required=False)
-            __missing_log(group, required=False)
-            __assay(group, required=False)
-            __platform(group, required=False)
-            __sample_sheet(group, required=False)
-            __alter_sample_id(group, required=False)
-            __help(group)
-
-    with subparser(sub_parsers, 'convert', 'Convert file format') as parser:
-        with arg_group(parser, 'required named arguments') as group:
-            __input_file(group, required=True, help='path to targets tsv file')
-            __output_file(group, required=True, help='path to mongo db output file')
-        with arg_group(parser, 'optional arguments') as group:
-            __out_format(group, required=False)
-            __accession(group, required=False)
-            __help(group)
-
-    with subparser(sub_parsers, 'fix', 'Fix bjorn microbiology csv file') as parser:
-        with arg_group(parser, 'required named arguments') as group:
-            __csv_file(group, required=True, help='path to bjorn csv file')
-            __output_file(group, required=True, help='path to fixed output csv file')
-        with arg_group(parser, 'optional arguments') as group:
-            __sh_file(group, required=False, help='path to bjorn sh file')
-            __remote_dir(group, required=False)
-            __remote_hostname(group, required=False)
-            __remote(group, required=False)
-            __auto_start(group, required=False)
-            __alter_sample_id(group, required=False)
-            __help(group)
-
-    with subparser(sub_parsers, 'converge', 'Converge TB mutation catalogues') as parser:
-        with arg_group(parser, 'optional arguments') as group:
-            __output_dir(group, required=False)
-            __save_dbs(group)
-            __help(group)
-
-    with subparser(sub_parsers, 'qc', 'Run qc on bwa alignment') as parser:
-        with arg_group(parser, 'required named arguments') as group:
-            __sample_id(group, required=True)
-            __bam_file(group, required=True)
-            __reference(group, required=True, help='reference fasta file')
-            __output_file(group, required=True, help='path to qc json output file')
-        with arg_group(parser, 'optional arguments') as group:
-            __bed_file(group, required=False)
-            __baits_file(group, required=False)
-            __cpus(group)
-            __help(group)
-
-    return main_parser
+@cli.command('count-reads')
+@click.option('--fastq1', required=True, help='Path to R1 FASTQ file')
+@click.option('--fastq2', default=None, help='Path to R2 FASTQ file (optional, paired-end)')
+@click.option('-o', '--output-file', required=True, help='Path to JSON output file')
+@click.option('--sample-id', default=None, help='Sample ID')
+def count_reads_cmd(fastq1, fastq2, output_file, sample_id):
+    """Count reads in FASTQ file(s)."""
+    input_files = [fastq1] if fastq2 is None else [fastq1, fastq2]
+    options = types.SimpleNamespace(
+        input_file=input_files, output_file=output_file, sample_id=sample_id,
+    )
+    _parser().count_reads(options)

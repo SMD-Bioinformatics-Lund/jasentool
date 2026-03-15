@@ -17,7 +17,10 @@ class Database:
     @staticmethod
     def insert(collection, data):
         """Insert data into mongodb"""
-        Database.db[collection].insert(data)
+        if isinstance(data, list):
+            Database.db[collection].insert_many(data)
+        else:
+            Database.db[collection].insert_one(data)
 
     @staticmethod
     def find(collection, query, fields):

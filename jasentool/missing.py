@@ -4,6 +4,9 @@ import os
 import re
 import json
 # import pymongo
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Missing:
     """Class for locating expected samples that are missing from a given directory"""
@@ -24,7 +27,7 @@ class Missing:
     def find_files(search_term, parent_dir):
         """Find files in a given directory using a regex search term."""
         if not os.path.exists(parent_dir):
-            print(f"WARN: {parent_dir} does not exist! Skipping search.")
+            logger.warning("%s does not exist! Skipping search.", parent_dir)
             return []
 
         try:
@@ -35,7 +38,7 @@ class Missing:
             )
             return found_files
         except Exception as e:
-            print(f"ERROR: Could not list files in {parent_dir}: {e}")
+            logger.error("Could not list files in %s: %s", parent_dir, e)
             return []
 
     @staticmethod
@@ -47,6 +50,7 @@ class Missing:
 
     @staticmethod
     def get_seqrun_from_filepath(filepath):
+        """Extract and return the sequencing run identifier (YYMMDD format) from a filepath."""
         path_segments = filepath.split("/")
         pattern = r'^\d{6}'  # Regular expression pattern for YYMMDD format
         for path_segment in path_segments:
@@ -164,8 +168,7 @@ class Missing:
                                 ]
                             elif len(paired_reads) == 4:
                                 paired_reads_string = '\n-'.join(paired_reads)
-                                print(f"There are 4 sets of reads related to sample {sample_id} from the {parent_dir}: "
-                                      f"\n-{paired_reads_string}\n")
+                                logger.warning("There are 4 sets of reads related to sample %s from the %s:\n-%s", sample_id, parent_dir, paired_reads_string)
 
                         elif len(paired_reads) == 3:
                             paired_reads = [paired_read for paired_read in paired_reads
@@ -198,8 +201,7 @@ class Missing:
                         #else:
                             #print(len(paired_reads))
                     except FileNotFoundError:
-                        print(f"WARNING: {parent_dir} does not exist regarding {sample_id}.")
-                        print(sample_sheet)
+                        logger.warning("%s does not exist regarding %s. (sample sheet: %s)", parent_dir, sample_id, sample_sheet)
 
         return csv_dict
 
@@ -210,17 +212,17 @@ class Missing:
             fpath.startswith("/fs1") and
             not os.path.exists(os.path.join(fpath, "Data/Intensities/BaseCalls"))
         ):
-            print(f"WARN: {fpath} does not exist! Fixing by removing '/fs1' prefix.")
+            logger.warning("%s does not exist! Fixing by removing '/fs1' prefix.", fpath)
             fpath = fpath.replace("/fs1", "")
         if (
             fpath.startswith("/fs2") and
             not os.path.exists(os.path.join(fpath, "Data/Intensities/BaseCalls"))
         ):
-            print(f"WARN: {fpath} does not exist! Fixing by removing '/fs2' prefix.")
+            logger.warning("%s does not exist! Fixing by removing '/fs2' prefix.", fpath)
             fpath = fpath.replace("/fs2", "")
         if fpath.startswith("NovaSeq"):
             fpath = "/seqdata/" + fpath
-            print(f"WARN: {fpath} does not exist! Fixing by adding '/seqdata/' as a prefix.")
+            logger.warning("%s does not exist! Fixing by adding '/seqdata/' as a prefix.", fpath)
         if not fpath.startswith("/data"):
             fs2_fpath = "/fs2" + fpath
             isilon_fpath = "/media/isilon/backup_hopper" + fpath
@@ -233,7 +235,7 @@ class Missing:
                 return data_fpath
             if os.path.exists(fpath):
                 return fpath.rstrip("Data/Intensities/BaseCalls/")
-            print(f"WARN: Base calls for {fpath} cannot be found.")
+            logger.warning("Base calls for %s cannot be found.", fpath)
         return fpath
 
     @staticmethod
@@ -246,10 +248,10 @@ class Missing:
             sample_name = result_json["sample_name"]
             return sample_name
         except KeyError as e:
-            print(f"KeyError: {e} {json_fpath}")
+            logger.error("KeyError: %s %s", e, json_fpath)
             return None
         except json.JSONDecodeError:
-            print(f"JSONError: {json_fpath}")
+            logger.error("JSONDecodeError: %s", json_fpath)
             return None
 
     @staticmethod
@@ -277,8 +279,8 @@ class Missing:
             except KeyError:
                 not_found.append(missing_sample)
                 #print(f"{missing_sample} could not be found")
-        print(f"{len(not_found)} samples could not be found")
-        print(f"{len(filtered_csv_dict.keys())} samples remain after filtering")
+        logger.info("%d samples could not be found", len(not_found))
+        logger.info("%d samples remain after filtering", len(filtered_csv_dict.keys()))
         return filtered_csv_dict, not_found
 
     @staticmethod
@@ -303,12 +305,12 @@ class Missing:
                             ss_dict |= Missing.parse_sample_sheet(sample_sheet, restore_dir, id_seqrun_dict)
                         csv_dict |= ss_dict
                     else:
-                        print(f"WARN: No sample sheets exist in the following path: {sample['run']}!")
+                        logger.warning("No sample sheets exist in the following path: %s!", sample['run'])
                     sample_runs.append(sample["run"])
 
-        print(f"{len(csv_dict.keys())} samples found")
-        print(f"{len(missing_samples)} samples missing")
-        print(f"{len(missing_samples)-len(set(missing_samples))} duplicate sample ids")
+        logger.info("%d samples found", len(csv_dict.keys()))
+        logger.info("%d samples missing", len(missing_samples))
+        logger.info("%d duplicate sample ids", len(missing_samples) - len(set(missing_samples)))
         filtered_csv_dict, not_found = Missing.filter_csv_dict(csv_dict, missing_samples)
         return filtered_csv_dict, "\n".join(not_found)
 
@@ -347,9 +349,9 @@ class Missing:
                 if file_size_r1 < 10 or file_size_r2 < 10:
                     empty_files_dict[sample] = csv_dict[sample]
             except FileNotFoundError:
-                print(f"WARN: {sample} read files ({csv_dict[sample][4][0]} and/or {csv_dict[sample][4][1]}) could not be found!")
+                logger.warning("%s read files (%s and/or %s) could not be found!", sample, csv_dict[sample][4][0], csv_dict[sample][4][1])
             except IndexError:
-                print(csv_dict[sample])
+                logger.error("Unexpected csv_dict entry for %s: %s", sample, csv_dict[sample])
         for empty_file in list(empty_files_dict.keys()):
             csv_dict.pop(empty_file, None)
         return empty_files_dict, csv_dict
