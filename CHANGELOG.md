@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added readthedocs
  - Added pytesting
  - Added `Dockerfile`
+ - Added `download-ncbi` subcommand — downloads genome FASTA and GFF from NCBI Datasets v2 API
+ - Added `download-bigsdb` subcommand — downloads cgMLST scheme alleles from PubMLST / BIGSdb Pasteur via OAuth1
+ - Added `download-krakendb` subcommand — builds a Kraken2 database from NCBI RefSeq human, bacterial, and viral genomes
 
 ### Fixed
 
@@ -35,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Removed `insert` subcommand
  - Change sambamba for pysam
  - Removed picard hs metrics and `--reference` arg
+ - `download_ncbi.py` → `ncbi.py` (class `DownloadNcbi` → `NCBI`), `download_bigsdb.py` → `bigsdb.py` (class `DownloadBigsdb` → `BIGSdb`), `download_krakendb.py` → `krakendb.py` (class `DownloadKrakendb` → `Krakendb`) — renamed to match module naming convention
+ - `Utils.download_and_save_file` upgraded with exponential-backoff retry logic (`max_retries` parameter); `Utils.unzip` now returns bool and handles corrupt archives
 
 ## [v0.2.0]
 
