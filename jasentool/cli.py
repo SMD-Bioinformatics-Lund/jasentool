@@ -242,18 +242,3 @@ def download_bigsdb_cmd(url, site, key_name, output_dir, token_dir, db, setup,
         force=force, cron=cron, method=method, output_file=output_file,
     )
     _parser().download_bigsdb(options)
-
-
-@cli.command('download-krakendb')
-@click.option('-o', '--output-dir', required=True,
-              help='Output directory for DB and genomes')
-@click.option('--db-name', default='HumanViralBacteria', show_default=True,
-              help='Kraken2 database name')
-@click.option('--threads', default=4, type=int, show_default=True,
-              help='Threads for kraken2-build')
-def download_krakendb_cmd(output_dir, db_name, threads):
-    """Build a Kraken2 database from NCBI RefSeq human, bacterial, and viral genomes."""
-    options = types.SimpleNamespace(
-        output_dir=output_dir, db_name=db_name, threads=threads,
-    )
-    _parser().download_krakendb(options)

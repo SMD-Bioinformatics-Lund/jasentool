@@ -17,7 +17,6 @@ from jasentool.qc import QC
 from jasentool.count_reads import CountReads
 from jasentool.ncbi import NCBI
 from jasentool.bigsdb import BIGSdb
-from jasentool.krakendb import Krakendb
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -162,10 +161,6 @@ class OptionsParser:
     def download_bigsdb(self, options):
         """Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1."""
         BIGSdb(options).run()
-
-    def download_krakendb(self, options):
-        """Build a Kraken2 database from NCBI RefSeq human, bacterial, and viral genomes."""
-        Krakendb(options).run()
 
     def parse_options(self, options):
         """Options parser"""
