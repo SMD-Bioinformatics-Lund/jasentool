@@ -19,7 +19,7 @@ class Utils:
         """Write out file as csv"""
         with open(out_fpath, 'w+', encoding="utf-8") as csvfile:
             fieldnames = ["id", "clarity_sample_id", "sample_name", "group", "species", "assay",
-                          "platform", "sequencing_run", "read1", "read2"] #header
+                          "platform", "sequencing_run", "read1", "read2"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             for sample in csv_dict:
@@ -33,7 +33,7 @@ class Utils:
                             "assay": assay, "platform": platform,
                             "sequencing_run": sequencing_run,
                             "read1": csv_dict[sample][4][0],
-                            "read2": csv_dict[sample][4][1]} #write rows to CSV
+                            "read2": csv_dict[sample][4][1]}
                 writer.writerow(row_dict)
 
     @staticmethod
@@ -55,7 +55,6 @@ class Utils:
     def copy_batch_and_csv_files(batch_files, csv_files, remote_dir, remote_hostname, remote=False):
         """Copy shell and csv files to desired (remote) location"""
         if remote:
-            # Copy files to remote server using ssh/scp
             _ = subprocess.run(
                 f'ssh {remote_hostname} mkdir -p {remote_dir}',
                 shell=True
@@ -67,7 +66,6 @@ class Utils:
                 universal_newlines=True
             )
         else:
-            # Copy files to a local directory
             pathlib.Path(remote_dir).mkdir(parents=True, exist_ok=True)
             for fin in batch_files + csv_files:
                 shutil.copy(fin, remote_dir)

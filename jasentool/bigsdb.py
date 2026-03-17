@@ -1,4 +1,4 @@
-"""Download alleles from PubMLST / BIGSdb Pasteur via OAuth1 REST API (Issue #19).
+"""Download alleles from PubMLST / BIGSdb Pasteur via OAuth1 REST API.
 
 Script to download authenticated resources from PubMLST and BIGSdb Pasteur
 via their REST interfaces.
@@ -72,10 +72,6 @@ class BIGSdb:
         elif not self.setup:
             self._get_route(self.url, token, secret)
 
-    # ------------------------------------------------------------------
-    # Validation
-    # ------------------------------------------------------------------
-
     def _check_required_args(self):
         if not self.key_name:
             logger.error("--key-name is required")
@@ -104,10 +100,6 @@ class BIGSdb:
                 logger.error("--url is required")
                 sys.exit(1)
 
-    # ------------------------------------------------------------------
-    # Directory helpers
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _check_dir(directory):
         if os.path.isdir(directory):
@@ -123,10 +115,6 @@ class BIGSdb:
                 raise PermissionError(
                     f"Failed to create token directory '{directory}': {exc}"
                 ) from exc
-
-    # ------------------------------------------------------------------
-    # Token helpers
-    # ------------------------------------------------------------------
 
     def _retrieve_token(self, token_type):
         file_path = Path(f"{self.token_dir}/{token_type}_tokens")
@@ -281,10 +269,6 @@ class BIGSdb:
             if match:
                 return match.group(1)
         raise ValueError("No db value found: provide --db or include /db/<name> in --url")
-
-    # ------------------------------------------------------------------
-    # API calls
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _is_valid_json(json_string):

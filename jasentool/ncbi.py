@@ -1,4 +1,4 @@
-"""Download genome FASTA and GFF files from NCBI Datasets v2 API (Issue #20)."""
+"""Download genome FASTA and GFF files from NCBI Datasets v2 API."""
 # Authors: Markus Johansson & Ryan Kennedy
 
 import os

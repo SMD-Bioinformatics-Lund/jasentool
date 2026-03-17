@@ -22,13 +22,10 @@ class Genome:
     def download_fasta(self):
         """Download genome in fasta format"""
         try:
-            # Fetch the fasta record from NCBI
             fasta_handle = Entrez.efetch(db="nucleotide", id=self.refseq_accn,
                                          rettype="fasta", retmode="text")
             fasta_record = SeqIO.read(fasta_handle, "fasta")
             fasta_handle.close()
-
-            # Save the fasta record to a file
             SeqIO.write(fasta_record, self.fasta_filepath, "fasta")
 
             logger.info("Fasta downloaded and saved to %s", self.fasta_filepath)
@@ -40,13 +37,10 @@ class Genome:
     def download_genbank(self):
         """Download genome in fasta format"""
         try:
-            # Fetch the GenBank record from NCBI
             genbank_handle = Entrez.efetch(db="nucleotide", id=self.genbank_accn,
                                            rettype="gb", retmode="text")
             genbank_record = SeqIO.read(genbank_handle, "genbank")
             genbank_handle.close()
-
-            # Save the GenBank record to a file
             SeqIO.write(genbank_record, self.genbank_filepath, "genbank")
 
             logger.info("Genbank file downloaded and saved to %s", self.genbank_filepath)

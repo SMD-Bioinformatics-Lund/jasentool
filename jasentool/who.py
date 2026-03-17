@@ -66,13 +66,10 @@ class WHO:
 
     def read_files(self, gff_filepath, xlsx_filepath, h37rv_filepath):
         """Read gff, excel & genome files"""
-        # Load the reference GFF file
         columns = ['seqid', 'source', 'type', 'start', 'end',
                    'score', 'strand', 'phase', 'attributes']
         gff = pd.read_csv(gff_filepath, names=columns, sep='\t', header=None)
-        # Load the WHO catalogue
         catalogue = pd.read_excel(xlsx_filepath, sheet_name='Catalogue_master_file', header=2)
-        # Load the reference genome to impute missing data from deletions
         h37rv = ''
         with open(h37rv_filepath, 'r', encoding="utf-8") as fin:
             for line in fin:
@@ -286,13 +283,10 @@ class WHO:
     def _parse(self, fasta_filepath, gff_filepath, download_dir):
         """Parse WHO excel file"""
         utils = Utils()
-        #who_url = "https://apps.who.int/iris/bitstream/handle/10665/341906/WHO-UCN-GTB-PCI-2021.7-eng.xlsx"
         who_url = "https://raw.githubusercontent.com/GTB-tbsequencing/mutation-catalogue-2023/main/Final%20Result%20Files/WHO-UCN-TB-2023.6-eng.xlsx"
         who_filepath = os.path.join(download_dir, "who.xlsx")
         utils.download_and_save_file(who_url, who_filepath)
         _, catalogue, _ = self.read_files(gff_filepath, who_filepath, fasta_filepath)
-        #gff, catalogue, h37rv = self.read_files(gff_filepath, who_filepath, fasta_filepath)
-        #gff_dict = self.get_gene_info(gff)
         catalogue.columns = catalogue.columns.str.title()
         catalogue.rename(columns={'Final Confidence Grading': 'WHO Confidence'}, inplace=True)
         catalogue['Confers'] = 'resistance'
