@@ -3,7 +3,6 @@
 import os
 import re
 import json
-# import pymongo
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -96,10 +95,8 @@ class Missing:
                     sample_id = line.split(",")[-1].split("_")[1]
                     try:
                         if seqrun != id_seqrun_dict[sample_id]:
-                            #print(f"WARN: The following sample({sample_id}) seqrun ({seqrun}) doesn't match cgviz ({id_seqrun_dict[sample_id]})")
                             continue
                     except KeyError:
-                        #print(f"WARN: The following sample({sample_id}) isn't OK'd in cgviz")
                         continue
                     species = line.split(",")[-1].split("_")[2]
                     try:
@@ -196,10 +193,6 @@ class Missing:
                                 None,
                                 paired_reads
                             ]
-                        #elif len(paired_reads) == 0:
-                            #print(f"The sample {sample_id} doesn't have read/spring files in the {parent_dir} ({paired_reads}).")
-                        #else:
-                            #print(len(paired_reads))
                     except FileNotFoundError:
                         logger.warning("%s does not exist regarding %s. (sample sheet: %s)", parent_dir, sample_id, sample_sheet)
 
@@ -278,7 +271,6 @@ class Missing:
                 filtered_csv_dict[missing_sample] = csv_dict[missing_sample]
             except KeyError:
                 not_found.append(missing_sample)
-                #print(f"{missing_sample} could not be found")
         logger.info("%d samples could not be found", len(not_found))
         logger.info("%d samples remain after filtering", len(filtered_csv_dict.keys()))
         return filtered_csv_dict, not_found
@@ -289,14 +281,12 @@ class Missing:
         sample_runs = []
         missing_samples = []
         csv_dict = {}
-        #print(f"{len(list(meta_dict))} samples found in the meta dictionary")
         sorted_meta_dict = sorted(meta_dict, key=lambda x: x["run"], reverse=False)
-        # sorted_meta_dict = meta_dict.sort([("run", pymongo.ASCENDING),("id", pymongo.ASCENDING)])
         id_seqrun_dict = {sample["id"]: sample["run"].split("/")[-1] for sample in sorted_meta_dict}
         for sample in sorted_meta_dict:
             if sample["id"] not in analysis_dir_fnames:
                 missing_samples.append(sample["id"])
-                if sample["run"] not in sample_runs: #if sample run changes based on
+                if sample["run"] not in sample_runs:
                     ss_dict = {}
                     sample_run_dir = Missing.check_format(sample["run"])
                     sample_sheets = Missing.find_files(r'.csv$', sample_run_dir)

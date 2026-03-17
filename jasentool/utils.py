@@ -6,7 +6,7 @@ import shutil
 import pathlib
 import subprocess
 from time import sleep
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipFile
 import requests
 from jasentool.log import get_logger
 
@@ -19,7 +19,7 @@ class Utils:
         """Write out file as csv"""
         with open(out_fpath, 'w+', encoding="utf-8") as csvfile:
             fieldnames = ["id", "clarity_sample_id", "sample_name", "group", "species", "assay",
-                          "platform", "sequencing_run", "read1", "read2"] #header
+                          "platform", "sequencing_run", "read1", "read2"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             for sample in csv_dict:
@@ -33,7 +33,7 @@ class Utils:
                             "assay": assay, "platform": platform,
                             "sequencing_run": sequencing_run,
                             "read1": csv_dict[sample][4][0],
-                            "read2": csv_dict[sample][4][1]} #write rows to CSV
+                            "read2": csv_dict[sample][4][1]}
                 writer.writerow(row_dict)
 
     @staticmethod
@@ -55,7 +55,6 @@ class Utils:
     def copy_batch_and_csv_files(batch_files, csv_files, remote_dir, remote_hostname, remote=False):
         """Copy shell and csv files to desired (remote) location"""
         if remote:
-            # Copy files to remote server using ssh/scp
             _ = subprocess.run(
                 f'ssh {remote_hostname} mkdir -p {remote_dir}',
                 shell=True
@@ -67,7 +66,6 @@ class Utils:
                 universal_newlines=True
             )
         else:
-            # Copy files to a local directory
             pathlib.Path(remote_dir).mkdir(parents=True, exist_ok=True)
             for fin in batch_files + csv_files:
                 shutil.copy(fin, remote_dir)
@@ -85,31 +83,42 @@ class Utils:
                 )
 
     @staticmethod
-    def download_and_save_file(url, output_filepath, timeout=600):
+    def download_and_save_file(url, output_filepath, timeout=600, max_retries=1):
         """Download the file and save it to the user-specified path with a timeout."""
-        try:
-            # Make a request to the URL with a timeout
-            response = requests.get(url, stream=True, timeout=timeout)
-            response.raise_for_status()  # Raise an error for bad responses
-
-            # Open the output file in binary write mode
-            with open(output_filepath, 'wb') as output_file:
-                # Iterate over the content in chunks and write to the file
-                for chunk in response.iter_content(chunk_size=8192):
-                    output_file.write(chunk)
-
-            logger.info("File downloaded and saved to: %s", output_filepath)
-
-        except requests.exceptions.Timeout:
-            logger.error("The request timed out after %d seconds.", timeout)
-        except requests.exceptions.RequestException as error_code:
-            logger.error("Error downloading the file: %s", error_code)
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, stream=True, timeout=timeout)
+                if response.status_code == 429:
+                    wait_time = (2 ** attempt) + 1
+                    logger.warning("Rate limited (429). Retrying in %d seconds...", wait_time)
+                    sleep(wait_time)
+                    continue
+                response.raise_for_status()
+                with open(output_filepath, 'wb') as output_file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        output_file.write(chunk)
+                logger.info("File downloaded and saved to: %s", output_filepath)
+                return True
+            except requests.exceptions.RequestException as error_code:
+                wait_time = (2 ** attempt) + 1
+                logger.warning("Attempt %d failed: %s", attempt + 1, error_code)
+                if attempt < max_retries - 1:
+                    logger.info("Retrying in %d seconds...", wait_time)
+                    sleep(wait_time)
+                else:
+                    logger.error("Max retries reached. Giving up.")
+        return False
 
     @staticmethod
     def unzip(zip_file, outdir):
-        """Unzip zip file"""
-        with ZipFile(zip_file, 'r') as zip_object:
-            zip_object.extractall(path=outdir)
+        """Unzip zip file. Returns True on success, False if the archive is invalid."""
+        try:
+            with ZipFile(zip_file, 'r') as zip_object:
+                zip_object.extractall(path=outdir)
+        except BadZipFile:
+            logger.error("Invalid or corrupt zip file: %s", zip_file)
+            return False
+        return True
 
     @staticmethod
     def copy_file(source, destination):

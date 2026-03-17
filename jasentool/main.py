@@ -15,6 +15,8 @@ from jasentool.fix import Fix
 from jasentool.converge import Converge
 from jasentool.qc import QC
 from jasentool.count_reads import CountReads
+from jasentool.ncbi import NCBI
+from jasentool.bigsdb import BIGSdb
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -151,6 +153,14 @@ class OptionsParser:
         result = handler.run(options.input_file, getattr(options, 'sample_id', None))
         with open(options.output_file, 'w', encoding="utf-8") as fout:
             json.dump(result, fout, indent=2)
+
+    def download_ncbi(self, options):
+        """Download genome FASTA and GFF from NCBI Datasets v2 API."""
+        NCBI(options).run()
+
+    def download_bigsdb(self, options):
+        """Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1."""
+        BIGSdb(options).run()
 
     def parse_options(self, options):
         """Options parser"""

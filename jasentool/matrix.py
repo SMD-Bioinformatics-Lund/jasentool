@@ -82,17 +82,14 @@ class Matrix:
         sample_ids = list(df["SampleID"])
         plt.boxplot(counts)
 
-        # Add jittered data points
-        jitter = 0.04  # Adjust the jitter as needed
+        jitter = 0.04
         x_jitter = np.random.normal(1, jitter, size=len(counts))
         plt.scatter(x_jitter, counts, alpha=0.5, color="blue")
 
-        # Set labels and title
         plt.xlabel("Samples")
         plt.ylabel("Sum of sample allele differences")
         plt.title("Summed differential matrix of distances between pipelines' cgMLST results")
 
-        # Annotate outliers
         for i, count in enumerate(counts):
             if count > 250000 or count < -750000:
                 if float(x_jitter[i]) < 1:
@@ -107,7 +104,6 @@ class Matrix:
 
     def run(self, input_files, output_fpaths):
         """Run the matrix analyses"""
-        # heatmap_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen_heatmap.png")
         output_csv_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "cgviz_vs_jasen.csv")
         boxplot_matrix_fpath = os.path.join(os.path.dirname(output_fpaths[0]), "summed_differential_matrix_boxplot.png")
         sample_ids = [os.path.basename(input_file).replace("_result.json", "") for input_file in input_files]
@@ -116,7 +112,6 @@ class Matrix:
         distance_df = jasen_matrix_df - cgviz_matrix_df
         distance_df = distance_df.astype(float)
         distance_df.to_csv(output_csv_fpath, index=True, header=True)
-        # self.plot_heatmap(distance_df, output_plot_fpath)
         if os.path.exists(output_csv_fpath):
             distance_df = pd.read_csv(output_csv_fpath, index_col=0)
             distance_df["sum"] = distance_df.sum(axis=1)

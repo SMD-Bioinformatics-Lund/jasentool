@@ -194,3 +194,51 @@ def count_reads_cmd(fastq1, fastq2, output_file, sample_id):
         input_file=input_files, output_file=output_file, sample_id=sample_id,
     )
     _parser().count_reads(options)
+
+
+@cli.command('download-ncbi')
+@click.option('-i', '--accession', required=True, multiple=True,
+              help='NCBI accession number(s)')
+@click.option('-o', '--output-dir', required=True, help='Output directory')
+@click.option('--bwa-index', is_flag=True, default=False, help='Run bwa index')
+@click.option('--fai-index', is_flag=True, default=False, help='Run samtools faidx')
+@click.option('--clean', is_flag=True, default=False,
+              help='Clear output directory before download')
+def download_ncbi_cmd(accession, output_dir, bwa_index, fai_index, clean):
+    """Download genome FASTA and GFF from NCBI Datasets v2 API."""
+    options = types.SimpleNamespace(
+        accession=list(accession), output_dir=output_dir,
+        bwa_index=bwa_index, fai_index=fai_index, clean=clean,
+    )
+    _parser().download_ncbi(options)
+
+
+@cli.command('download-bigsdb')
+@click.option('--url', default=None, help='API endpoint URL')
+@click.option('--site', type=click.Choice(['PubMLST', 'Pasteur']), default=None,
+              help='BIGSdb site')
+@click.option('--key-name', required=True, help='API key name (unique per site)')
+@click.option('--output-dir', default=None,
+              help='Directory for per-locus FASTA files (--download-scheme)')
+@click.option('--token-dir', default='./.bigsdb_tokens', show_default=True,
+              help='Token storage directory')
+@click.option('--db', default=None, help='Database config (setup only)')
+@click.option('--setup', is_flag=True, default=False, help='Initial OAuth1 setup')
+@click.option('--download-scheme', is_flag=True, default=False,
+              help='Download all scheme loci')
+@click.option('--force', is_flag=True, default=False,
+              help='Re-download existing files (--download-scheme)')
+@click.option('--cron', is_flag=True, default=False,
+              help='Non-interactive / cron mode')
+@click.option('--method', type=click.Choice(['GET', 'POST']), default='GET',
+              show_default=True, help='HTTP method')
+@click.option('--output-file', default=None, help='Save single response to this file')
+def download_bigsdb_cmd(url, site, key_name, output_dir, token_dir, db, setup,
+                        download_scheme, force, cron, method, output_file):
+    """Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1."""
+    options = types.SimpleNamespace(
+        url=url, site=site, key_name=key_name, output_dir=output_dir,
+        token_dir=token_dir, db=db, setup=setup, download_scheme=download_scheme,
+        force=force, cron=cron, method=method, output_file=output_file,
+    )
+    _parser().download_bigsdb(options)

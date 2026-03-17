@@ -10,9 +10,8 @@ class Database:
     def initialize(db_name):
         """Initialize mongodb client"""
         client = pymongo.MongoClient(Database.uri)
-        Database.db = client[db_name] # Database Name
-        Database.db_name = db_name # Database Name
-        #Database.collection = Database.db["sample"] # Collection Name
+        Database.db = client[db_name]
+        Database.db_name = db_name
 
     @staticmethod
     def insert(collection, data):
