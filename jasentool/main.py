@@ -17,6 +17,8 @@ from jasentool.qc import QC
 from jasentool.count_reads import CountReads
 from jasentool.ncbi import NCBI
 from jasentool.bigsdb import BIGSdb
+from jasentool.concatenate import Concatenate
+from jasentool.create_yaml import CreateYaml
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -161,6 +163,14 @@ class OptionsParser:
     def download_bigsdb(self, options):
         """Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1."""
         BIGSdb(options).run()
+
+    def concatenate_files(self, options):
+        """Concatenate multiple YAML files into one"""
+        Concatenate.run(options.input_files, options.output_file)
+
+    def create_yaml(self, options):
+        """Create YAML input file for Bonsai upload"""
+        CreateYaml().run(options)
 
     def parse_options(self, options):
         """Options parser"""
