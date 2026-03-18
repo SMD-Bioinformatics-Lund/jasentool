@@ -1,6 +1,8 @@
 """Tests for the jasentool CLI."""
 import json
 
+import yaml
+
 import pytest
 from click.testing import CliRunner
 
@@ -67,6 +69,7 @@ def test_transform_missing_args():
 @pytest.mark.parametrize("subcommand", [
     "find", "validate-pipelines", "identify-missing",
     "reformat-csv", "converge-catalogues", "post-align-qc",
+    "concatenate-files", "create-yaml",
 ])
 def test_help_exits_zero(subcommand):
     result = runner.invoke(cli, [subcommand, "--help"])
@@ -82,7 +85,73 @@ def test_help_exits_zero(subcommand):
     ("identify-missing", []),
     ("post-align-qc", []),
     ("reformat-csv", []),
+    ("concatenate-files", []),
+    ("create-yaml", []),
 ])
 def test_missing_required_args(subcommand, args):
     result = runner.invoke(cli, [subcommand] + args)
+    assert result.exit_code != 0
+
+
+# ── concatenate-files ──────────────────────────────────────────────────────────
+
+def test_concatenate_files(versions_yaml_a, versions_yaml_b, tmp_path):
+    out = tmp_path / "merged.yml"
+    result = runner.invoke(cli, [
+        "concatenate-files",
+        "-i", str(versions_yaml_a),
+        "-i", str(versions_yaml_b),
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    assert "tool_a" in data
+    assert "tool_b" in data
+
+
+def test_concatenate_files_missing_args():
+    result = runner.invoke(cli, ["concatenate-files"])
+    assert result.exit_code != 0
+
+
+# ── create-yaml ────────────────────────────────────────────────────────────────
+
+def test_create_yaml_minimal(tmp_path):
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP001",
+        "--sample-name", "Sample 001",
+        "--groups", "group1",
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    assert data["sample_id"] == "SAMP001"
+    assert data["sample_name"] == "Sample 001"
+    assert data["groups"] == ["group1"]
+    assert data["igv_annotations"] == []
+
+
+def test_create_yaml_with_bam_and_bai(tmp_path):
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP002",
+        "--sample-name", "Sample 002",
+        "--groups", "group1",
+        "--bam", "sample.bam",
+        "--bai", "sample.bam.bai",
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    igv = data["igv_annotations"]
+    assert len(igv) == 1
+    assert igv[0]["type"] == "alignment"
+    assert igv[0]["index_uri"] == "sample.bam.bai"
+
+
+def test_create_yaml_missing_required_args():
+    result = runner.invoke(cli, ["create-yaml"])
     assert result.exit_code != 0

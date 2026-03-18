@@ -1,0 +1,30 @@
+/* Sidebar search box background */
+.wy-side-nav-search {
+    background-color: #009688;
+}
+
+/* Mobile top navigation bar */
+.wy-nav-top {
+    background: #009688;
+}
+
+/* Links */
+a, a:visited {
+    color: #009688;
+}
+
+a:hover {
+    color: #00796b;
+}
+
+/* Active sidebar item highlight */
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.on a {
+    background-color: #e0f2f1;
+    color: #009688;
+}
+
+.wy-menu-vertical li.current > a:hover,
+.wy-menu-vertical li.on a:hover {
+    background-color: #b2dfdb;
+}

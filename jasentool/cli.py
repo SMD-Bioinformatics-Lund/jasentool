@@ -213,6 +213,82 @@ def download_ncbi_cmd(accession, output_dir, bwa_index, fai_index, clean):
     _parser().download_ncbi(options)
 
 
+@cli.command('concatenate-files')
+@click.option('-i', '--input', 'input_files', required=True, multiple=True,
+              help='Input YAML file(s) to concatenate')
+@click.option('-o', '--output-file', required=True, help='Path to output YAML file')
+def concatenate_files_cmd(input_files, output_file):
+    """Concatenate multiple YAML files (e.g. versions.yml) into one."""
+    options = types.SimpleNamespace(input_files=list(input_files), output_file=output_file)
+    _parser().concatenate_files(options)
+
+
+@cli.command('create-yaml')
+@click.option('--amrfinder', type=click.Path(), default=None)
+@click.option('--bam', type=click.Path(), default=None)
+@click.option('--bai', type=click.Path(), default=None)
+@click.option('--chewbbaca', type=click.Path(), default=None)
+@click.option('--emmtyper', type=click.Path(), default=None)
+@click.option('--gambitcore', type=click.Path(), default=None)
+@click.option('--groups', multiple=True, required=True)
+@click.option('--kleborate', type=click.Path(), default=None)
+@click.option('--kleborate-hamronization', type=click.Path(), default=None)
+@click.option('--kraken', type=click.Path(), default=None)
+@click.option('--lims-id', default=None)
+@click.option('--mlst', type=click.Path(), default=None)
+@click.option('--mykrobe', type=click.Path(), default=None)
+@click.option('--nanoplot', type=click.Path(), default=None)
+@click.option('--nextflow-run-info', type=click.Path(), default=None)
+@click.option('--postalnqc', type=click.Path(), default=None)
+@click.option('--quast', type=click.Path(), default=None)
+@click.option('--ref-genome-annotation', type=click.Path(), default=None)
+@click.option('--ref-genome-sequence', type=click.Path(), default=None)
+@click.option('--resfinder', type=click.Path(), default=None)
+@click.option('--sample-id', required=True)
+@click.option('--sample-name', required=True)
+@click.option('--samtools', type=click.Path(), default=None)
+@click.option('--sccmec', type=click.Path(), default=None)
+@click.option('--serotypefinder', type=click.Path(), default=None)
+@click.option('--shigapass', type=click.Path(), default=None)
+@click.option('--ska-index', type=click.Path(), default=None)
+@click.option('--software-info', type=click.Path(), multiple=True)
+@click.option('--sourmash-signature', type=click.Path(), default=None)
+@click.option('--spatyper', type=click.Path(), default=None)
+@click.option('--tb-grading-rules-bed', type=click.Path(), default=None)
+@click.option('--tbdb-bed', type=click.Path(), default=None)
+@click.option('--tbprofiler', type=click.Path(), default=None)
+@click.option('--vcf', type=click.Path(), default=None)
+@click.option('--virulencefinder', type=click.Path(), default=None)
+@click.option('-o', '--output', required=True, type=click.Path())
+def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
+                    kleborate, kleborate_hamronization, kraken, lims_id, mlst,
+                    mykrobe, nanoplot, nextflow_run_info, postalnqc, quast,
+                    ref_genome_annotation, ref_genome_sequence, resfinder,
+                    sample_id, sample_name, samtools, sccmec, serotypefinder,
+                    shigapass, ska_index, software_info, sourmash_signature,
+                    spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
+                    vcf, virulencefinder, output):
+    """Create YAML input file for Bonsai upload."""
+    options = types.SimpleNamespace(
+        amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca,
+        emmtyper=emmtyper, gambitcore=gambitcore, groups=groups,
+        kleborate=kleborate, kleborate_hamronization=kleborate_hamronization,
+        kraken=kraken, lims_id=lims_id, mlst=mlst, mykrobe=mykrobe,
+        nanoplot=nanoplot, nextflow_run_info=nextflow_run_info,
+        postalnqc=postalnqc, quast=quast,
+        ref_genome_annotation=ref_genome_annotation,
+        ref_genome_sequence=ref_genome_sequence, resfinder=resfinder,
+        sample_id=sample_id, sample_name=sample_name, samtools=samtools,
+        sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
+        ska_index=ska_index, software_info=software_info,
+        sourmash_signature=sourmash_signature, spatyper=spatyper,
+        tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
+        tbprofiler=tbprofiler, vcf=vcf, virulencefinder=virulencefinder,
+        output=output,
+    )
+    _parser().create_yaml(options)
+
+
 @cli.command('download-bigsdb')
 @click.option('--url', default=None, help='API endpoint URL')
 @click.option('--site', type=click.Choice(['PubMLST', 'Pasteur']), default=None,

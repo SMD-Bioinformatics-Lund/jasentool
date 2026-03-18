@@ -28,3 +28,17 @@ def targets_tsv(tmp_path):
     p = tmp_path / "targets.tsv"
     p.write_text("chrom\tstart\tend\tname\nCHR1\t100\t200\tgene1\n")
     return p
+
+
+@pytest.fixture()
+def versions_yaml_a(tmp_path):
+    p = tmp_path / "versions_a.yml"
+    p.write_text("tool_a:\n  version: '1.0'\n")
+    return p
+
+
+@pytest.fixture()
+def versions_yaml_b(tmp_path):
+    p = tmp_path / "versions_b.yml"
+    p.write_text("tool_b:\n  version: '2.0'\n")
+    return p
