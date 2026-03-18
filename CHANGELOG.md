@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added `Dockerfile`
  - Added `download-ncbi` subcommand — downloads genome FASTA and GFF from NCBI Datasets v2 API
  - Added `download-bigsdb` subcommand — downloads cgMLST scheme alleles from PubMLST / BIGSdb Pasteur via OAuth1
+ - Added `concatenate-files` subcommand — merges multiple YAML files (e.g. `versions.yml`) into one output YAML
+ - Added `create-yaml` subcommand — creates a YAML input file for Bonsai upload from sample metadata and analysis result paths
 
 ### Fixed
 

@@ -52,3 +52,20 @@ jasentool validate \
 ```
 
 See [Installation](installation.md) and [Usage](usage.md) for full details.
+
+```{toctree}
+:hidden:
+:caption: Get started
+:maxdepth: 1
+
+installation
+usage
+```
+
+```{toctree}
+:hidden:
+:caption: Reference
+:maxdepth: 1
+
+changelog
+```
