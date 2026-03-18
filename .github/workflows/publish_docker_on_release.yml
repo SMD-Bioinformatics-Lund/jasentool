@@ -1,0 +1,50 @@
+name: Publish Docker
+
+on:
+  workflow_run:
+    workflows: ["Publish PyPI"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout jasentool
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: 'docker.io'
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Wait for PyPI to publish package
+        run: sleep 60s
+        shell: bash
+
+      - name: Export tags to env
+        run: |
+          VERSION=$(head -3 jasentool/__version__.py | tail -1 | cut -d'"' -f2);
+          echo "JASENTOOL_TAG=${VERSION}" >> $GITHUB_ENV
+          echo "JASENTOOL_TAG_LATEST=latest" >> $GITHUB_ENV
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5.5.0
+        with:
+          images: clinicalgenomicslund/jasentool
+          tags: |
+            type=raw,value=${{ env.JASENTOOL_TAG }}
+            type=raw,value=${{ env.JASENTOOL_TAG_LATEST }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5.1.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }},
+          labels: ${{ steps.meta.outputs.labels }}

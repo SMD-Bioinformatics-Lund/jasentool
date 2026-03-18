@@ -13,4 +13,4 @@ __python_requires__ = '>=3.11'
 __status__ = 'Production'
 __title__ = 'jasentool'
 __url__ = 'https://github.com/ryanjameskennedy/jasentool.git'
-__version__ = '0.2.0'
+from jasentool.__version__ import VERSION as __version__
