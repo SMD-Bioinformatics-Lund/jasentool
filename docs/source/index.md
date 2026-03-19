@@ -4,20 +4,37 @@ Multipurpose tool for jobs related to the [JASEN](https://github.com/Clinical-Ge
 
 ## Subcommands
 
+**Post-run analysis**
+
 | Subcommand | Description |
 |------------|-------------|
 | `find` | Query samples from MongoDB |
-| `validate-pipelines` | Compare pipeline outputs against MongoDB records |
 | `identify-missing` | Identify samples absent from JASEN results directory |
-| `transform-file-format` | Convert cgMLST target TSV to BED format |
-| `reformat-csv` | Reformat BJORN CSV/SH files for JASEN |
-| `converge-catalogues` | Merge WHO, TBdb, and FoHM TB mutation catalogues |
-| `post-align-qc` | Compute post-alignment QC from BAM |
-| `count-reads` | Count reads in FASTQ file(s) |
-| `download-ncbi` | Download genome FASTA and GFF from NCBI |
-| `download-bigsdb` | Download cgMLST scheme alleles from PubMLST or BIGSdb |
+| `validate-pipelines` | Compare pipeline outputs against MongoDB records |
+
+**Pipeline processes**
+
+| Subcommand | Description |
+|------------|-------------|
 | `concatenate-files` | Concatenate multiple YAML files |
+| `count-reads` | Count reads in FASTQ file(s) |
 | `create-yaml` | Create YAML input file for Bonsai upload |
+| `post-align-qc` | Compute post-alignment QC from BAM |
+
+**Site-specific hooks**
+
+| Subcommand | Description |
+|------------|-------------|
+| `reformat-csv` | Reformat BJORN CSV/SH files for JASEN |
+
+**Setup & reference data**
+
+| Subcommand | Description |
+|------------|-------------|
+| `converge-catalogues` | Merge WHO, TBdb, and FoHM TB mutation catalogues |
+| `download-bigsdb` | Download cgMLST scheme alleles from PubMLST or BIGSdb |
+| `download-ncbi` | Download genome FASTA and GFF from NCBI |
+| `transform-file-format` | Convert cgMLST target TSV to BED format |
 
 ## Quick Start
 
