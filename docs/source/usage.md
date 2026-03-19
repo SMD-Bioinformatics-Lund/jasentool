@@ -10,7 +10,11 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 
 ---
 
-## find
+## Post-run analysis
+
+Subcommands for querying and analysing results after JASEN runs.
+
+### find
 
 Query samples from a MongoDB collection.
 
@@ -42,44 +46,7 @@ jasentool find \
 
 ---
 
-## validate-pipelines
-
-Compare new pipeline outputs against existing MongoDB records.
-
-```
-jasentool validate-pipelines (--input-file <FILE> [...] | --input-dir <DIR>)
-                              (--output-file <FILE> | --output-dir <DIR>)
-                              --db-name <DB> --db-collection <COLLECTION>
-                              [--address <URI>] [--prefix <PREFIX>]
-                              [--combined-output] [--generate-matrix]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `-i`/`--input-file` | Yes (or `--input-dir`) | — | Input filepath(s) |
-| `--input-dir` | Yes (or `--input-file`) | — | Directory containing sample files |
-| `--output-file`/`--output-dir` | Yes (one) | — | Output file or directory |
-| `--db-name` | Yes | — | MongoDB database name |
-| `--db-collection` | Yes | — | MongoDB collection name |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
-| `--prefix` | No | `jasentool_results_` | Prefix for output files |
-| `--combined-output` | No | False | Combine all outputs into one file |
-| `--generate-matrix` | No | False | Generate cgMLST matrix |
-
-**Example**
-
-```bash
-jasentool validate-pipelines \
-  --input-dir /new/results \
-  --output-dir /validation/output \
-  --db-name mydb \
-  --db-collection samples \
-  --generate-matrix
-```
-
----
-
-## identify-missing
+### identify-missing
 
 Identify samples absent from the JASEN results directory.
 
@@ -118,127 +85,72 @@ jasentool identify-missing \
 
 ---
 
-## transform-file-format
+### validate-pipelines
 
-Convert a cgMLST target TSV file to BED format (or another output format).
-
-```
-jasentool transform-file-format -i <FILE> [...] -o <FILE>
-                                 [-f <FORMAT>] [-a <ACCESSION>]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `-i`/`--input-file` | Yes | — | Path to targets TSV file |
-| `-o`/`--output-file` | Yes | — | Output file path |
-| `-f`/`--out-format` | No | `bed` | Output format |
-| `-a`/`--accession` | No | — | Chromosome/contig accession for the BED `chrom` column |
-
-### Downloading the cgMLST targets TSV
-
-The input TSV is the locus table for your organism's cgMLST scheme on [cgMLST.org](https://www.cgmlst.org). To download it:
-
-1. Navigate to your organism's schema page, e.g. `https://www.cgmlst.org/ncs/schema/<SCHEMA_NAME>/locus/` (the schema name differs per organism — for *S. aureus* it is `Saureus4059`).
-2. Click the **Download table as CSV** button.
-
-The downloaded file has a `.csv` extension but is tab-separated. Pass it directly to `--input-file`.
-
-**Example**
-
-```bash
-jasentool transform-file-format \
-  --input-file Staphylococcus_aureus_cgMLST.csv \
-  --output-file targets.bed \
-  --accession NC_002951.2
-```
-
----
-
-## reformat-csv
-
-Reformat a BJORN microbiology CSV (and optionally SH) file for JASEN.
+Compare new pipeline outputs against existing MongoDB records.
 
 ```
-jasentool reformat-csv --csv-file <FILE> --output-file <FILE>
-                        [--sh-file <FILE>] [--remote-dir <DIR>] [--remote-hostname <HOST>]
-                        [--remote] [--auto-start] [--alter-sample-id]
+jasentool validate-pipelines (--input-file <FILE> [...] | --input-dir <DIR>)
+                              (--output-file <FILE> | --output-dir <DIR>)
+                              --db-name <DB> --db-collection <COLLECTION>
+                              [--address <URI>] [--prefix <PREFIX>]
+                              [--combined-output] [--generate-matrix]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--csv-file` | Yes | — | Path to BJORN CSV file |
-| `-o`/`--output-file` | Yes | — | Path to fixed output CSV file |
-| `--sh-file` | No | None | Path to BJORN SH file |
-| `--remote-dir` | No | `/fs1/bjorn/jasen` | Remote directory for spring files |
-| `--remote-hostname` | No | `rs-fe1.lunarc.lu.se` | Remote hostname |
-| `--remote` | No | False | Enable remote copy |
-| `--auto-start` | No | False | Automatically start after fix |
-| `--alter-sample-id` | No | False | Alter sample ID to LIMS ID + sequencing run |
+| `-i`/`--input-file` | Yes (or `--input-dir`) | — | Input filepath(s) |
+| `--input-dir` | Yes (or `--input-file`) | — | Directory containing sample files |
+| `--output-file`/`--output-dir` | Yes (one) | — | Output file or directory |
+| `--db-name` | Yes | — | MongoDB database name |
+| `--db-collection` | Yes | — | MongoDB collection name |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
+| `--prefix` | No | `jasentool_results_` | Prefix for output files |
+| `--combined-output` | No | False | Combine all outputs into one file |
+| `--generate-matrix` | No | False | Generate cgMLST matrix |
 
 **Example**
 
 ```bash
-jasentool reformat-csv \
-  --csv-file bjorn.csv \
-  --output-file fixed.csv \
-  --sh-file bjorn.sh \
-  --remote
+jasentool validate-pipelines \
+  --input-dir /new/results \
+  --output-dir /validation/output \
+  --db-name mydb \
+  --db-collection samples \
+  --generate-matrix
 ```
 
 ---
 
-## converge-catalogues
+## Pipeline processes
 
-Merge WHO, TBdb, and FoHM TB mutation catalogues into a unified TBProfiler database.
+Subcommands invoked as individual processes during JASEN pipeline execution.
+
+### concatenate-files
+
+Merge multiple YAML files (e.g. `versions.yml` outputs from pipeline runs) into a single YAML file. Later files override keys from earlier files.
 
 ```
-jasentool converge-catalogues [--output-dir <DIR>] [--save-dbs]
+jasentool concatenate-files -i <FILE> [-i <FILE> ...] -o <FILE>
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--output-dir` | No | — | Directory to write output files |
-| `--save-dbs` | No | False | Save all intermediary databases |
+| `-i`/`--input` | Yes (multiple) | — | Input YAML file(s) to concatenate |
+| `-o`/`--output-file` | Yes | — | Path to output YAML file |
 
 **Example**
 
 ```bash
-jasentool converge-catalogues --output-dir /path/to/output --save-dbs
+jasentool concatenate-files \
+  -i run1/versions.yml \
+  -i run2/versions.yml \
+  -o merged_versions.yml
 ```
 
 ---
 
-## post-align-qc
-
-Compute post-alignment QC metrics from a BAM file.
-
-```
-jasentool post-align-qc --sample-id <ID> --bam-file <FILE> --output-file <FILE>
-                         [--bed-file <FILE>] [--cpus <N>]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `--sample-id` | Yes | — | Sample ID |
-| `--bam-file` | Yes | — | Input BAM file |
-| `-o`/`--output-file` | Yes | — | Path to QC JSON output file |
-| `--bed-file` | No | — | Input BED file |
-| `--cpus` | No | `2` | Number of CPUs |
-
-**Example**
-
-```bash
-jasentool post-align-qc \
-  --sample-id SAMPLE001 \
-  --bam-file aligned.bam \
-  --output-file qc.json \
-  --bed-file targets.bed \
-  --cpus 4
-```
-
----
-
-## count-reads
+### count-reads
 
 Count reads from one or more FASTQ files and output a JSON summary.
 
@@ -266,107 +178,7 @@ jasentool count-reads \
 
 ---
 
-## download-ncbi
-
-Download genome FASTA and GFF from the NCBI Datasets v2 API.
-
-```
-jasentool download-ncbi --accession <ACC> [--accession ...] --output-dir <DIR>
-                        [--bwa-index] [--fai-index] [--clean]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `-i`/`--accession` | Yes | — | NCBI accession number(s); repeat for multiple |
-| `-o`/`--output-dir` | Yes | — | Output directory |
-| `--bwa-index` | No | False | Run `bwa index` on the downloaded FASTA |
-| `--fai-index` | No | False | Run `samtools faidx` on the downloaded FASTA |
-| `--clean` | No | False | Clear output directory before downloading |
-
-**Example**
-
-```bash
-jasentool download-ncbi \
-  --accession GCF_000013425.1 \
-  --output-dir /path/to/references \
-  --fai-index
-```
-
----
-
-## download-bigsdb
-
-Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1.
-
-### Initial setup
-
-Run once per site to register your API key and obtain OAuth tokens.
-
-```bash
-jasentool download-bigsdb \
-  --setup \
-  --site PubMLST \
-  --db seqdef_db \
-  --key-name mykey
-```
-
-Follow the printed URL to authorise access in your browser, then paste the verifier code when prompted. Tokens are stored in `--token-dir` (default `./.bigsdb_tokens`).
-
-### Download scheme alleles
-
-```bash
-jasentool download-bigsdb \
-  --download-scheme \
-  --url https://rest.pubmlst.org/db/pubmlst_saureus_seqdef/schemes/1 \
-  --site PubMLST \
-  --key-name mykey \
-  --output-dir /path/to/alleles
-```
-
-### Options
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `--url` | Conditional | — | API endpoint URL (required for `--download-scheme`) |
-| `--site` | No | — | BIGSdb site: `PubMLST` or `Pasteur` |
-| `--key-name` | Yes | — | API key name (unique per site) |
-| `--output-dir` | No | — | Directory for per-locus FASTA files (`--download-scheme`) |
-| `--token-dir` | No | `./.bigsdb_tokens` | Token storage directory |
-| `--db` | No | — | Database config name (setup only) |
-| `--setup` | No | False | Run initial OAuth1 setup |
-| `--download-scheme` | No | False | Download all scheme loci |
-| `--force` | No | False | Re-download existing files (`--download-scheme`) |
-| `--cron` | No | False | Non-interactive / cron mode |
-| `--method` | No | `GET` | HTTP method: `GET` or `POST` |
-| `--output-file` | No | — | Save single API response to this file |
-
----
-
-## concatenate-files
-
-Merge multiple YAML files (e.g. `versions.yml` outputs from pipeline runs) into a single YAML file. Later files override keys from earlier files.
-
-```
-jasentool concatenate-files -i <FILE> [-i <FILE> ...] -o <FILE>
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `-i`/`--input` | Yes (multiple) | — | Input YAML file(s) to concatenate |
-| `-o`/`--output-file` | Yes | — | Path to output YAML file |
-
-**Example**
-
-```bash
-jasentool concatenate-files \
-  -i run1/versions.yml \
-  -i run2/versions.yml \
-  -o merged_versions.yml
-```
-
----
-
-## create-yaml
+### create-yaml
 
 Create a YAML input file for Bonsai upload from sample metadata and analysis result file paths. Builds IGV annotation entries automatically from BAM/BAI, VCF, and BED inputs.
 
@@ -447,9 +259,213 @@ jasentool create-yaml \
 
 ---
 
-## Building a Kraken2 database (via Singularity)
+### post-align-qc
 
-### Option A: Download a pre-built database (recommended)
+Compute post-alignment QC metrics from a BAM file.
+
+```
+jasentool post-align-qc --sample-id <ID> --bam-file <FILE> --output-file <FILE>
+                         [--bed-file <FILE>] [--cpus <N>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--sample-id` | Yes | — | Sample ID |
+| `--bam-file` | Yes | — | Input BAM file |
+| `-o`/`--output-file` | Yes | — | Path to QC JSON output file |
+| `--bed-file` | No | — | Input BED file |
+| `--cpus` | No | `2` | Number of CPUs |
+
+**Example**
+
+```bash
+jasentool post-align-qc \
+  --sample-id SAMPLE001 \
+  --bam-file aligned.bam \
+  --output-file qc.json \
+  --bed-file targets.bed \
+  --cpus 4
+```
+
+---
+
+## Site-specific hooks
+
+`reformat-csv` was built specifically for Clinical Genomics Lund's BJORN system.
+
+### reformat-csv
+
+Reformat a BJORN microbiology CSV (and optionally SH) file for JASEN.
+
+```
+jasentool reformat-csv --csv-file <FILE> --output-file <FILE>
+                        [--sh-file <FILE>] [--remote-dir <DIR>] [--remote-hostname <HOST>]
+                        [--remote] [--auto-start] [--alter-sample-id]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--csv-file` | Yes | — | Path to BJORN CSV file |
+| `-o`/`--output-file` | Yes | — | Path to fixed output CSV file |
+| `--sh-file` | No | None | Path to BJORN SH file |
+| `--remote-dir` | No | `/fs1/bjorn/jasen` | Remote directory for spring files |
+| `--remote-hostname` | No | `rs-fe1.lunarc.lu.se` | Remote hostname |
+| `--remote` | No | False | Enable remote copy |
+| `--auto-start` | No | False | Automatically start after fix |
+| `--alter-sample-id` | No | False | Alter sample ID to LIMS ID + sequencing run |
+
+**Example**
+
+```bash
+jasentool reformat-csv \
+  --csv-file bjorn.csv \
+  --output-file fixed.csv \
+  --sh-file bjorn.sh \
+  --remote
+```
+
+---
+
+## Setup & reference data
+
+Subcommands and tasks used when installing and configuring JASEN.
+
+### converge-catalogues
+
+Merge WHO, TBdb, and FoHM TB mutation catalogues into a unified TBProfiler database.
+
+```
+jasentool converge-catalogues [--output-dir <DIR>] [--save-dbs]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--output-dir` | No | — | Directory to write output files |
+| `--save-dbs` | No | False | Save all intermediary databases |
+
+**Example**
+
+```bash
+jasentool converge-catalogues --output-dir /path/to/output --save-dbs
+```
+
+---
+
+### download-bigsdb
+
+Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1.
+
+#### Initial setup
+
+Run once per site to register your API key and obtain OAuth tokens.
+
+```bash
+jasentool download-bigsdb \
+  --setup \
+  --site PubMLST \
+  --db seqdef_db \
+  --key-name mykey
+```
+
+Follow the printed URL to authorise access in your browser, then paste the verifier code when prompted. Tokens are stored in `--token-dir` (default `./.bigsdb_tokens`).
+
+#### Download scheme alleles
+
+```bash
+jasentool download-bigsdb \
+  --download-scheme \
+  --url https://rest.pubmlst.org/db/pubmlst_saureus_seqdef/schemes/1 \
+  --site PubMLST \
+  --key-name mykey \
+  --output-dir /path/to/alleles
+```
+
+#### Options
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--url` | Conditional | — | API endpoint URL (required for `--download-scheme`) |
+| `--site` | No | — | BIGSdb site: `PubMLST` or `Pasteur` |
+| `--key-name` | Yes | — | API key name (unique per site) |
+| `--output-dir` | No | — | Directory for per-locus FASTA files (`--download-scheme`) |
+| `--token-dir` | No | `./.bigsdb_tokens` | Token storage directory |
+| `--db` | No | — | Database config name (setup only) |
+| `--setup` | No | False | Run initial OAuth1 setup |
+| `--download-scheme` | No | False | Download all scheme loci |
+| `--force` | No | False | Re-download existing files (`--download-scheme`) |
+| `--cron` | No | False | Non-interactive / cron mode |
+| `--method` | No | `GET` | HTTP method: `GET` or `POST` |
+| `--output-file` | No | — | Save single API response to this file |
+
+---
+
+### download-ncbi
+
+Download genome FASTA and GFF from the NCBI Datasets v2 API.
+
+```
+jasentool download-ncbi --accession <ACC> [--accession ...] --output-dir <DIR>
+                        [--bwa-index] [--fai-index] [--clean]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `-i`/`--accession` | Yes | — | NCBI accession number(s); repeat for multiple |
+| `-o`/`--output-dir` | Yes | — | Output directory |
+| `--bwa-index` | No | False | Run `bwa index` on the downloaded FASTA |
+| `--fai-index` | No | False | Run `samtools faidx` on the downloaded FASTA |
+| `--clean` | No | False | Clear output directory before downloading |
+
+**Example**
+
+```bash
+jasentool download-ncbi \
+  --accession GCF_000013425.1 \
+  --output-dir /path/to/references \
+  --fai-index
+```
+
+---
+
+### transform-file-format
+
+Convert a cgMLST target TSV file to BED format (or another output format).
+
+```
+jasentool transform-file-format -i <FILE> [...] -o <FILE>
+                                 [-f <FORMAT>] [-a <ACCESSION>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `-i`/`--input-file` | Yes | — | Path to targets TSV file |
+| `-o`/`--output-file` | Yes | — | Output file path |
+| `-f`/`--out-format` | No | `bed` | Output format |
+| `-a`/`--accession` | No | — | Chromosome/contig accession for the BED `chrom` column |
+
+#### Downloading the cgMLST targets TSV
+
+The input TSV is the locus table for your organism's cgMLST scheme on [cgMLST.org](https://www.cgmlst.org). To download it:
+
+1. Navigate to your organism's schema page, e.g. `https://www.cgmlst.org/ncs/schema/<SCHEMA_NAME>/locus/` (the schema name differs per organism — for *S. aureus* it is `Saureus4059`).
+2. Click the **Download table as CSV** button.
+
+The downloaded file has a `.csv` extension but is tab-separated. Pass it directly to `--input-file`.
+
+**Example**
+
+```bash
+jasentool transform-file-format \
+  --input-file Staphylococcus_aureus_cgMLST.csv \
+  --output-file targets.bed \
+  --accession NC_002951.2
+```
+
+---
+
+### Building a Kraken2 database (via Singularity)
+
+#### Option A: Download a pre-built database (recommended)
 
 Pre-built databases are ready to use with no build step — just download and extract.
 
@@ -480,7 +496,7 @@ singularity exec kraken2.sif kraken2 \
   --report kraken_report.txt
 ```
 
-### Option B: Build a custom database from scratch
+#### Option B: Build a custom database from scratch
 
 jasentool does not wrap `kraken2-build`. Use the official Kraken2 Singularity image directly:
 
