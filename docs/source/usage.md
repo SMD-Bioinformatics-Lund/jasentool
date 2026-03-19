@@ -15,133 +15,105 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 Query samples from a MongoDB collection.
 
 ```
-jasentool find --query <QUERY> [--query ...] --db_name <DB> --db_collection <COLLECTION>
-               (--output_file <FILE> | --output_dir <DIR>)
-               [--address <URI>] [--prefix <PREFIX>] [--combined_output]
+jasentool find --query <QUERY> [--query ...] --db-name <DB> --db-collection <COLLECTION>
+               (--output-file <FILE> | --output-dir <DIR>)
+               [--address <URI>] [--prefix <PREFIX>] [--combined-output]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `-q`/`--query` | Yes | — | One or more sample queries |
-| `--db_name` | Yes | — | MongoDB database name |
-| `--db_collection` | Yes | — | MongoDB collection name |
-| `--output_file`/`--output_dir` | Yes (one) | — | Output file or directory |
+| `--db-name` | Yes | — | MongoDB database name |
+| `--db-collection` | Yes | — | MongoDB collection name |
+| `--output-file`/`--output-dir` | Yes (one) | — | Output file or directory |
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
 | `--prefix` | No | `jasentool_results_` | Prefix for output files |
-| `--combined_output` | No | False | Combine all outputs into one file |
+| `--combined-output` | No | False | Combine all outputs into one file |
 
 **Example**
 
 ```bash
 jasentool find \
   --query MySample \
-  --db_name mydb \
-  --db_collection samples \
-  --output_file results.json
+  --db-name mydb \
+  --db-collection samples \
+  --output-file results.json
 ```
 
 ---
 
-## insert
-
-Insert JSON sample results into a MongoDB collection.
-
-```
-jasentool insert (--input_file <FILE> [...]| --input_dir <DIR>)
-                 --db_name <DB> --db_collection <COLLECTION>
-                 [--address <URI>] [--combined_output]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `-i`/`--input_file` | Yes (or `--input_dir`) | — | Path(s) to JSON file(s) |
-| `--input_dir` | Yes (or `--input_file`) | — | Directory containing sample files |
-| `--db_name` | Yes | — | MongoDB database name |
-| `--db_collection` | Yes | — | MongoDB collection name |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
-| `--combined_output` | No | False | Combine all outputs into one file |
-
-**Example**
-
-```bash
-jasentool insert \
-  --input_file sample.json \
-  --db_name mydb \
-  --db_collection samples
-```
-
----
-
-## validate
+## validate-pipelines
 
 Compare new pipeline outputs against existing MongoDB records.
 
 ```
-jasentool validate (--input_file <FILE> [...] | --input_dir <DIR>)
-                   (--output_file <FILE> | --output_dir <DIR>)
-                   --db_name <DB> --db_collection <COLLECTION>
-                   [--address <URI>] [--prefix <PREFIX>]
-                   [--combined_output] [--generate_matrix]
+jasentool validate-pipelines (--input-file <FILE> [...] | --input-dir <DIR>)
+                              (--output-file <FILE> | --output-dir <DIR>)
+                              --db-name <DB> --db-collection <COLLECTION>
+                              [--address <URI>] [--prefix <PREFIX>]
+                              [--combined-output] [--generate-matrix]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `-i`/`--input_file` | Yes (or `--input_dir`) | — | Input filepath(s) |
-| `--input_dir` | Yes (or `--input_file`) | — | Directory containing sample files |
-| `--output_file`/`--output_dir` | Yes (one) | — | Output file or directory |
-| `--db_name` | Yes | — | MongoDB database name |
-| `--db_collection` | Yes | — | MongoDB collection name |
+| `-i`/`--input-file` | Yes (or `--input-dir`) | — | Input filepath(s) |
+| `--input-dir` | Yes (or `--input-file`) | — | Directory containing sample files |
+| `--output-file`/`--output-dir` | Yes (one) | — | Output file or directory |
+| `--db-name` | Yes | — | MongoDB database name |
+| `--db-collection` | Yes | — | MongoDB collection name |
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
 | `--prefix` | No | `jasentool_results_` | Prefix for output files |
-| `--combined_output` | No | False | Combine all outputs into one file |
-| `--generate_matrix` | No | False | Generate cgMLST matrix |
+| `--combined-output` | No | False | Combine all outputs into one file |
+| `--generate-matrix` | No | False | Generate cgMLST matrix |
 
 **Example**
 
 ```bash
-jasentool validate \
-  --input_dir /new/results \
-  --output_dir /validation/output \
-  --db_name mydb \
-  --db_collection samples \
-  --generate_matrix
+jasentool validate-pipelines \
+  --input-dir /new/results \
+  --output-dir /validation/output \
+  --db-name mydb \
+  --db-collection samples \
+  --generate-matrix
 ```
 
 ---
 
-## missing
+## identify-missing
 
 Identify samples absent from the JASEN results directory.
 
 ```
-jasentool missing --output_file <FILE> --db_name <DB> --db_collection <COLLECTION>
-                  [--analysis_dir <DIR>] [--restore_dir <DIR>] [--restore_file <FILE>]
-                  [--missing_log <FILE>] [--assay <ASSAY>] [--platform <PLATFORM>]
-                  [--sample_sheet] [--alter_sample_id]
+jasentool identify-missing --output-file <FILE> --db-name <DB> --db-collection <COLLECTION>
+                            [-i <FILE> [...]]
+                            [--analysis-dir <DIR>] [--restore-dir <DIR>] [--restore-file <FILE>]
+                            [--missing-log <FILE>] [--assay <ASSAY>] [--platform <PLATFORM>]
+                            [--sample-sheet] [--alter-sample-id]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `-o`/`--output_file` | Yes | — | Output file path |
-| `--db_name` | Yes | — | MongoDB database name |
-| `--db_collection` | Yes | — | MongoDB collection name |
-| `--analysis_dir` | No | — | Analysis results directory containing JASEN results |
-| `--restore_dir` | No | `/fs2/seqdata/restored` | Directory for restored spring files |
-| `--restore_file` | No | — | Output bash shell script (.sh) |
-| `--missing_log` | No | `missing_samples.log` | File to log missing samples |
+| `-o`/`--output-file` | Yes | — | Output file path |
+| `--db-name` | Yes | — | MongoDB database name |
+| `--db-collection` | Yes | — | MongoDB collection name |
+| `-i`/`--input-file` | No | — | Input filepath(s) |
+| `--analysis-dir` | No | — | Analysis results directory containing JASEN results |
+| `--restore-dir` | No | `/fs2/seqdata/restored` | Directory for restored spring files |
+| `--restore-file` | No | — | Output bash shell script (.sh) |
+| `--missing-log` | No | `missing_samples.log` | File to log missing samples |
 | `--assay` | No | `jasen-saureus-dev` | JASEN assay name |
 | `--platform` | No | `illumina` | Sequencing platform |
-| `--sample_sheet` | No | False | Use sample sheet input |
-| `--alter_sample_id` | No | False | Alter sample ID to LIMS ID + sequencing run |
+| `--sample-sheet` | No | False | Use sample sheet input |
+| `--alter-sample-id` | No | False | Alter sample ID to LIMS ID + sequencing run |
 
 **Example**
 
 ```bash
-jasentool missing \
-  --output_file missing.json \
-  --db_name mydb \
-  --db_collection samples \
-  --analysis_dir /fs1/results/jasen
+jasentool identify-missing \
+  --output-file missing.json \
+  --db-name mydb \
+  --db-collection samples \
+  --analysis-dir /fs1/results/jasen
 ```
 
 ---
