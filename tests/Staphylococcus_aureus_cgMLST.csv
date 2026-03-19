@@ -1,0 +1,11 @@
+Locus	Gene	Start	Length	Product	Allele Count	Alleles
+	SACOL0001	dnaA	544	1362	chromosomal replication initiation protein	1923	SACOL0001.fasta
+	SACOL0002	dnaN	2183	1134	DNA polymerase III subunit beta	2447	SACOL0002.fasta
+	SACOL0003		3697	246	hypothetical protein	304	SACOL0003.fasta
+	SACOL0004	recF	3939	1113	recombination protein F	1697	SACOL0004.fasta
+	SACOL0005	gyrB	5061	1935	DNA gyrase, B subunit	2781	SACOL0005.fasta
+	SACOL0006	gyrA	7032	2664	DNA gyrase, A subunit	3334	SACOL0006.fasta
+	SACOL0007		9782	702	hypothetical protein	1163	SACOL0007.fasta
+	SACOL0009	serS	12813	1287	seryl-tRNA synthetase	2003	SACOL0009.fasta
+	SACOL0010		14749	696	hypothetical protein	1883	SACOL0010.fasta
+	SACOL0011		15441	330	hypothetical protein	818	SACOL0011.fasta

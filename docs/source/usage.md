@@ -146,28 +146,38 @@ jasentool missing \
 
 ---
 
-## convert
+## transform-file-format
 
 Convert a cgMLST target TSV file to BED format (or another output format).
 
 ```
-jasentool convert --input_file <FILE> [...] --output_file <FILE>
-                  [--out_format <FORMAT>] [--accession <ACCESSION>]
+jasentool transform-file-format -i <FILE> [...] -o <FILE>
+                                 [-f <FORMAT>] [-a <ACCESSION>]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `-i`/`--input_file` | Yes | — | Path to targets TSV file |
-| `-o`/`--output_file` | Yes | — | Output file path |
-| `-f`/`--out_format` | No | `bed` | Output format |
-| `-a`/`--accession` | No | — | Accession number |
+| `-i`/`--input-file` | Yes | — | Path to targets TSV file |
+| `-o`/`--output-file` | Yes | — | Output file path |
+| `-f`/`--out-format` | No | `bed` | Output format |
+| `-a`/`--accession` | No | — | Chromosome/contig accession for the BED `chrom` column |
+
+### Downloading the cgMLST targets TSV
+
+The input TSV is the locus table for your organism's cgMLST scheme on [cgMLST.org](https://www.cgmlst.org). To download it:
+
+1. Navigate to your organism's schema page, e.g. `https://www.cgmlst.org/ncs/schema/<SCHEMA_NAME>/locus/` (the schema name differs per organism — for *S. aureus* it is `Saureus4059`).
+2. Click the **Download table as CSV** button.
+
+The downloaded file has a `.csv` extension but is tab-separated. Pass it directly to `--input-file`.
 
 **Example**
 
 ```bash
-jasentool convert \
-  --input_file targets.tsv \
-  --output_file targets.bed
+jasentool transform-file-format \
+  --input-file Staphylococcus_aureus_cgMLST.csv \
+  --output-file targets.bed \
+  --accession NC_002951.2
 ```
 
 ---
@@ -222,39 +232,6 @@ jasentool converge [--output_dir <DIR>] [--save_dbs]
 
 ```bash
 jasentool converge --output_dir /path/to/output --save_dbs
-```
-
----
-
-## qc
-
-Compute post-alignment QC metrics from a BAM file.
-
-```
-jasentool qc --sample_id <ID> --bam_file <FILE> --reference <FILE> --output_file <FILE>
-             [--bed_file <FILE>] [--baits_file <FILE>] [--cpus <N>]
-```
-
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `--sample_id` | Yes | — | Sample ID |
-| `--bam_file` | Yes | — | Input BAM file |
-| `--reference` | Yes | — | Reference FASTA file |
-| `-o`/`--output_file` | Yes | — | Path to QC JSON output file |
-| `--bed_file` | No | — | Input BED file |
-| `--baits_file` | No | None | Input baits file |
-| `--cpus` | No | `2` | Number of CPUs |
-
-**Example**
-
-```bash
-jasentool qc \
-  --sample_id SAMPLE001 \
-  --bam_file aligned.bam \
-  --reference reference.fasta \
-  --output_file qc.json \
-  --bed_file targets.bed \
-  --cpus 4
 ```
 
 ---
