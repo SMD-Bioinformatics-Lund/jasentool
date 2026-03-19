@@ -7,13 +7,17 @@ Multipurpose tool for jobs related to the [JASEN](https://github.com/Clinical-Ge
 | Subcommand | Description |
 |------------|-------------|
 | `find` | Query samples from MongoDB |
-| `insert` | Insert JSON results into MongoDB |
-| `validate` | Compare pipeline outputs against MongoDB records |
-| `missing` | Identify samples absent from JASEN results directory |
-| `convert` | Convert cgMLST target TSV to BED format |
-| `fix` | Reformat BJORN CSV/SH files for JASEN |
-| `converge` | Merge WHO, TBdb, and FoHM TB mutation catalogues |
-| `qc` | Compute post-alignment QC from BAM |
+| `validate-pipelines` | Compare pipeline outputs against MongoDB records |
+| `identify-missing` | Identify samples absent from JASEN results directory |
+| `transform-file-format` | Convert cgMLST target TSV to BED format |
+| `reformat-csv` | Reformat BJORN CSV/SH files for JASEN |
+| `converge-catalogues` | Merge WHO, TBdb, and FoHM TB mutation catalogues |
+| `post-align-qc` | Compute post-alignment QC from BAM |
+| `count-reads` | Count reads in FASTQ file(s) |
+| `download-ncbi` | Download genome FASTA and GFF from NCBI |
+| `download-bigsdb` | Download cgMLST scheme alleles from PubMLST or BIGSdb |
+| `concatenate-files` | Concatenate multiple YAML files |
+| `create-yaml` | Create YAML input file for Bonsai upload |
 
 ## Quick Start
 
@@ -26,29 +30,29 @@ pip install jasentool
 ```bash
 jasentool find \
   --query MySampleID \
-  --db_name mydb \
-  --db_collection samples \
-  --output_file results.json
+  --db-name mydb \
+  --db-collection samples \
+  --output-file results.json
 ```
 
 ### Identify missing samples
 
 ```bash
-jasentool missing \
-  --output_file missing.json \
-  --db_name mydb \
-  --db_collection samples \
-  --analysis_dir /path/to/jasen/results
+jasentool identify-missing \
+  --output-file missing.json \
+  --db-name mydb \
+  --db-collection samples \
+  --analysis-dir /path/to/jasen/results
 ```
 
 ### Validate pipeline outputs
 
 ```bash
-jasentool validate \
-  --input_dir /path/to/new/results \
-  --output_dir /path/to/validation/output \
-  --db_name mydb \
-  --db_collection samples
+jasentool validate-pipelines \
+  --input-dir /path/to/new/results \
+  --output-dir /path/to/validation/output \
+  --db-name mydb \
+  --db-collection samples
 ```
 
 See [Installation](installation.md) and [Usage](usage.md) for full details.

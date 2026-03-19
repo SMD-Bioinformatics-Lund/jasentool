@@ -154,56 +154,56 @@ jasentool transform-file-format \
 
 ---
 
-## fix
+## reformat-csv
 
 Reformat a BJORN microbiology CSV (and optionally SH) file for JASEN.
 
 ```
-jasentool fix --csv_file <FILE> --output_file <FILE>
-              [--sh_file <FILE>] [--remote_dir <DIR>] [--remote_hostname <HOST>]
-              [--remote] [--auto_start] [--alter_sample_id]
+jasentool reformat-csv --csv-file <FILE> --output-file <FILE>
+                        [--sh-file <FILE>] [--remote-dir <DIR>] [--remote-hostname <HOST>]
+                        [--remote] [--auto-start] [--alter-sample-id]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--csv_file` | Yes | — | Path to BJORN CSV file |
-| `-o`/`--output_file` | Yes | — | Path to fixed output CSV file |
-| `--sh_file` | No | None | Path to BJORN SH file |
-| `--remote_dir` | No | `/fs1/bjorn/jasen` | Remote directory for spring files |
-| `--remote_hostname` | No | `rs-fe1.lunarc.lu.se` | Remote hostname |
+| `--csv-file` | Yes | — | Path to BJORN CSV file |
+| `-o`/`--output-file` | Yes | — | Path to fixed output CSV file |
+| `--sh-file` | No | None | Path to BJORN SH file |
+| `--remote-dir` | No | `/fs1/bjorn/jasen` | Remote directory for spring files |
+| `--remote-hostname` | No | `rs-fe1.lunarc.lu.se` | Remote hostname |
 | `--remote` | No | False | Enable remote copy |
-| `--auto_start` | No | False | Automatically start after fix |
-| `--alter_sample_id` | No | False | Alter sample ID to LIMS ID + sequencing run |
+| `--auto-start` | No | False | Automatically start after fix |
+| `--alter-sample-id` | No | False | Alter sample ID to LIMS ID + sequencing run |
 
 **Example**
 
 ```bash
-jasentool fix \
-  --csv_file bjorn.csv \
-  --output_file fixed.csv \
-  --sh_file bjorn.sh \
+jasentool reformat-csv \
+  --csv-file bjorn.csv \
+  --output-file fixed.csv \
+  --sh-file bjorn.sh \
   --remote
 ```
 
 ---
 
-## converge
+## converge-catalogues
 
 Merge WHO, TBdb, and FoHM TB mutation catalogues into a unified TBProfiler database.
 
 ```
-jasentool converge [--output_dir <DIR>] [--save_dbs]
+jasentool converge-catalogues [--output-dir <DIR>] [--save-dbs]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--output_dir` | No | — | Directory to write output files |
-| `--save_dbs` | No | False | Save all intermediary databases |
+| `--output-dir` | No | — | Directory to write output files |
+| `--save-dbs` | No | False | Save all intermediary databases |
 
 **Example**
 
 ```bash
-jasentool converge --output_dir /path/to/output --save_dbs
+jasentool converge-catalogues --output-dir /path/to/output --save-dbs
 ```
 
 ---
