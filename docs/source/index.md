@@ -77,7 +77,7 @@ See [Installation](installation.md) and [Usage](usage.md) for full details.
 ```{toctree}
 :hidden:
 :caption: Get started
-:maxdepth: 1
+:maxdepth: 2
 
 installation
 usage
