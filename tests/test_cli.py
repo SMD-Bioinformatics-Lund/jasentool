@@ -64,6 +64,43 @@ def test_transform_missing_args():
     assert result.exit_code != 0
 
 
+def test_transform_cgmlst_csv_to_bed(cgmlst_csv, tmp_path):
+    """Convert the S. aureus cgMLST targets CSV (tab-separated) to BED format."""
+    out = tmp_path / "targets.bed"
+    accession = "NC_002951.2"
+    result = runner.invoke(cli, [
+        "transform-file-format",
+        "-i", str(cgmlst_csv),
+        "-o", str(out),
+        "-a", accession,
+    ])
+    assert result.exit_code == 0, result.output
+    lines = out.read_text().splitlines()
+    assert len(lines) == 10
+    # Verify first and last entries match expected 0-based BED coordinates
+    # SACOL0001: start=544 → 543 (0-based), length=1362 → end=1905
+    assert lines[0] == f"{accession}\t543\t1905"
+    # SACOL0011: start=15441 → 15440 (0-based), length=330 → end=15770
+    assert lines[-1] == f"{accession}\t15440\t15770"
+
+
+def test_transform_cgmlst_csv_bed_columns(cgmlst_csv, tmp_path):
+    """Each BED line must have exactly three tab-separated columns."""
+    out = tmp_path / "targets.bed"
+    result = runner.invoke(cli, [
+        "transform-file-format",
+        "-i", str(cgmlst_csv),
+        "-o", str(out),
+        "-a", "NC_002951.2",
+    ])
+    assert result.exit_code == 0, result.output
+    for line in out.read_text().splitlines():
+        cols = line.split("\t")
+        assert len(cols) == 3
+        assert int(cols[1]) >= 0
+        assert int(cols[2]) > int(cols[1])
+
+
 # ── --help for all remaining subcommands ──────────────────────────────────────
 
 @pytest.mark.parametrize("subcommand", [
