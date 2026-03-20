@@ -39,6 +39,7 @@ def cgmlst_csv():
     return TESTS_DIR / "Staphylococcus_aureus_cgMLST.csv"
 
 
+
 @pytest.fixture()
 def versions_yaml_a(tmp_path):
     p = tmp_path / "versions_a.yml"

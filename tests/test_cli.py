@@ -192,3 +192,26 @@ def test_create_yaml_with_bam_and_bai(tmp_path):
 def test_create_yaml_missing_required_args():
     result = runner.invoke(cli, ["create-yaml"])
     assert result.exit_code != 0
+
+
+# ── download-ncbi ──────────────────────────────────────────────────────────────
+
+def test_download_ncbi_help():
+    result = runner.invoke(cli, ["download-ncbi", "--help"])
+    assert result.exit_code == 0
+
+
+def test_download_ncbi_missing_args():
+    result = runner.invoke(cli, ["download-ncbi"])
+    assert result.exit_code != 0
+
+
+def test_download_ncbi(tmp_path):
+    result = runner.invoke(cli, [
+        "download-ncbi", "-i", "GCF_000012045.1", "-o", str(tmp_path),
+    ])
+    assert result.exit_code == 0, result.output
+    fasta = tmp_path / "GCF_000012045.1.fasta"
+    gff   = tmp_path / "GCF_000012045.1.gff"
+    assert fasta.exists() and fasta.stat().st_size > 0
+    assert gff.exists()   and gff.stat().st_size > 0
