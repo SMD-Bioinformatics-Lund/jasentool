@@ -1,0 +1,23 @@
+name: jasentool
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - numpy>=1.24
+  - pandas
+  - matplotlib
+  - contourpy
+  - seaborn
+  - biopython
+  - pysam>=0.22
+  - openpyxl
+  - pymongo>=4.16
+  - click>=8.1
+  - requests
+  - tqdm
+  - pyyaml
+  - pip
+  - pip:
+    - rauth
+    - -e .
