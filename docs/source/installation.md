@@ -29,11 +29,25 @@ pip install ".[dev]"
 
 ## conda
 
+### From PyPI
+
 ```bash
 conda create -n jasentool python=3.11
 conda activate jasentool
 pip install jasentool
 ```
+
+### From source (development)
+
+```bash
+git clone https://github.com/SMD-Bioinformatics-Lund/jasentool.git
+cd jasentool
+conda env create -f environment.yml
+conda activate jasentool
+```
+
+`environment.yml` installs all dependencies via conda-forge and performs an editable (`-e .`)
+pip install of the package automatically.
 
 ## Verify installation
 
