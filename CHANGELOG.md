@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added `concatenate-files` subcommand — merges multiple YAML files (e.g. `versions.yml`) into one output YAML
  - Added `create-yaml` subcommand — creates a YAML input file for Bonsai upload from sample metadata and analysis result paths
  - Added GA workflows for publishing to dockerhub and pypi
+ - Added pytest for `download-ncbi` subcommand
+ - Added conda `environment.yml` for installation
 
 ### Fixed
 
