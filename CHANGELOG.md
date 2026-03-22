@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added GA workflows for publishing to dockerhub and pypi
  - Added pytest for `download-ncbi` subcommand
  - Added conda `environment.yml` for installation
+ - Added `annotate-delly` subcommand — annotates Delly structural-variant VCFs with gene symbols and locus tags from a tabix-indexed BED file
 
 ### Fixed
 
