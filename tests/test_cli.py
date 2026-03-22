@@ -194,6 +194,20 @@ def test_create_yaml_missing_required_args():
     assert result.exit_code != 0
 
 
+# ── annotate-delly ─────────────────────────────────────────────────────────────
+
+def test_annotate_delly(delly_bcf_path, delly_bed_path, tmp_path):
+    out = tmp_path / "annotated.vcf"
+    result = runner.invoke(cli, [
+        "annotate-delly",
+        "-v", str(delly_bcf_path),
+        "-b", str(delly_bed_path),
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+
+
 # ── download-ncbi ──────────────────────────────────────────────────────────────
 
 def test_download_ncbi_help():

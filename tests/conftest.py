@@ -41,6 +41,16 @@ def cgmlst_csv():
 
 
 @pytest.fixture()
+def delly_bcf_path():
+    return TESTS_DIR / "fixtures" / "delly.bcf"
+
+
+@pytest.fixture()
+def delly_bed_path():
+    return TESTS_DIR / "fixtures" / "converged_who_fohm_tbdb.bed.gz"
+
+
+@pytest.fixture()
 def versions_yaml_a(tmp_path):
     p = tmp_path / "versions_a.yml"
     p.write_text("tool_a:\n  version: '1.0'\n")
