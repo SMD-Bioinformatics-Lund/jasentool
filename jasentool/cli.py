@@ -3,6 +3,7 @@
 
 import types
 import logging
+from pathlib import Path
 
 import click
 
@@ -287,6 +288,19 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         output=output,
     )
     _parser().create_yaml(options)
+
+
+@cli.command('annotate-delly')
+@click.option('-v', '--vcf', required=True, type=click.Path(exists=True, path_type=Path),
+              help='Delly VCF/BCF to annotate')
+@click.option('-b', '--bed', required=True, type=click.Path(exists=True, path_type=Path),
+              help='Tabix-indexed BED file with gene annotations')
+@click.option('-o', '--output', required=True, type=click.Path(writable=True, path_type=Path),
+              help='Output annotated VCF path')
+def annotate_delly_cmd(vcf, bed, output):
+    """Annotate Delly structural variants with gene and locus_tag from a BED file."""
+    options = types.SimpleNamespace(vcf=vcf, bed=bed, output=output)
+    _parser().annotate_delly(options)
 
 
 @cli.command('download-bigsdb')

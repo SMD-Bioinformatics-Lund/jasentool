@@ -11,6 +11,7 @@ dependencies:
   - seaborn
   - biopython
   - pysam>=0.22
+  - cyvcf2
   - openpyxl
   - pymongo>=4.16
   - click>=8.1
