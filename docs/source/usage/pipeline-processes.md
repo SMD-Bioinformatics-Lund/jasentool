@@ -127,6 +127,31 @@ jasentool create-yaml \
   -o input.yml
 ```
 
+## annotate-delly
+
+Annotate a Delly structural-variant VCF/BCF with `gene` and `locus_tag` INFO fields derived
+from a tabix-indexed BED file. Handles chromosome name mismatches between the VCF and BED
+(single-contig BED files are remapped automatically).
+
+```
+jasentool annotate-delly -v <VCF> -b <BED> -o <OUTPUT>
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `-v`/`--vcf` | Yes | — | Delly VCF/BCF to annotate |
+| `-b`/`--bed` | Yes | — | Tabix-indexed BED file with gene annotations |
+| `-o`/`--output` | Yes | — | Output annotated VCF path |
+
+**Example**
+
+```bash
+jasentool annotate-delly \
+  -v delly.bcf \
+  -b converged_who_fohm_tbdb.bed.gz \
+  -o delly_annotated.vcf
+```
+
 ## post-align-qc
 
 ```
