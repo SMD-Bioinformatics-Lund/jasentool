@@ -19,6 +19,7 @@ from jasentool.ncbi import NCBI
 from jasentool.bigsdb import BIGSdb
 from jasentool.concatenate import Concatenate
 from jasentool.create_yaml import CreateYaml
+from jasentool.annotate_delly import AnnotateDelly
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -171,6 +172,10 @@ class OptionsParser:
     def create_yaml(self, options):
         """Create YAML input file for Bonsai upload"""
         CreateYaml().run(options)
+
+    def annotate_delly(self, options):
+        """Annotate Delly SV VCF with gene/locus_tag from a tabix BED."""
+        AnnotateDelly().run(options.vcf, options.bed, options.output)
 
     def parse_options(self, options):
         """Options parser"""
