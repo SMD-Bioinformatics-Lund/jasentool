@@ -1,6 +1,7 @@
 """Module for retrieving qc results"""
 
 import json
+import os
 
 import pysam
 import numpy as np
@@ -24,14 +25,21 @@ class QC:
         with open(output_filepath, 'w', encoding="utf-8") as json_file:
             json_file.write(json_result)
 
+    def _ensure_index(self):
+        """Create a BAM index if one does not exist."""
+        if not os.path.exists(self.bam + '.bai'):
+            pysam.index(self.bam)
+
     def is_paired(self):
         """Check if reads are paired"""
         with pysam.AlignmentFile(self.bam, "rb") as bam:
-            first_read = next(bam.fetch(), None)
+            first_read = next(iter(bam), None)
             return bool(first_read and first_read.is_paired)
 
     def get_base_coverage(self):
         """Compute per-base coverage; BED-region or genome-wide depending on self.bed"""
+        if self.bed is not None:
+            self._ensure_index()
         with pysam.AlignmentFile(self.bam, "rb") as bam:
             if self.bed is not None:
                 depths = []
