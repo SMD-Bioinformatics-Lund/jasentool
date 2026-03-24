@@ -83,11 +83,15 @@ class QC:
         thresholds = [1, 10, 30, 100, 250, 500, 1000]
 
         logger.info("Collecting depth stats...")
-        depths = self.get_base_coverage()
-        tot_bases = len(depths)
-        mean_cov = sum(depths) / tot_bases if tot_bases else 0
-        above_pct = {t: 100 * sum(d >= t for d in depths) / tot_bases
-                     for t in thresholds} if tot_bases else {t: 0 for t in thresholds}
+        if self.bed is not None:
+            depths = self.get_base_coverage()
+            tot_bases = len(depths)
+            mean_cov = sum(depths) / tot_bases if tot_bases else 0
+            above_pct = {t: 100 * sum(d >= t for d in depths) / tot_bases
+                         for t in thresholds} if tot_bases else {t: 0 for t in thresholds}
+        else:
+            mean_cov = None
+            above_pct = None
 
         self.results['pct_above_x'] = above_pct
         self.results['tot_reads'] = num_reads
