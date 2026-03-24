@@ -55,6 +55,16 @@ def saureus_bam_path():
 
 
 @pytest.fixture()
+def saureus_fastq_r1():
+    return TESTS_DIR / "fixtures" / "saureus" / "saureus_sim_R1.fastq.gz"
+
+
+@pytest.fixture()
+def saureus_fastq_r2():
+    return TESTS_DIR / "fixtures" / "saureus" / "saureus_sim_R2.fastq.gz"
+
+
+@pytest.fixture()
 def versions_yaml_a(tmp_path):
     p = tmp_path / "versions_a.yml"
     p.write_text("tool_a:\n  version: '1.0'\n")
