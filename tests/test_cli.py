@@ -222,8 +222,10 @@ def test_post_align_qc(saureus_bam_path, tmp_path):
     assert out.exists()
     data = json.loads(out.read_text())
     assert data["sample_id"] == "saureus_test_1"
-    assert data["tot_reads"] > 0
-    assert data["mapped_reads"] > 0
+    assert data["n_reads"] > 0
+    assert data["n_mapped_reads"] > 0
+    assert data["mean_cov"] is not None
+    assert "pct_above_x" in data
 
 
 # ── download-ncbi ──────────────────────────────────────────────────────────────
