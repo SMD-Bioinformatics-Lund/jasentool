@@ -208,6 +208,24 @@ def test_annotate_delly(delly_bcf_path, delly_bed_path, tmp_path):
     assert out.exists()
 
 
+# ── post-align-qc ─────────────────────────────────────────────────────────────
+
+def test_post_align_qc(saureus_bam_path, tmp_path):
+    out = tmp_path / "qc.json"
+    result = runner.invoke(cli, [
+        "post-align-qc",
+        "--sample-id", "saureus_test_1",
+        "--bam-file", str(saureus_bam_path),
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    data = json.loads(out.read_text())
+    assert data["sample_id"] == "saureus_test_1"
+    assert data["tot_reads"] > 0
+    assert data["mapped_reads"] > 0
+
+
 # ── download-ncbi ──────────────────────────────────────────────────────────────
 
 def test_download_ncbi_help():
