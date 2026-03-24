@@ -31,21 +31,36 @@ class QC:
             return bool(first_read and first_read.is_paired)
 
     def get_base_coverage(self):
-        """Compute per-base coverage across BED regions using pysam pileup"""
-        depths = []
+        """Compute per-base coverage; BED-region or genome-wide depending on self.bed"""
         with pysam.AlignmentFile(self.bam, "rb") as bam:
-            with open(self.bed, "r", encoding="utf-8") as bed_fh:
-                for line in bed_fh:
-                    parts = line.strip().split("\t")
-                    chrom, start, end = parts[0], int(parts[1]), int(parts[2])
-                    for col in bam.pileup(chrom, start, end, truncate=True,
-                                          min_base_quality=0, stepper="nofilter"):
-                        depths.append(col.nsegments)
-        return depths
+            if self.bed is not None:
+                depths = []
+                with open(self.bed, "r", encoding="utf-8") as bed_fh:
+                    for line in bed_fh:
+                        parts = line.strip().split("\t")
+                        chrom, start, end = parts[0], int(parts[1]), int(parts[2])
+                        region_cov = np.zeros(end - start, dtype=np.int32)
+                        for col in bam.pileup(chrom, start, end, truncate=True,
+                                              min_base_quality=0, stepper="nofilter"):
+                            region_cov[col.reference_pos - start] = col.nsegments
+                        depths.extend(region_cov.tolist())
+                return np.array(depths, dtype=np.int32)
+            else:
+                refs = list(bam.header.references)
+                ref_lengths = [bam.header.get_reference_length(r) for r in refs]
+                total_bases = sum(ref_lengths)
+                coverage = np.zeros(total_bases, dtype=np.int32)
+                offsets, offset = {}, 0
+                for ref, length in zip(refs, ref_lengths):
+                    offsets[ref] = offset
+                    offset += length
+                for col in bam.pileup(min_base_quality=0, stepper="nofilter"):
+                    coverage[offsets[col.reference_name] + col.reference_pos] = col.nsegments
+                return coverage
 
     def _collect_flagstats(self):
-        """Count total, duplicate, and mapped reads via pysam"""
-        num_reads, dup_reads, mapped_reads = 0, 0, 0
+        """Count total, duplicate, mapped, and paired reads via pysam"""
+        num_reads, dup_reads, mapped_reads, read_pairs = 0, 0, 0, 0
         with pysam.AlignmentFile(self.bam, "rb") as bam:
             for read in bam:
                 num_reads += 1
@@ -53,7 +68,9 @@ class QC:
                     dup_reads += 1
                 if not read.is_unmapped:
                     mapped_reads += 1
-        return num_reads, dup_reads, mapped_reads
+                if read.is_paired:
+                    read_pairs += 1
+        return num_reads, dup_reads, mapped_reads, read_pairs
 
     def _collect_insert_sizes(self):
         """Compute median insert size and std dev via pysam"""
@@ -68,13 +85,13 @@ class QC:
                         break
         if insert_sizes:
             arr = np.array(insert_sizes)
-            self.results['ins_size'] = str(int(np.median(arr)))
-            self.results['ins_size_dev'] = str(round(float(np.std(arr)), 6))
+            self.results['ins_size'] = round(float(np.median(arr)), 6)
+            self.results['ins_size_dev'] = round(float(np.std(arr)), 6)
 
     def run(self):
         """Run QC info extraction"""
         logger.info("Collecting basic stats...")
-        num_reads, dup_reads, mapped_reads = self._collect_flagstats()
+        num_reads, dup_reads, mapped_reads, read_pairs = self._collect_flagstats()
 
         if self.paired:
             logger.info("Collect insert sizes...")
@@ -83,24 +100,37 @@ class QC:
         thresholds = [1, 10, 30, 100, 250, 500, 1000]
 
         logger.info("Collecting depth stats...")
-        if self.bed is not None:
-            depths = self.get_base_coverage()
-            tot_bases = len(depths)
-            mean_cov = sum(depths) / tot_bases if tot_bases else 0
-            above_pct = {t: 100 * sum(d >= t for d in depths) / tot_bases
-                         for t in thresholds} if tot_bases else {t: 0 for t in thresholds}
+        depths = self.get_base_coverage()
+        tot_bases = len(depths)
+
+        if tot_bases:
+            mean_cov = float(np.mean(depths))
+            q1 = float(np.percentile(depths, 25))
+            median_cov = float(np.median(depths))
+            q3 = float(np.percentile(depths, 75))
+            coverage_uniformity = (q3 - q1) / median_cov if median_cov else 0.0
+            above_pct = {t: round(100 * float(np.sum(depths >= t)) / tot_bases, 6)
+                         for t in thresholds}
         else:
-            mean_cov = None
-            above_pct = None
+            mean_cov = 0.0
+            q1 = 0.0
+            median_cov = 0.0
+            q3 = 0.0
+            coverage_uniformity = 0.0
+            above_pct = {t: 0.0 for t in thresholds}
 
         self.results['pct_above_x'] = above_pct
-        self.results['tot_reads'] = num_reads
-        self.results['mapped_reads'] = mapped_reads
-        self.results['dup_reads'] = dup_reads
-        self.results['dup_pct'] = dup_reads / mapped_reads if mapped_reads else 0
-        self.results['sample_id'] = self.sample_id
         self.results['mean_cov'] = mean_cov
-        self.results['iqr_median'] = "9999"
+        self.results['coverage_uniformity'] = coverage_uniformity
+        self.results['quartile1'] = q1
+        self.results['median_cov'] = median_cov
+        self.results['quartile3'] = q3
+        self.results['n_reads'] = num_reads
+        self.results['n_mapped_reads'] = mapped_reads
+        self.results['n_read_pairs'] = read_pairs
+        self.results['n_dup_reads'] = dup_reads
+        self.results['dup_pct'] = dup_reads / mapped_reads if mapped_reads else 0.0
+        self.results['sample_id'] = self.sample_id
 
         json_result = json.dumps(self.results, indent=4)
         return json_result
