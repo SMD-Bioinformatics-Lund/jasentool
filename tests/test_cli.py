@@ -52,6 +52,20 @@ def test_count_reads_missing_input():
     assert result.exit_code != 0
 
 
+def test_count_reads_saureus_paired(saureus_fastq_r1, saureus_fastq_r2, tmp_path):
+    out = tmp_path / "counts.json"
+    result = runner.invoke(cli, [
+        "count-reads",
+        "--fastq1", str(saureus_fastq_r1),
+        "--fastq2", str(saureus_fastq_r2),
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = json.loads(out.read_text())
+    assert data["n_reads"] == 38702
+    assert data["n_read_pairs"] == 19351
+
+
 # ── transform-file-format ──────────────────────────────────────────────────────
 
 def test_transform_file_format_help():
