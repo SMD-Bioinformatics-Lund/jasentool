@@ -58,19 +58,20 @@ class QC:
                     coverage[offsets[col.reference_name] + col.reference_pos] = col.nsegments
                 return coverage
 
-    def _collect_flagstats(self):
-        """Count total, duplicate, mapped, and paired reads via pysam"""
-        num_reads, dup_reads, mapped_reads, read_pairs = 0, 0, 0, 0
-        with pysam.AlignmentFile(self.bam, "rb") as bam:
-            for read in bam:
-                num_reads += 1
-                if read.is_duplicate:
-                    dup_reads += 1
-                if not read.is_unmapped:
-                    mapped_reads += 1
-                if read.is_paired:
-                    read_pairs += 1
-        return num_reads, dup_reads, mapped_reads, read_pairs
+    def _parse_flagstat(self):
+        """Parse pysam.flagstat() output to extract read counts"""
+        stats = {'n_reads': 0, 'n_dup_reads': 0, 'n_mapped_reads': 0, 'n_read_pairs': 0}
+        for line in pysam.flagstat(self.bam).splitlines():
+            count = int(line.split(' + ')[0])
+            if 'in total' in line:
+                stats['n_reads'] = count
+            elif 'primary duplicates' in line:
+                stats['n_dup_reads'] = count
+            elif 'primary mapped' in line:
+                stats['n_mapped_reads'] = count
+            elif 'paired in sequencing' in line:
+                stats['n_read_pairs'] = count
+        return stats
 
     def _collect_insert_sizes(self):
         """Compute median insert size and std dev via pysam"""
@@ -91,7 +92,7 @@ class QC:
     def run(self):
         """Run QC info extraction"""
         logger.info("Collecting basic stats...")
-        num_reads, dup_reads, mapped_reads, read_pairs = self._collect_flagstats()
+        fs = self._parse_flagstat()
 
         if self.paired:
             logger.info("Collect insert sizes...")
@@ -125,11 +126,11 @@ class QC:
         self.results['quartile1'] = q1
         self.results['median_cov'] = median_cov
         self.results['quartile3'] = q3
-        self.results['n_reads'] = num_reads
-        self.results['n_mapped_reads'] = mapped_reads
-        self.results['n_read_pairs'] = read_pairs
-        self.results['n_dup_reads'] = dup_reads
-        self.results['dup_pct'] = dup_reads / mapped_reads if mapped_reads else 0.0
+        self.results['n_reads'] = fs['n_reads']
+        self.results['n_mapped_reads'] = fs['n_mapped_reads']
+        self.results['n_read_pairs'] = fs['n_read_pairs']
+        self.results['n_dup_reads'] = fs['n_dup_reads']
+        self.results['dup_pct'] = fs['n_dup_reads'] / fs['n_mapped_reads'] if fs['n_mapped_reads'] else 0.0
         self.results['sample_id'] = self.sample_id
 
         json_result = json.dumps(self.results, indent=4)
