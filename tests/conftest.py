@@ -36,18 +36,22 @@ def targets_tsv(tmp_path):
 @pytest.fixture()
 def cgmlst_csv():
     """Return the path to the trimmed S. aureus cgMLST targets CSV (tab-separated)."""
-    return TESTS_DIR / "Staphylococcus_aureus_cgMLST.csv"
-
+    return TESTS_DIR / "fixtures" / "saureus" / "Staphylococcus_aureus_cgMLST.csv"
 
 
 @pytest.fixture()
 def delly_bcf_path():
-    return TESTS_DIR / "fixtures" / "delly.bcf"
+    return TESTS_DIR / "fixtures" / "mtuberculosis" / "delly.bcf"
 
 
 @pytest.fixture()
 def delly_bed_path():
-    return TESTS_DIR / "fixtures" / "converged_who_fohm_tbdb.bed.gz"
+    return TESTS_DIR / "fixtures" / "mtuberculosis" / "converged_who_fohm_tbdb.bed.gz"
+
+
+@pytest.fixture()
+def saureus_bam_path():
+    return TESTS_DIR / "fixtures" / "saureus" / "saureus_test_1.bam"
 
 
 @pytest.fixture()
