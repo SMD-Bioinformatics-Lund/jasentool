@@ -177,8 +177,8 @@ def converge_catalogues_cmd(output_dir, save_dbs):
 def post_align_qc_cmd(sample_id, bam_file, output_file, bed_file, cpus):
     """Run QC on BWA alignment."""
     options = types.SimpleNamespace(
-        sample_id=sample_id, bam_file=bam_file,
-        output_file=output_file, bed_file=bed_file, cpus=cpus,
+        sample_id=sample_id, bam=bam_file,
+        output_file=output_file, bed=bed_file, cpus=cpus,
     )
     _parser().post_align_qc(options)
 
