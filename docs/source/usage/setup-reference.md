@@ -25,6 +25,11 @@ jasentool converge-catalogues --output-dir /path/to/output --save-dbs
 
 Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1.
 
+```{note}
+This subcommand is based on code written by Keith Jolley (University of Oxford).
+Source: [kjolley/BIGSdb_downloader](https://github.com/kjolley/BIGSdb_downloader)
+```
+
 ### Initial setup
 
 Run once per site to register your API key and obtain OAuth tokens.
