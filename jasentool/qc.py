@@ -77,7 +77,7 @@ class QC:
                 stats['n_dup_reads'] = count
             elif 'primary mapped' in line:
                 stats['n_mapped_reads'] = count
-            elif 'paired in sequencing' in line:
+            elif 'read1' in line:
                 stats['n_read_pairs'] = count
         return stats
 

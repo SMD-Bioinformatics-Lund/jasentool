@@ -5,6 +5,7 @@ via their REST interfaces.
 Written by Keith Jolley
 Copyright (c) 2024-2025, University of Oxford
 E-mail: keith.jolley@biology.ox.ac.uk
+Source: https://github.com/kjolley/BIGSdb_downloader
 
 BIGSdb_downloader is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
