@@ -29,6 +29,8 @@ class AnnotateDelly:
     def run(self, vcf_path: Path, bed_path: Path, output_path: Path):
         if bed_path is None:
             raise ValueError("A BED file is required for annotation")
+        if not Path(str(bed_path) + '.tbi').exists():
+            raise FileNotFoundError(f"Tabix index not found: {bed_path}.tbi")
         annotation = pysam.TabixFile(str(bed_path), parser=pysam.asTuple())
         vcf = VCF(str(vcf_path))
 
@@ -44,11 +46,15 @@ class AnnotateDelly:
                     raise ValueError(
                         f"Chromosome {first_variant.CHROM!r} not in BED contigs {contigs}"
                     )
+        vcf.close()
         vcf = VCF(str(vcf_path))  # reset
         vcf.add_info_to_header({"ID": "gene", "Number": 1, "Type": "Character",
                                  "Description": "overlapping gene"})
         vcf.add_info_to_header({"ID": "locus_tag", "Number": 1, "Type": "Character",
                                  "Description": "overlapping tbdb locus tag"})
         writer = Writer(str(output_path), vcf)
-        annotate_delly_variants(writer, vcf, annotation, annot_chrom=annot_chrom)
-        writer.close()
+        try:
+            annotate_delly_variants(writer, vcf, annotation, annot_chrom=annot_chrom)
+        finally:
+            writer.close()
+            annotation.close()
