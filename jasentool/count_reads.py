@@ -15,15 +15,17 @@ class CountReads:
             return fh.read(2) == b'\x1f\x8b'
 
     @staticmethod
-    def count_reads_in_fastq(filepath):
+    def count_reads_in_fastq(filepath, chunk_size=1024 * 1024):
         """Count and return the number of reads in a FASTQ file."""
         open_fn = gzip.open if CountReads.is_gzipped(filepath) else open
-        count = 0
-        with open_fn(filepath, 'rt', encoding='utf-8') as fh:
-            for i, _ in enumerate(fh):
-                if i % 4 == 0:
-                    count += 1
-        return count
+        newline_count = 0
+        with open_fn(filepath, 'rb') as fh:
+            while True:
+                chunk = fh.read(chunk_size)
+                if not chunk:
+                    break
+                newline_count += chunk.count(b'\n')
+        return newline_count // 4
 
     def run(self, input_files, sample_id=None):
         """Count reads in one or two FASTQ files and return a summary dict."""
