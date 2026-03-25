@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `download_ncbi.py` → `ncbi.py` (class `DownloadNcbi` → `NCBI`), `download_bigsdb.py` → `bigsdb.py` (class `DownloadBigsdb` → `BIGSdb`) — renamed to match module naming convention
  - Removed `download-krakendb` subcommand; Kraken2 DB building is now documented as a Singularity workflow in `docs/usage.md`
  - `Utils.download_and_save_file` upgraded with exponential-backoff retry logic (`max_retries` parameter); `Utils.unzip` now returns bool and handles corrupt archives
+ - `count-reads`: now reads in binary chunks and counts newlines instead of iterating line-by-line in text mode to reduce overhead
+ - `annotate-delly`: VCF and TabixFile handles now explicitly closed; writer wrapped in try/finally; tabix index existence validated before opening BED file
 
 ## [v0.2.0]
 
