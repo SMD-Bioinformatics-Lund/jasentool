@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [1.0.0]
+
+### Added
+
  - Added `plot.py` for all plotting functions
  - Added plotting of `n_missing_loci` barplot
  - `post-align-qc` subcommand — computes post-alignment QC metrics from a BAM file
@@ -51,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `count-reads`: now reads in binary chunks and counts newlines instead of iterating line-by-line in text mode to reduce overhead
  - `annotate-delly`: VCF and TabixFile handles now explicitly closed; writer wrapped in try/finally; tabix index existence validated before opening BED file
 
-## [v0.2.0]
+## [0.2.0]
 
 ### Added
 
