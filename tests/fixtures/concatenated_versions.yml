@@ -1,0 +1,72 @@
+CALL_BACTERIAL_GENERAL:CALL_SCREENING:amrfinderplus:
+ amrfinderplus:
+  version: 4.2.7
+  container: ncbi-amrfinderplus.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:chewbbaca:
+ chewbbaca:
+  version: 3.5.2
+  container: chewbbaca.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:emmtyper:
+ emmtyper:
+  version: 0.2.0
+  container: emmtyper.sif
+CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:gambitcore:
+ gambitcore:
+  version: 0.0.2
+  container: gambitcore.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:kleborate:
+ kleborate:
+  version: 3.2.4
+  container: kleborate.sif
+CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:bracken:
+ bracken:
+  version: '2.8'
+  container: bracken.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:mlst:
+ mlst:
+  version: 2.23.0
+  container: mlst.sif
+CALL_BACTERIAL_GENERAL:CALL_PROFILING:mykrobe:
+ mykrobe:
+  version: 0.12.2
+  container: mykrobe.sif
+CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:nanoplot:
+ nanoplot:
+  version: 1.46.2
+  container: nanoplot.sif
+CALL_BACTERIAL_GENERAL:CALL_ASSEMBLY:quast:
+ quast:
+  version: 5.2.0
+  container: quast.sif
+CALL_BACTERIAL_GENERAL:CALL_RESISTANCE:resfinder:
+ resfinder:
+  version: 4.7.2
+  container: resfinder.sif
+CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:samtools:
+ samtools:
+  version: '1.17'
+  container: samtools.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:sccmec:
+ sccmec:
+  version: 1.2.0
+  container: sccmec.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:serotypefinder:
+ serotypefinder:
+  version: 2.0.2
+  container: serotypefinder.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:shigapass:
+ shigapass:
+  version: 1.5.0
+  container: shigapass.sif
+CALL_BACTERIAL_GENERAL:CALL_TYPING:spatyper:
+ spatyper:
+  version: 0.3.3
+  container: spatyper.sif
+CALL_BACTERIAL_GENERAL:CALL_PROFILING:tb-profiler:
+ tb-profiler:
+  version: 6.7.0
+  container: tb-profiler.sif
+CALL_BACTERIAL_GENERAL:CALL_RESISTANCE:virulencefinder:
+ virulencefinder:
+  version: 3.2.0
+  container: virulencefinder.sif

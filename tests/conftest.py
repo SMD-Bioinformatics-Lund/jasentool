@@ -65,6 +65,12 @@ def saureus_fastq_r2():
 
 
 @pytest.fixture()
+def concatenated_versions():
+    """Return the path to the concatenated software versions fixture."""
+    return TESTS_DIR / "fixtures" / "concatenated_versions.yml"
+
+
+@pytest.fixture()
 def versions_yaml_a(tmp_path):
     p = tmp_path / "versions_a.yml"
     p.write_text("tool_a:\n  version: '1.0'\n")
