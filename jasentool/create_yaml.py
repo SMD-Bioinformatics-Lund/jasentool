@@ -17,9 +17,10 @@ class CreateYaml:
         for field in [
             "amrfinder", "chewbbaca", "emmtyper", "gambitcore", "kleborate",
             "kleborate_hamronization", "kraken", "lims_id", "mlst", "mykrobe",
-            "nanoplot", "nextflow_run_info", "postalnqc", "quast",
+            "nanoplot", "nextflow_run_info", "quast",
             "ref_genome_annotation", "ref_genome_sequence", "resfinder",
-            "samtools", "sccmec", "serotypefinder", "shigapass", "ska_index",
+            "samtools", "samtools_bedcov", "samtools_stats", "sccmec",
+            "serotypefinder", "shigapass", "ska_index",
             "sourmash_signature", "spatyper", "tbprofiler", "virulencefinder",
         ]:
             value = getattr(options, field, None)
