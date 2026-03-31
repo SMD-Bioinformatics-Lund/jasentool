@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+ - Added `--versions` arg to `create-yaml` to enrich `analysis_result` entries with `software_version` from a concatenated versions YAML
+ - Added `concatenated_versions.yml` fixture with versions for all supported tools
+
 ### Fixed
 
 ### Changed
 
  - Replaced `--postalnqc` arg with `--samtools-stats` and `--samtools-bedcov` args in `create-yaml`
+ - Restructured `create-yaml` output to updated manifest format: analysis tools grouped under `analysis_result` list, `sourmash_signature` and `ska_index` moved to `index_artifacts`
+ - Output YAML key order now matches the manifest spec (`sample_id`, `sample_name`, `lims_id`, `groups`, …, `igv_annotations`, `analysis_result`, `index_artifacts`)
 
 ## [1.0.0]
 

@@ -165,6 +165,39 @@ def test_concatenate_files_missing_args():
     assert result.exit_code != 0
 
 
+def test_concatenated_versions_fixture(concatenated_versions):
+    data = yaml.safe_load(concatenated_versions.read_text())
+    # flatten: collect {software: version} across all process entries
+    versions = {}
+    for process_data in data.values():
+        if isinstance(process_data, dict):
+            for software, info in process_data.items():
+                if isinstance(info, dict) and "version" in info:
+                    versions[software] = info["version"]
+    expected = {
+        "amrfinderplus": "4.2.7",
+        "chewbbaca": "3.5.2",
+        "emmtyper": "0.2.0",
+        "gambitcore": "0.0.2",
+        "kleborate": "3.2.4",
+        "bracken": "2.8",
+        "mlst": "2.23.0",
+        "mykrobe": "0.12.2",
+        "nanoplot": "1.46.2",
+        "quast": "5.2.0",
+        "resfinder": "4.7.2",
+        "samtools": "1.17",
+        "sccmec": "1.2.0",
+        "serotypefinder": "2.0.2",
+        "shigapass": "1.5.0",
+        "spatyper": "0.3.3",
+        "tb-profiler": "6.7.0",
+        "virulencefinder": "3.2.0",
+    }
+    for software, version in expected.items():
+        assert versions.get(software) == version, f"unexpected version for {software}"
+
+
 # ── create-yaml ────────────────────────────────────────────────────────────────
 
 def test_create_yaml_minimal(tmp_path):
@@ -182,6 +215,35 @@ def test_create_yaml_minimal(tmp_path):
     assert data["sample_name"] == "Sample 001"
     assert data["groups"] == ["group1"]
     assert data["igv_annotations"] == []
+    assert data["analysis_result"] == []
+
+
+def test_create_yaml_analysis_result(tmp_path):
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP003",
+        "--sample-name", "Sample 003",
+        "--groups", "group1",
+        "--resfinder", "resfinder.json",
+        "--samtools", "samtools_coverage.txt",
+        "--samtools-bedcov", "samtools_bedcov.txt",
+        "--samtools-stats", "samtools_stats.txt",
+        "--sccmec", "sccmec.tsv",
+        "--sourmash-signature", "sourmash.sig",
+        "--ska-index", "index.skf",
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    results = {(e["software"], e.get("subcommand")): e for e in data["analysis_result"]}
+    assert results[("resfinder", None)]["uri"] == "resfinder.json"
+    assert results[("samtools", "coverage")]["uri"] == "samtools_coverage.txt"
+    assert results[("samtools", "bedcov")]["uri"] == "samtools_bedcov.txt"
+    assert results[("samtools", "stats")]["uri"] == "samtools_stats.txt"
+    assert results[("sccmectyper", None)]["uri"] == "sccmec.tsv"
+    assert data["index_artifacts"]["sourmash_signature"] == "sourmash.sig"
+    assert data["index_artifacts"]["ska_index"] == "index.skf"
 
 
 def test_create_yaml_with_bam_and_bai(tmp_path):
@@ -201,6 +263,150 @@ def test_create_yaml_with_bam_and_bai(tmp_path):
     assert len(igv) == 1
     assert igv[0]["type"] == "alignment"
     assert igv[0]["index_uri"] == "sample.bam.bai"
+
+
+def test_create_yaml_all_args(tmp_path):
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP004",
+        "--sample-name", "Sample 004",
+        "--lims-id", "LIMS123",
+        "--groups", "group1",
+        "--groups", "group2",
+        "--amrfinder", "amrfinder.out",
+        "--bam", "mapping.bam",
+        "--bai", "mapping.bam.bai",
+        "--chewbbaca", "chewbbaca.out",
+        "--emmtyper", "emmtyper.tsv",
+        "--gambitcore", "gambitcore.json",
+        "--kleborate", "kleborate.tsv",
+        "--kleborate-hamronization", "kleborate_hamronization.tsv",
+        "--kraken", "kraken.out",
+        "--mlst", "mlst.json",
+        "--mykrobe", "mykrobe.json",
+        "--nanoplot", "nanoplot.txt",
+        "--nextflow-run-info", "analysis_meta.json",
+        "--quast", "quast.tsv",
+        "--ref-genome-sequence", "genome.fasta",
+        "--ref-genome-annotation", "annotation.gff",
+        "--resfinder", "resfinder.json",
+        "--samtools", "samtools_coverage.txt",
+        "--samtools-bedcov", "samtools_bedcov.txt",
+        "--samtools-stats", "samtools_stats.txt",
+        "--sccmec", "sccmec.tsv",
+        "--serotypefinder", "serotypefinder.json",
+        "--shigapass", "shigapass.tsv",
+        "--ska-index", "index.skf",
+        "--software-info", "resfinder_meta.json",
+        "--software-info", "serotypefinder_meta.json",
+        "--software-info", "virulencefinder_meta.json",
+        "--sourmash-signature", "sourmash.sig",
+        "--spatyper", "spatyper.tsv",
+        "--tb-grading-rules-bed", "tb_grading_rules.bed",
+        "--tbdb-bed", "tbdb.bed",
+        "--tbprofiler", "tbprofiler.json",
+        "--vcf", "variants.vcf",
+        "--virulencefinder", "virulencefinder.json",
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+
+    # top-level fields
+    assert data["sample_id"] == "SAMP004"
+    assert data["sample_name"] == "Sample 004"
+    assert data["lims_id"] == "LIMS123"
+    assert data["groups"] == ["group1", "group2"]
+    assert data["nextflow_run_info"] == "analysis_meta.json"
+    assert data["ref_genome_sequence"] == "genome.fasta"
+    assert data["ref_genome_annotation"] == "annotation.gff"
+    assert data["software_info"] == [
+        "resfinder_meta.json", "serotypefinder_meta.json", "virulencefinder_meta.json"
+    ]
+
+    # igv_annotations: bam/bai, tb_grading_rules_bed, tbdb_bed, vcf
+    igv = {e["name"]: e for e in data["igv_annotations"]}
+    assert igv["Read coverage"]["uri"] == "mapping.bam"
+    assert igv["Read coverage"]["index_uri"] == "mapping.bam.bai"
+    assert igv["tbdb grading rules bed"]["uri"] == "tb_grading_rules.bed"
+    assert igv["tbdb bed"]["uri"] == "tbdb.bed"
+    assert igv["Predicted variants"]["uri"] == "variants.vcf"
+
+    # analysis_result entries
+    results = {(e["software"], e.get("subcommand")): e for e in data["analysis_result"]}
+    assert results[("amrfinder", None)]["uri"] == "amrfinder.out"
+    assert results[("chewbbaca", None)]["uri"] == "chewbbaca.out"
+    assert results[("emmtyper", None)]["uri"] == "emmtyper.tsv"
+    assert results[("gambitcore", None)]["uri"] == "gambitcore.json"
+    assert results[("kleborate", None)]["uri"] == "kleborate.tsv"
+    assert results[("kleborate", "hamronization")]["uri"] == "kleborate_hamronization.tsv"
+    assert results[("kraken", None)]["uri"] == "kraken.out"
+    assert results[("mlst", None)]["uri"] == "mlst.json"
+    assert results[("mykrobe", None)]["uri"] == "mykrobe.json"
+    assert results[("nanoplot", None)]["uri"] == "nanoplot.txt"
+    assert results[("quast", None)]["uri"] == "quast.tsv"
+    assert results[("resfinder", None)]["uri"] == "resfinder.json"
+    assert results[("samtools", "coverage")]["uri"] == "samtools_coverage.txt"
+    assert results[("samtools", "bedcov")]["uri"] == "samtools_bedcov.txt"
+    assert results[("samtools", "stats")]["uri"] == "samtools_stats.txt"
+    assert results[("sccmectyper", None)]["uri"] == "sccmec.tsv"
+    assert results[("serotypefinder", None)]["uri"] == "serotypefinder.json"
+    assert results[("shigapass", None)]["uri"] == "shigapass.tsv"
+    assert results[("spatyper", None)]["uri"] == "spatyper.tsv"
+    assert results[("tbprofiler", None)]["uri"] == "tbprofiler.json"
+    assert results[("virulencefinder", None)]["uri"] == "virulencefinder.json"
+
+    # index_artifacts
+    assert data["index_artifacts"]["sourmash_signature"] == "sourmash.sig"
+    assert data["index_artifacts"]["ska_index"] == "index.skf"
+
+
+def test_create_yaml_software_versions(tmp_path):
+    versions_file = tmp_path / "versions.yml"
+    versions_file.write_text(
+        "JASEN:CALL_SCREENING:amrfinderplus:\n"
+        " amrfinderplus:\n"
+        "  version: 4.2.7\n"
+        "  container: ncbi-amrfinderplus.sif\n"
+        "JASEN:CALL_QUALITY_CONTROL:samtools:\n"
+        " samtools:\n"
+        "  version: 1.17\n"
+        "  container: samtools.sif\n"
+        "JASEN:CALL_RESISTANCE:resfinder:\n"
+        " resfinder:\n"
+        "  version: 4.7.2\n"
+        "  container: resfinder.sif\n"
+    )
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP005",
+        "--sample-name", "Sample 005",
+        "--groups", "group1",
+        "--amrfinder", "amrfinder.out",
+        "--samtools", "samtools_coverage.txt",
+        "--samtools-bedcov", "samtools_bedcov.txt",
+        "--samtools-stats", "samtools_stats.txt",
+        "--resfinder", "resfinder.json",
+        "--spatyper", "spatyper.tsv",
+        "--versions", str(versions_file),
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    results = {(e["software"], e.get("subcommand")): e for e in data["analysis_result"]}
+
+    # amrfinder maps to amrfinderplus in versions file
+    assert results[("amrfinder", None)]["software_version"] == "4.2.7"
+    # all samtools subcommands share the same version
+    assert results[("samtools", "coverage")]["software_version"] == "1.17"
+    assert results[("samtools", "bedcov")]["software_version"] == "1.17"
+    assert results[("samtools", "stats")]["software_version"] == "1.17"
+    assert results[("resfinder", None)]["software_version"] == "4.7.2"
+    # spatyper has no version in the file
+    assert "software_version" not in results[("spatyper", None)]
+    assert "WARNING: no version found for software 'spatyper'" in result.output
 
 
 def test_create_yaml_missing_required_args():

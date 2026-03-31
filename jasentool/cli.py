@@ -260,6 +260,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--tbdb-bed', type=click.Path(), default=None)
 @click.option('--tbprofiler', type=click.Path(), default=None)
 @click.option('--vcf', type=click.Path(), default=None)
+@click.option('--versions', type=click.Path(), default=None)
 @click.option('--virulencefinder', type=click.Path(), default=None)
 @click.option('-o', '--output', required=True, type=click.Path())
 def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
@@ -270,7 +271,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     samtools_stats, sccmec, serotypefinder, shigapass,
                     ska_index, software_info, sourmash_signature, spatyper,
                     tb_grading_rules_bed, tbdb_bed, tbprofiler,
-                    vcf, virulencefinder, output):
+                    vcf, versions, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     options = types.SimpleNamespace(
         amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca,
@@ -287,8 +288,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         ska_index=ska_index, software_info=software_info,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
-        tbprofiler=tbprofiler, vcf=vcf, virulencefinder=virulencefinder,
-        output=output,
+        tbprofiler=tbprofiler, vcf=vcf, versions=versions,
+        virulencefinder=virulencefinder, output=output,
     )
     _parser().create_yaml(options)
 
