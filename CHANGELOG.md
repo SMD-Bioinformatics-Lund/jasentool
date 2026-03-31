@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+ - Replaced `--postalnqc` arg with `--samtools-stats` and `--samtools-bedcov` args in `create-yaml`
+
 ## [1.0.0]
 
 ### Added
