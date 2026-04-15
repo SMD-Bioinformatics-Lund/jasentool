@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+ - `minority-report` subcommand — computes minority base frequency distribution from a pre-computed `samtools mpileup` file (`.mpileup` or `.mpileup.gz`), with optional blacklist filtering
+ - `create-blacklist` subcommand — runs mpileup and minority base distribution across a set of BAM files, then aggregates per-position frequencies to produce a minority variant blacklist TSV
+
 ### Fixed
 
 ### Changed

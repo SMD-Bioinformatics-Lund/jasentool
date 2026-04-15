@@ -293,6 +293,51 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
     _parser().create_yaml(options)
 
 
+@cli.command('minority-report')
+@click.option('--mpileup', required=True, type=click.Path(exists=True),
+              help='Input mpileup file (.mpileup or .mpileup.gz)')
+@click.option('--blacklist', default=None, type=click.Path(exists=True),
+              help='Optional blacklist TSV file of positions to exclude')
+@click.option('-o', '--output', required=True, help='Output path stem (no extension)')
+def minority_report_cmd(mpileup, blacklist, output):
+    """Compute minority base frequency distribution from a samtools mpileup file."""
+    options = types.SimpleNamespace(mpileup=mpileup, blacklist=blacklist, output=output)
+    _parser().minority_report(options)
+
+
+@cli.command('create-blacklist')
+@click.option('-i', '--input-file', default=None,
+              help='Text file containing BAM file paths (one per line)')
+@click.option('--input-dir', default=None,
+              help='Directory containing *.bam files')
+@click.option('--output-dir', required=True, help='Directory for intermediate files')
+@click.option('-o', '--output-file', required=True, help='Path to the output blacklist TSV')
+@click.option('--bed-file', default=None, type=click.Path(exists=True),
+              help='BED file passed to samtools mpileup -l')
+@click.option('--samtools', default='samtools', show_default=True,
+              help='Path or name of the samtools executable')
+@click.option('--sample-pattern', default='.*', show_default=True,
+              help='Regex to filter sample names included in blacklist aggregation')
+@click.option('--min-freq', default=0.05, show_default=True, type=float,
+              help='Minimum minority frequency to count a position')
+@click.option('--min-count', default=5, show_default=True, type=int,
+              help='Minimum number of samples a position must appear in to enter the blacklist')
+def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
+                         bed_file, samtools, sample_pattern, min_freq, min_count):
+    """Create a minority variant blacklist from a set of BAM files."""
+    if not input_file and not input_dir:
+        raise click.UsageError("One of --input-file or --input-dir is required.")
+    if input_file and input_dir:
+        raise click.UsageError("--input-file and --input-dir are mutually exclusive.")
+    options = types.SimpleNamespace(
+        input_file=input_file, input_dir=input_dir,
+        output_dir=output_dir, output_file=output_file,
+        bed_file=bed_file, samtools=samtools,
+        sample_pattern=sample_pattern, min_freq=min_freq, min_count=min_count,
+    )
+    _parser().create_blacklist(options)
+
+
 @cli.command('annotate-delly')
 @click.option('-v', '--vcf', required=True, type=click.Path(exists=True, path_type=Path),
               help='Delly VCF/BCF to annotate')
