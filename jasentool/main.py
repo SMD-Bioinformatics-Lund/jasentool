@@ -20,6 +20,8 @@ from jasentool.bigsdb import BIGSdb
 from jasentool.concatenate import Concatenate
 from jasentool.create_yaml import CreateYaml
 from jasentool.annotate_delly import AnnotateDelly
+from jasentool.minority_report import MinorityReport
+from jasentool.create_blacklist import CreateBlacklist
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -172,6 +174,19 @@ class OptionsParser:
     def create_yaml(self, options):
         """Create YAML input file for Bonsai upload"""
         CreateYaml().run(options)
+
+    def minority_report(self, options):
+        """Compute minority base distribution from a pre-computed mpileup file."""
+        MinorityReport().run(options.mpileup, options.output, options.blacklist)
+
+    def create_blacklist(self, options):
+        """Create a minority variant blacklist from a set of BAM files."""
+        CreateBlacklist(samtools=options.samtools).run(
+            options.input_file, options.input_dir,
+            options.output_dir, options.output_file,
+            options.bed_file, options.min_freq, options.min_count,
+            options.sample_pattern,
+        )
 
     def annotate_delly(self, options):
         """Annotate Delly SV VCF with gene/locus_tag from a tabix BED."""
