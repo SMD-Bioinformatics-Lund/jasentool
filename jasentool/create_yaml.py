@@ -20,7 +20,7 @@ class CreateYaml:
             "nanoplot", "nextflow_run_info", "plasmidfinder", "quast",
             "ref_genome_annotation", "ref_genome_sequence", "resfinder",
             "samtools", "samtools_bedcov", "samtools_stats", "sccmec",
-            "serotypefinder", "shigapass", "ska_index",
+            "serotypefinder", "shigapass", "shigatyper", "ska_index",
             "sourmash_signature", "spatyper", "tbprofiler", "virulencefinder",
         ]:
             value = getattr(options, field, None)

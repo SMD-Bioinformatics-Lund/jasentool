@@ -253,6 +253,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--sccmec', type=click.Path(), default=None)
 @click.option('--serotypefinder', type=click.Path(), default=None)
 @click.option('--shigapass', type=click.Path(), default=None)
+@click.option('--shigatyper', type=click.Path(), default=None)
 @click.option('--ska-index', type=click.Path(), default=None)
 @click.option('--software-info', type=click.Path(), multiple=True)
 @click.option('--sourmash-signature', type=click.Path(), default=None)
@@ -269,8 +270,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     ref_genome_annotation, ref_genome_sequence, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
-                    ska_index, software_info, sourmash_signature, spatyper,
-                    tb_grading_rules_bed, tbdb_bed, tbprofiler,
+                    shigatyper, ska_index, software_info, sourmash_signature,
+                    spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
                     vcf, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     options = types.SimpleNamespace(
@@ -286,7 +287,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
         samtools_bedcov=samtools_bedcov, samtools_stats=samtools_stats,
         sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
-        ska_index=ska_index, software_info=software_info,
+        shigatyper=shigatyper, ska_index=ska_index, software_info=software_info,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
         tbprofiler=tbprofiler, vcf=vcf, virulencefinder=virulencefinder,
