@@ -175,6 +175,7 @@ def test_create_yaml_minimal(tmp_path):
         "--sample-name", "Sample 001",
         "--groups", "group1",
         "--plasmidfinder", "plasmidfinder.json",
+        "--shigatyper", "shigatyper.tsv",
         "-o", str(out),
     ])
     assert result.exit_code == 0, result.output
@@ -184,6 +185,7 @@ def test_create_yaml_minimal(tmp_path):
     assert data["groups"] == ["group1"]
     assert data["igv_annotations"] == []
     assert data["plasmidfinder"] == "plasmidfinder.json"
+    assert data["shigatyper"] == "shigatyper.tsv"
 
 
 def test_create_yaml_with_bam_and_bai(tmp_path):
