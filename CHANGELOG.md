@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - `minority-report` subcommand — computes minority base frequency distribution from a pre-computed `samtools mpileup` file (`.mpileup` or `.mpileup.gz`), with optional blacklist filtering
  - `create-blacklist` subcommand — runs mpileup and minority base distribution across a set of BAM files, then aggregates per-position frequencies to produce a minority variant blacklist TSV
+ - `--plasmidfinder` flag in `create-yaml` — emits PlasmidFinder result path under the `plasmidfinder` key
+ - `--shigatyper` flag in `create-yaml` — emits ShigaTyper result path under the `shigatyper` key (#47)
 
 ### Fixed
 
