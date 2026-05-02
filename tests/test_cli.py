@@ -175,6 +175,8 @@ def test_create_yaml_minimal(tmp_path):
         "--sample-name", "Sample 001",
         "--groups", "group1",
         "--plasmidfinder", "plasmidfinder.json",
+        "--plasmidfinder-genome-hits", "plasmidfinder_hit_in_genome_seq.fsa",
+        "--plasmidfinder-plasmid-seqs", "plasmidfinder_plasmid_seqs.fsa",
         "--shigatyper", "shigatyper.tsv",
         "-o", str(out),
     ])
@@ -185,6 +187,8 @@ def test_create_yaml_minimal(tmp_path):
     assert data["groups"] == ["group1"]
     assert data["igv_annotations"] == []
     assert data["plasmidfinder"] == "plasmidfinder.json"
+    assert data["plasmidfinder_genome_hits"] == "plasmidfinder_hit_in_genome_seq.fsa"
+    assert data["plasmidfinder_plasmid_seqs"] == "plasmidfinder_plasmid_seqs.fsa"
     assert data["shigatyper"] == "shigatyper.tsv"
 
 

@@ -17,7 +17,8 @@ class CreateYaml:
         for field in [
             "amrfinder", "chewbbaca", "emmtyper", "gambitcore", "kleborate",
             "kleborate_hamronization", "kraken", "lims_id", "mlst", "mykrobe",
-            "nanoplot", "nextflow_run_info", "plasmidfinder", "quast",
+            "nanoplot", "nextflow_run_info", "plasmidfinder",
+            "plasmidfinder_genome_hits", "plasmidfinder_plasmid_seqs", "quast",
             "ref_genome_annotation", "ref_genome_sequence", "resfinder",
             "samtools", "samtools_bedcov", "samtools_stats", "sccmec",
             "serotypefinder", "shigapass", "shigatyper", "ska_index",
