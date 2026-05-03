@@ -242,6 +242,9 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--nextflow-run-info', type=click.Path(), default=None)
 @click.option('--samtools-bedcov', type=click.Path(), default=None)
 @click.option('--samtools-stats', type=click.Path(), default=None)
+@click.option('--plasmidfinder', type=click.Path(), default=None)
+@click.option('--plasmidfinder-genome-hits', type=click.Path(), default=None)
+@click.option('--plasmidfinder-plasmid-seqs', type=click.Path(), default=None)
 @click.option('--quast', type=click.Path(), default=None)
 @click.option('--ref-genome-annotation', type=click.Path(), default=None)
 @click.option('--ref-genome-sequence', type=click.Path(), default=None)
@@ -252,6 +255,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--sccmec', type=click.Path(), default=None)
 @click.option('--serotypefinder', type=click.Path(), default=None)
 @click.option('--shigapass', type=click.Path(), default=None)
+@click.option('--shigatyper', type=click.Path(), default=None)
 @click.option('--ska-index', type=click.Path(), default=None)
 @click.option('--software-info', type=click.Path(), multiple=True)
 @click.option('--sourmash-signature', type=click.Path(), default=None)
@@ -264,12 +268,14 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('-o', '--output', required=True, type=click.Path())
 def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
-                    mykrobe, nanoplot, nextflow_run_info, quast,
+                    mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
+                    plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
+                    quast,
                     ref_genome_annotation, ref_genome_sequence, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
-                    ska_index, software_info, sourmash_signature, spatyper,
-                    tb_grading_rules_bed, tbdb_bed, tbprofiler,
+                    shigatyper, ska_index, software_info, sourmash_signature,
+                    spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
                     vcf, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     options = types.SimpleNamespace(
@@ -278,13 +284,16 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         kleborate=kleborate, kleborate_hamronization=kleborate_hamronization,
         kraken=kraken, lims_id=lims_id, mlst=mlst, mykrobe=mykrobe,
         nanoplot=nanoplot, nextflow_run_info=nextflow_run_info,
+        plasmidfinder=plasmidfinder,
+        plasmidfinder_genome_hits=plasmidfinder_genome_hits,
+        plasmidfinder_plasmid_seqs=plasmidfinder_plasmid_seqs,
         quast=quast,
         ref_genome_annotation=ref_genome_annotation,
         ref_genome_sequence=ref_genome_sequence, resfinder=resfinder,
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
         samtools_bedcov=samtools_bedcov, samtools_stats=samtools_stats,
         sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
-        ska_index=ska_index, software_info=software_info,
+        shigatyper=shigatyper, ska_index=ska_index, software_info=software_info,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
         tbprofiler=tbprofiler, vcf=vcf, virulencefinder=virulencefinder,
