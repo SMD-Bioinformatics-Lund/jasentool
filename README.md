@@ -1,54 +1,103 @@
-# Jasentool: A mongodb validation tool for comparing pipeline outputs
-## Disclaimer: Jasentool was developed for the integration of [JASEN](https://github.com/Clinical-Genomics-Lund/jasentool) into [Clinical Genomics Lund](https://github.com/Clinical-Genomics-Lund). Jasentool's submethods are used as follows:
-* Mongodb commands: `find`, `insert`, `remove`.
-* Validate: Search old CGL bacterial pipeline database and compare results to JASEN results. 
-* Missing: Search old CGL bacterial pipeline database and find sample results missing from JASEN output dir.
-* Convert: Convert cgmlst.org target loci files to bed files.
-* Converge: Converge tuberculosis mutation catlogues in order to add FoHM and tbdb catalogues to the WHO catalogue.
-* Fix: Fix internal software's (bjorn's) generation of nextflow input csvs.
-* QC: Create post alignment qc output.
+# Jasentool
 
-## Dependencies (latest)
-* python=3.11
-* pymongo
+Multipurpose tool for jobs related to the [JASEN](https://github.com/Clinical-Genomics-Lund/JASEN) pipeline and [Bonsai](https://github.com/Clinical-Genomics-Lund/bonsai).
 
-## Using Jasentool
-### Use the help argument for information regarding the Jasentool's methods
+Full documentation: [jasentool.readthedocs.io](https://jasentool.readthedocs.io).
+
+## Installation
+
 ```
-jasentool -h
+pip install jasentool
 ```
 
-### Use the method help argument for information regarding the input for each of Jasentool's methods (`find`, `insert`, `remove`, `validate`, `missing`, `fix`, `convert`, `converge`, `qc`)
+A conda `environment.yml` is also provided for development installs.
+
+## Usage
+
 ```
-jasentool <method> -h
+jasentool <subcommand> [options]
 ```
 
-### Validate pipeline data
+Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` for per-subcommand help.
+
+### Subcommands
+
+**Post-run analysis**
+
+| Subcommand | Description |
+|------------|-------------|
+| `find` | Query samples from MongoDB |
+| `identify-missing` | Identify samples absent from JASEN results directory |
+| `validate-pipelines` | Compare pipeline outputs against MongoDB records |
+
+**Pipeline processes**
+
+| Subcommand | Description |
+|------------|-------------|
+| `annotate-delly` | Annotate Delly structural-variant VCFs with gene symbols and locus tags |
+| `concatenate-files` | Concatenate multiple YAML files (e.g. `versions.yml`) |
+| `count-reads` | Count reads in FASTQ file(s) |
+| `create-blacklist` | Aggregate minority base frequencies across BAMs to produce a blacklist TSV |
+| `create-yaml` | Create YAML input file for Bonsai upload |
+| `minority-report` | Compute minority base frequency distribution from a `samtools mpileup` file |
+| `post-align-qc` | Compute post-alignment QC from BAM |
+
+**Site-specific hooks**
+
+| Subcommand | Description |
+|------------|-------------|
+| `reformat-csv` | Reformat BJORN CSV/SH files for JASEN |
+
+**Setup & reference data**
+
+| Subcommand | Description |
+|------------|-------------|
+| `converge-catalogues` | Merge WHO, TBdb, and FoHM TB mutation catalogues |
+| `download-bigsdb` | Download cgMLST scheme alleles from PubMLST or BIGSdb |
+| `download-ncbi` | Download genome FASTA and GFF from NCBI |
+| `transform-file-format` | Convert cgMLST target TSV to BED format |
+
+## Quick examples
+
+### Query samples from MongoDB
+
 ```
-jasentool validate (-i INPUT_FILE [INPUT_FILE ...] | --input_dir INPUT_DIR) --db_name DB_NAME --db_collection DB_COLLECTION -o OUTPUT_FILE [--address ADDRESS] [-h]
+jasentool find \
+  --query MySampleID \
+  --db-name mydb \
+  --db-collection samples \
+  --output-file results.json
 ```
 
-### Find missing samples
+### Identify missing samples
+
 ```
-jasentool missing --db_name <db_name> --db_collection <db_collection> --analysis_dir <jasen_analysis_results_dir> --restore_dir <restore_dir> --restore_file <restore_file.sh> -o <output_file.csv>
+jasentool identify-missing \
+  --output-file missing.json \
+  --db-name mydb \
+  --db-collection samples \
+  --analysis-dir /path/to/jasen/results
 ```
 
-### Fix bjorn csv
+### Validate pipeline outputs
+
 ```
-jasentool fix --csv_file /data/tmp/multi_microbiology.csv --sh_file /data/tmp/multi_microbiology.sh -o <flow_cell_id>_jasen.csv --remote_dir /fs1/ryan/pipelines/jasen/bjorn/ --remote
+jasentool validate-pipelines \
+  --input-dir /path/to/new/results \
+  --output-dir /path/to/validation/output \
+  --db-name mydb \
+  --db-collection samples
 ```
 
-### Convert cgmlst.org target files to bed files
+### Compute post-alignment QC
+
 ```
-jasentool convert [-i INPUT_FILE [INPUT_FILE ...]] -o OUTPUT_FILE [-f OUT_FORMAT] [-a ACCESSION] [-h]
+jasentool post-align-qc \
+  --sample-id SAMPLE_ID \
+  --bam-file SAMPLE.bam \
+  --output-file SAMPLE_qc.json \
+  [--bed-file regions.bed] \
+  [--cpus 4]
 ```
 
-### Converge tuberculosis mutation catlogues
-```
-jasentool converge --output_dir OUTPUT_DIR [--save_dbs]
-```
-
-### Extract QC values after alignment
-```
-jasentool qc --sample_id SAMPLE_ID --bam_file BAM_FILE --reference REFERENCE -o OUTPUT_FILE [--bed_file BED_FILE] [--baits_file BAITS_FILE] [--cpus CPUS] [-h]
-```
+See the [Usage docs](https://jasentool.readthedocs.io/en/latest/usage.html) for full details.

@@ -16,9 +16,12 @@ Multipurpose tool for jobs related to the [JASEN](https://github.com/Clinical-Ge
 
 | Subcommand | Description |
 |------------|-------------|
+| `annotate-delly` | Annotate Delly structural-variant VCFs with gene symbols and locus tags |
 | `concatenate-files` | Concatenate multiple YAML files |
 | `count-reads` | Count reads in FASTQ file(s) |
+| `create-blacklist` | Aggregate minority base frequencies across BAMs to produce a blacklist TSV |
 | `create-yaml` | Create YAML input file for Bonsai upload |
+| `minority-report` | Compute minority base frequency distribution from a samtools mpileup file |
 | `post-align-qc` | Compute post-alignment QC from BAM |
 
 **Site-specific hooks**
