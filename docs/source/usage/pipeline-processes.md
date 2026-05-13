@@ -81,13 +81,14 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | `--mykrobe` | Mykrobe output |
 | `--nanoplot` | NanoPlot output |
 | `--nextflow-run-info` | Nextflow run info JSON |
+| `--postalnqc` | Post-alignment QC output (mutually exclusive with `--samtools-bedcov`/`--samtools-stats`) |
 | `--quast` | QUAST output |
 | `--ref-genome-annotation` | Reference genome annotation |
 | `--ref-genome-sequence` | Reference genome FASTA |
 | `--resfinder` | ResFinder output |
 | `--samtools` | Samtools stats output |
-| `--samtools-bedcov` | Samtools bedcov output |
-| `--samtools-stats` | Samtools stats (detailed) output |
+| `--samtools-bedcov` | Samtools bedcov output (mutually exclusive with `--postalnqc`) |
+| `--samtools-stats` | Samtools stats (detailed) output (mutually exclusive with `--postalnqc`) |
 | `--sccmec` | SCCmec output |
 | `--serotypefinder` | SerotypeFinder output |
 | `--shigapass` | ShigaPass output |
