@@ -15,12 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `--plasmidfinder-genome-hits` flag in `create-yaml` — emits the path to the PlasmidFinder `Hit_in_genome_seq.fsa` under the `plasmidfinder_genome_hits` key
  - `--plasmidfinder-plasmid-seqs` flag in `create-yaml` — emits the path to the PlasmidFinder `Plasmid_seqs.fsa` under the `plasmidfinder_plasmid_seqs` key
  - `--shigatyper` flag in `create-yaml` — emits ShigaTyper result path under the `shigatyper` key (#47)
+ - `--samtools-stats` and `--samtools-bedcov` flags in `create-yaml` — mutually exclusive with `--postalnqc`
 
 ### Fixed
 
 ### Changed
-
- - Replaced `--postalnqc` arg with `--samtools-stats` and `--samtools-bedcov` args in `create-yaml`
 
 ## [1.0.0]
 
