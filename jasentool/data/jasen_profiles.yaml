@@ -1,0 +1,36 @@
+# Expected backup outputs per JASEN profile.
+#
+# Top-level keys are full JASEN profile names (e.g. `staphylococcus_aureus`).
+# `species` is the abbreviated shortname used as the species subdirectory in
+# the backup storage tree (e.g. `<backup-root>/<species>/<dirname>/<file>`).
+# `outputs` lists the (publishDir dirname, file extension) pairs expected to
+# exist for every QC-passing sample of that profile.
+#
+# Filenames are matched per sample with two glob variants:
+#   - <sample_name>_*<ext>      (original Mongo `id`)
+#   - <alter_sample_id>_*<ext>  (lims_id + "_" + sequencing_run, lowercased)
+# Either variant counts as backed up; both present triggers a warning.
+#
+# Populate the `outputs:` arrays per profile as JASEN's publishDir conventions
+# require. Empty lists are allowed and will short-circuit the scan with a
+# warning so a profile is never silently "complete".
+
+staphylococcus_aureus:
+  species: saureus
+  outputs: []
+
+escherichia_coli:
+  species: ecoli
+  outputs: []
+
+mycobacterium_tuberculosis:
+  species: mtuberculosis
+  outputs: []
+
+streptococcus_pyogenes:
+  species: spyogenes
+  outputs: []
+
+staphylococcus:
+  species: staphylococcus
+  outputs: []

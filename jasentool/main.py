@@ -23,6 +23,7 @@ from jasentool.create_yaml import CreateYaml
 from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
+from jasentool.check_backup import CheckBackup
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -192,6 +193,10 @@ class OptionsParser:
     def annotate_delly(self, options):
         """Annotate Delly SV VCF with gene/locus_tag from a tabix BED."""
         AnnotateDelly().run(options.vcf, options.bed, options.output)
+
+    def check_backup(self, options):
+        """Cross-check MongoDB samples against the backup storage tree."""
+        CheckBackup(options).run()
 
     def parse_options(self, options):
         """Options parser"""

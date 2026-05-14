@@ -26,6 +26,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 
 | Subcommand | Description |
 |------------|-------------|
+| `check-backup` | Cross-check MongoDB samples against the backup storage tree |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |
@@ -87,6 +88,19 @@ jasentool validate-pipelines \
   --output-dir /path/to/validation/output \
   --db-name mydb \
   --db-collection samples
+```
+
+### Cross-check backup storage
+
+```
+jasentool check-backup \
+  --profile staphylococcus_aureus \
+  --backup-dir /backup/jasen \
+  --db-name cgviz \
+  --db-collection samples \
+  --address mongodb://cgviz.host:27017/ \
+  --alter-sample-id \
+  -o backup_status.csv
 ```
 
 ### Compute post-alignment QC

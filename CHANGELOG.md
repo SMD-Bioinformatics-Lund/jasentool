@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+ - `check-backup` subcommand — cross-checks MongoDB samples against the on-disk backup storage tree using a per-profile config of expected `(publishDir, ext)` outputs; emits a per-sample summary CSV and a per-missing-file CSV
+ - `jasentool/data/jasen_profiles.yaml` package data — config skeleton mapping each JASEN profile to its species shortname and expected output entries; user populates `outputs:` per profile
+ - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
+
+### Fixed
+
+ - `--address`/`--uri` flag now actually overrides the MongoDB URI for `find` and `validate-pipelines`; previously it was accepted but ignored
+
+### Changed
+
+ - `Database.initialize` accepts an optional `uri` argument to override the default `mongodb://localhost:27017/`
+ - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
+
 ## [1.1.0]
 
 ### Added
