@@ -6,12 +6,14 @@ class Database:
     uri = "mongodb://localhost:27017/"
     db = None
 
-    @staticmethod
-    def initialize(db_name):
-        """Initialize mongodb client"""
-        client = pymongo.MongoClient(Database.uri)
-        Database.db = client[db_name]
-        Database.db_name = db_name
+    @classmethod
+    def initialize(cls, db_name, uri=None):
+        """Initialize mongodb client. Pass `uri` to override the default."""
+        if uri is not None:
+            cls.uri = uri
+        client = pymongo.MongoClient(cls.uri)
+        cls.db = client[db_name]
+        cls.db_name = db_name
 
     @staticmethod
     def insert(collection, data):
