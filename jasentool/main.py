@@ -69,7 +69,7 @@ class OptionsParser:
 
     def find(self, options):
         """Find entry in mongodb"""
-        Database.initialize(options.db_name)
+        Database.initialize(options.db_name, uri=options.address)
         output_fpaths = self._get_output_fpaths(options.query, options.output_dir,
                                                 options.output_file, options.prefix,
                                                 options.combined_output)
@@ -85,7 +85,7 @@ class OptionsParser:
 
     def validate_pipelines(self, options):
         """Execute validation of old vs new pipeline results"""
-        Database.initialize(options.db_name)
+        Database.initialize(options.db_name, uri=options.address)
         input_files = self._input_to_process(options.input_file, options.input_dir)
         output_fpaths = self._get_output_fpaths(input_files, options.output_dir,
                                                 options.output_file, options.prefix,
