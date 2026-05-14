@@ -9,6 +9,7 @@ from time import sleep
 from zipfile import ZipFile, BadZipFile
 import requests
 from jasentool.log import get_logger
+from jasentool.sample_utils import alter_sample_id as compose_alter_id
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ class Utils:
             for sample in csv_dict:
                 lims_id = csv_dict[sample][0]
                 sequencing_run = csv_dict[sample][3]
-                sample_id = str(lims_id.lower() + "_" + sequencing_run.lower()) if alter_sample_id else sample
+                sample_id = compose_alter_id(lims_id, sequencing_run) if alter_sample_id else sample
                 row_dict = {"id": sample_id,
                             "clarity_sample_id": lims_id,
                             "sample_name": sample,

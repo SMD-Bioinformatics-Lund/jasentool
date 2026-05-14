@@ -2,8 +2,14 @@
 
 import os
 import re
-import json
 from jasentool.log import get_logger
+from jasentool.sample_utils import (
+    check_format,
+    filter_by_keys,
+    find_files,
+    get_sample_name,
+    parse_dir,
+)
 
 logger = get_logger(__name__)
 
@@ -21,24 +27,6 @@ class Missing:
             if errors == 1:
                 return [first_reads, read_file]
         return read_files
-
-    @staticmethod
-    def find_files(search_term, parent_dir):
-        """Find files in a given directory using a regex search term."""
-        if not os.path.exists(parent_dir):
-            logger.warning("%s does not exist! Skipping search.", parent_dir)
-            return []
-
-        try:
-            search_files = os.listdir(parent_dir)
-            found_files = sorted(
-                os.path.join(parent_dir, search_file) for search_file in search_files
-                if re.search(search_term, search_file) and not search_file.endswith("~")
-            )
-            return found_files
-        except Exception as e:
-            logger.error("Could not list files in %s: %s", parent_dir, e)
-            return []
 
     @staticmethod
     def edit_read_paths(reads, restore_dir):
@@ -122,7 +110,7 @@ class Missing:
                             "Data/Intensities/BaseCalls/"
                         )
                     try:
-                        paired_reads = Missing.find_files(r'^' + clarity_sample_id, parent_dir)
+                        paired_reads = find_files(r'^' + clarity_sample_id, parent_dir)
                         if len(paired_reads) == 2 and paired_reads[0].endswith(".gz"):
                             restored_reads_fpaths = Missing.check_file_cp(paired_reads, restore_dir)
                             csv_dict[sample_id] = [
@@ -199,83 +187,6 @@ class Missing:
         return csv_dict
 
     @staticmethod
-    def check_format(fpath):
-        """Check that filepath has the correct prefix and that it exists"""
-        if (
-            fpath.startswith("/fs1") and
-            not os.path.exists(os.path.join(fpath, "Data/Intensities/BaseCalls"))
-        ):
-            logger.warning("%s does not exist! Fixing by removing '/fs1' prefix.", fpath)
-            fpath = fpath.replace("/fs1", "")
-        if (
-            fpath.startswith("/fs2") and
-            not os.path.exists(os.path.join(fpath, "Data/Intensities/BaseCalls"))
-        ):
-            logger.warning("%s does not exist! Fixing by removing '/fs2' prefix.", fpath)
-            fpath = fpath.replace("/fs2", "")
-        if fpath.startswith("NovaSeq"):
-            fpath = "/seqdata/" + fpath
-            logger.warning("%s does not exist! Fixing by adding '/seqdata/' as a prefix.", fpath)
-        if not fpath.startswith("/data"):
-            fs2_fpath = "/fs2" + fpath
-            isilon_fpath = "/media/isilon/backup_hopper" + fpath
-            data_fpath = "/data" + fpath
-            if os.path.exists(os.path.join(fs2_fpath, "Data/Intensities/BaseCalls")):
-                return fs2_fpath
-            if os.path.exists(os.path.join(isilon_fpath, "Data/Intensities/BaseCalls")):
-                return isilon_fpath
-            if os.path.exists(os.path.join(data_fpath, "Data/Intensities/BaseCalls")):
-                return data_fpath
-            if os.path.exists(fpath):
-                return fpath.rstrip("Data/Intensities/BaseCalls/")
-            logger.warning("Base calls for %s cannot be found.", fpath)
-        return fpath
-
-    @staticmethod
-    def get_sample_name(json_fpath):
-        """Reads a JSON file and retrieves the 'sample_name' from the JSON structure."""
-        try:
-            with open(json_fpath, 'r') as file:
-                result_json = json.load(file)
-
-            sample_name = result_json["sample_name"]
-            return sample_name
-        except KeyError as e:
-            logger.error("KeyError: %s %s", e, json_fpath)
-            return None
-        except json.JSONDecodeError:
-            logger.error("JSONDecodeError: %s", json_fpath)
-            return None
-
-    @staticmethod
-    def parse_dir(dir_fpath, alter_sample_id):
-        """Return filenames in directory"""
-        dir_fpaths = []
-        for filename in os.listdir(dir_fpath):
-            if filename.endswith(".json"):
-                if alter_sample_id:
-                    sample_name = Missing.get_sample_name(os.path.join(dir_fpath, filename))
-                    if sample_name:
-                        dir_fpaths.append(sample_name)
-                else:
-                    dir_fpaths.append(filename.split("_")[0])
-        return dir_fpaths
-
-    @staticmethod
-    def filter_csv_dict(csv_dict, missing_samples):
-        """Filter out missing samples"""
-        filtered_csv_dict = {}
-        not_found = []
-        for missing_sample in missing_samples:
-            try:
-                filtered_csv_dict[missing_sample] = csv_dict[missing_sample]
-            except KeyError:
-                not_found.append(missing_sample)
-        logger.info("%d samples could not be found", len(not_found))
-        logger.info("%d samples remain after filtering", len(filtered_csv_dict.keys()))
-        return filtered_csv_dict, not_found
-
-    @staticmethod
     def find_missing(meta_dict, analysis_dir_fnames, restore_dir):
         """Find missing samples from jasen results directory"""
         sample_runs = []
@@ -288,8 +199,8 @@ class Missing:
                 missing_samples.append(sample["id"])
                 if sample["run"] not in sample_runs:
                     ss_dict = {}
-                    sample_run_dir = Missing.check_format(sample["run"])
-                    sample_sheets = Missing.find_files(r'.csv$', sample_run_dir)
+                    sample_run_dir = check_format(sample["run"])
+                    sample_sheets = find_files(r'.csv$', sample_run_dir)
                     if sample_sheets:
                         for sample_sheet in sample_sheets:
                             ss_dict |= Missing.parse_sample_sheet(sample_sheet, restore_dir, id_seqrun_dict)
@@ -301,7 +212,7 @@ class Missing:
         logger.info("%d samples found", len(csv_dict.keys()))
         logger.info("%d samples missing", len(missing_samples))
         logger.info("%d duplicate sample ids", len(missing_samples) - len(set(missing_samples)))
-        filtered_csv_dict, not_found = Missing.filter_csv_dict(csv_dict, missing_samples)
+        filtered_csv_dict, not_found = filter_by_keys(csv_dict, missing_samples)
         return filtered_csv_dict, "\n".join(not_found)
 
     @staticmethod

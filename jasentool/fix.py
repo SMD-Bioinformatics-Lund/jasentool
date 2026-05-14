@@ -3,6 +3,7 @@
 import os
 import pandas as pd
 from jasentool.utils import Utils
+from jasentool.sample_utils import alter_sample_id as compose_alter_id
 
 class Fix:
     """Class that fixes csvs for start_nextflow_analysis.pl"""
@@ -14,13 +15,11 @@ class Fix:
         with open(input_file, 'r', encoding="utf-8") as csvfile:
             samples = pd.read_csv(csvfile)
             samples.insert(2, 'sample_name', samples['id'])
-            samples['id'] = (
-                samples['clarity_sample_id'].str.lower()
-                + "_"
-                + samples['sequencing_run'].str.lower()
-                if alter_sample_id
-                else samples['id']
-            )
+            if alter_sample_id:
+                samples['id'] = samples.apply(
+                    lambda row: compose_alter_id(row['clarity_sample_id'], row['sequencing_run']),
+                    axis=1,
+                )
             if "species" in samples.columns:
                 samples['assay'] = samples['species']
             for assay, df_assay in samples.groupby('assay'):
