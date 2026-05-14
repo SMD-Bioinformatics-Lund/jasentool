@@ -10,6 +10,7 @@ from jasentool.database import Database
 from jasentool.validate import Validate
 from jasentool.utils import Utils
 from jasentool.missing import Missing
+from jasentool.sample_utils import parse_dir
 from jasentool.convert import Convert
 from jasentool.fix import Fix
 from jasentool.converge import Converge
@@ -108,7 +109,7 @@ class OptionsParser:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"
             empty_fpath = os.path.splitext(options.output_file)[0] + "_empty.csv"
             meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
-            analysis_dir_fnames = handler.parse_dir(options.analysis_dir, options.alter_sample_id)
+            analysis_dir_fnames = parse_dir(options.analysis_dir, options.alter_sample_id)
             csv_dict, missing_samples_txt = handler.find_missing(meta_dict, analysis_dir_fnames, options.restore_dir)
             empty_files_dict, csv_dict = handler.remove_empty_files(csv_dict)
             utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
