@@ -10,7 +10,18 @@ Full documentation: [jasentool.readthedocs.io](https://jasentool.readthedocs.io)
 pip install jasentool
 ```
 
-A conda `environment.yml` is also provided for development installs.
+### Older Linux distributions (recommended: conda)
+
+On hosts with **glibc < 2.28** (Ubuntu < 18.04, RHEL/CentOS < 8, Debian < 10) pip will not find binary wheels for current pandas / numpy on Python 3.12 and will fall back to source builds that require GCC ≥ 9.3. Use conda instead — conda-forge ships its own compatible binaries:
+
+```
+git clone https://github.com/SMD-Bioinformatics-Lund/jasentool.git
+cd jasentool
+conda env create -f environment.yml
+conda activate jasentool
+```
+
+`environment.yml` installs every binary-heavy dependency (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge and then performs an editable pip install of jasentool itself.
 
 ## Usage
 
