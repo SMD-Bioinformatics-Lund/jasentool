@@ -60,7 +60,7 @@ packages = ["jasentool"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-jasentool = ["data/*.yaml", "data/dbs/*.csv"]
+jasentool = ["data/dbs/*.csv"]
 
 [tool.setuptools.data-files]
 "notebooks" = ["notebooks/*.ipynb"]
