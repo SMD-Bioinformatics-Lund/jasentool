@@ -8,7 +8,7 @@ Multipurpose tool for jobs related to the [JASEN](https://github.com/Clinical-Ge
 
 | Subcommand | Description |
 |------------|-------------|
-| `check-backup` | Cross-check MongoDB samples against the backup storage tree |
+| `check-backup` | Cross-check Bonsai samples against the backup storage tree |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |

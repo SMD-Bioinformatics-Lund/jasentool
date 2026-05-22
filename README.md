@@ -37,7 +37,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 
 | Subcommand | Description |
 |------------|-------------|
-| `check-backup` | Cross-check MongoDB samples against the backup storage tree |
+| `check-backup` | Cross-check Bonsai samples against the backup storage tree |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |
@@ -107,10 +107,9 @@ jasentool validate-pipelines \
 jasentool check-backup \
   --profile staphylococcus_aureus \
   --backup-dir /backup/jasen \
-  --db-name cgviz \
+  --db-name bonsai \
   --db-collection samples \
-  --address mongodb://cgviz.host:27017/ \
-  --alter-sample-id \
+  --address mongodb://bonsai.host:27017/ \
   -o backup_status.csv
 ```
 

@@ -67,33 +67,34 @@ jasentool identify-missing \
 
 ## check-backup
 
-Cross-checks samples in MongoDB against the on-disk backup storage tree to find samples whose expected JASEN outputs are not yet backed up.
+Cross-checks samples in the **Bonsai** MongoDB against the on-disk backup storage tree to find samples whose expected JASEN outputs are not yet backed up. Bonsai is the authoritative list of curated samples; each doc's `sample_id` is the filename prefix used in the backup tree.
 
 Backup tree layout: `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames (e.g. `saureus`, `ecoli`) come from `jasentool/config.py` — that module holds the per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples. Edit it and reinstall the package to change which outputs are checked.
 
-Files are matched per sample as `<sample_id><mask><file_ext>` where `<sample_id>` is either the Mongo `id` (`sample_name`) or — with `--alter-sample-id` — the lowercased `<lims_id>_<sequencing_run>` form. The separator (typically `_`) lives inside `mask`, so empty-mask cases like sourmash `<sample>.sig` work without code changes. A `*` anywhere in `mask` enables `fnmatch` wildcard matching. If both id-form variants are present for the same expected output a warning is logged; either alone counts as backed up. Outputs declared `required: False` (feature/platform-gated tools like skesa, fastqc, kleborate, trimmomatic) are tracked when missing but do not flip a sample's status to FAIL.
+Files are matched per sample as `<sample_id><mask><file_ext>` where `<sample_id>` is the Bonsai doc's `sample_id` field. The separator (typically `_`) lives inside `mask`, so empty-mask cases like sourmash `<sample>.sig` work without code changes. A `*` anywhere in `mask` enables `fnmatch` wildcard matching. Outputs declared `required: False` (feature/platform-gated tools like skesa, fastqc, kleborate, trimmomatic) are tracked when missing but do not flip a sample's status to FAIL.
+
+Species filtering is permissive: a Bonsai doc matches the requested profile if its `species` (or `metadata.species`) equals either the short form (`saureus`) or the profile-name-with-spaces form (`staphylococcus aureus`). No QC filter is applied — Bonsai is assumed to be the curated set already.
 
 ```
 jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
                        --db-name <DB> --db-collection <COLLECTION>
                        -o <OUTPUT.csv>
-                       [--address <URI>] [--alter-sample-id]
+                       [--address <URI>]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `--profile` | Yes | — | JASEN profile name, e.g. `staphylococcus_aureus` |
 | `--backup-dir` | Yes | — | Root of the backup storage tree |
-| `--db-name` | Yes | — | MongoDB database name (e.g. `cgviz`) |
-| `--db-collection` | Yes | — | MongoDB collection name |
+| `--db-name` | Yes | — | Bonsai MongoDB database name |
+| `--db-collection` | Yes | — | Bonsai MongoDB collection name |
 | `-o`/`--output-file` | Yes | — | Summary CSV; per-file missing CSV uses the same stem with `_missing.csv` suffix |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
-| `--alter-sample-id` | No | False | Also accept alter-sample-id filename variant |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
 
 **Outputs**
 
-- `<output>.csv` — one row per sample: `id, sample_name, alter_id, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
-- `<output>_missing.csv` — one row per missing expected file: `id, sample_name, alter_id, profile, software_name, software_dirname, expected_glob, searched_path, required`.
+- `<output>.csv` — one row per sample: `sample_id, sample_name, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
+- `<output>_missing.csv` — one row per missing expected file: `sample_id, sample_name, profile, software_name, software_dirname, expected_glob, searched_path, required`.
 
 **Example**
 
@@ -101,9 +102,8 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 jasentool check-backup \
   --profile staphylococcus_aureus \
   --backup-dir /backup/jasen \
-  --db-name cgviz --db-collection samples \
-  --address mongodb://cgviz.host:27017/ \
-  --alter-sample-id \
+  --db-name bonsai --db-collection samples \
+  --address mongodb://bonsai.host:27017/ \
   -o backup_status.csv
 ```
 
