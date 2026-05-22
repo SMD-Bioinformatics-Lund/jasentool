@@ -1,18 +1,16 @@
 """Cross-check MongoDB samples against the backup storage tree."""
 
 import csv
+import fnmatch
 import os
-from importlib.resources import files
 
-import yaml
-
+from jasentool.config import get_profile
 from jasentool.database import Database
 from jasentool.log import get_logger
 from jasentool.sample_utils import alter_sample_id as compose_alter_id
 
 logger = get_logger(__name__)
 
-DEFAULT_CONFIG_PKG_PATH = ("jasentool", "data", "jasen_profiles.yaml")
 QC_FIELD = "metadata.QC"
 QC_PASS = "OK"
 
@@ -26,28 +24,6 @@ class CheckBackup:
         self.backup_dir = options.backup_dir
         self.output_file = options.output_file
         self.use_alter_id = options.alter_sample_id
-
-    @staticmethod
-    def load_config(config_path=None):
-        """Load profile config from a path or the bundled package data."""
-        if config_path:
-            with open(config_path, "r", encoding="utf-8") as fin:
-                return yaml.safe_load(fin)
-        resource = files(DEFAULT_CONFIG_PKG_PATH[0]).joinpath(
-            *DEFAULT_CONFIG_PKG_PATH[1:]
-        )
-        return yaml.safe_load(resource.read_text(encoding="utf-8"))
-
-    @staticmethod
-    def resolve_profile(config, profile):
-        """Return (species_shortname, outputs) for `profile` or raise KeyError."""
-        if profile not in config:
-            raise KeyError(
-                f"Profile '{profile}' not found in config. "
-                f"Known profiles: {sorted(config.keys())}"
-            )
-        entry = config[profile]
-        return entry["species"], entry.get("outputs", []) or []
 
     @staticmethod
     def fetch_samples(db_collection, profile_species):
@@ -72,21 +48,26 @@ class CheckBackup:
         return [doc for doc in docs if _matches_species(doc, profile_species)]
 
     def scan(self, samples, outputs, species):
-        """Walk each sample × expected output, return (summary_rows, missing_rows)."""
+        """Walk each sample x expected output, return (summary_rows, missing_rows)."""
         summary_rows = []
         missing_rows = []
         for doc in samples:
             sample_name = doc.get("id")
             alter_id = self._resolve_alter_id(doc) if self.use_alter_id else None
-            expected_count = len(outputs)
-            found_count = 0
+            required_total = sum(1 for o in outputs if o.get("required", True))
+            required_found = 0
+            optional_total = len(outputs) - required_total
+            optional_found = 0
             for output in outputs:
+                software = output["software_name"]
                 dirname = output["dirname"]
-                ext = output["ext"]
+                mask = output.get("mask", "")
+                ext = output["file_ext"]
+                required = output.get("required", True)
                 search_dir = os.path.join(self.backup_dir, species, dirname)
-                orig_matches = _glob_matches(search_dir, sample_name, ext)
+                orig_matches = _glob_matches(search_dir, sample_name, mask, ext)
                 alter_matches = (
-                    _glob_matches(search_dir, alter_id, ext) if alter_id else []
+                    _glob_matches(search_dir, alter_id, mask, ext) if alter_id else []
                 )
                 if orig_matches and alter_matches:
                     logger.warning(
@@ -96,25 +77,32 @@ class CheckBackup:
                         [os.path.basename(p) for p in alter_matches],
                     )
                 if orig_matches or alter_matches:
-                    found_count += 1
+                    if required:
+                        required_found += 1
+                    else:
+                        optional_found += 1
                 else:
                     missing_rows.append({
                         "id": sample_name,
                         "sample_name": sample_name,
                         "alter_id": alter_id or "",
                         "profile": self.profile,
+                        "software_name": software,
                         "software_dirname": dirname,
-                        "expected_glob": f"{sample_name}_*{ext}",
+                        "expected_glob": _format_glob(sample_name, mask, ext),
                         "searched_path": search_dir,
+                        "required": str(required),
                     })
-            status = "PASS" if expected_count and found_count == expected_count else "FAIL"
+            status = "PASS" if required_total and required_found == required_total else "FAIL"
             summary_rows.append({
                 "id": sample_name,
                 "sample_name": sample_name,
                 "alter_id": alter_id or "",
                 "profile": self.profile,
-                "expected_count": expected_count,
-                "found_count": found_count,
+                "required_expected": required_total,
+                "required_found": required_found,
+                "optional_expected": optional_total,
+                "optional_found": optional_found,
                 "status": status,
             })
         return summary_rows, missing_rows
@@ -134,15 +122,14 @@ class CheckBackup:
         return compose_alter_id(str(lims), str(seqrun))
 
     def run(self):
-        """Entry point: load config, fetch samples, scan disk, write outputs."""
-        config = self.load_config(self.options.config)
-        species, outputs = self.resolve_profile(config, self.profile)
+        """Entry point: resolve profile, fetch samples, scan disk, write outputs."""
+        profile_entry = get_profile(self.profile)
+        species = profile_entry["species"]
+        outputs = profile_entry.get("outputs", []) or []
         if not outputs:
             logger.warning(
-                "Profile '%s' has no `outputs` entries; every sample will FAIL. "
-                "Populate %s before running.",
-                self.profile,
-                self.options.config or "the bundled jasen_profiles.yaml",
+                "Profile '%s' has no outputs declared in jasentool.config; every "
+                "sample will FAIL.", self.profile,
             )
 
         Database.initialize(self.options.db_name, uri=self.options.address)
@@ -156,11 +143,13 @@ class CheckBackup:
 
         _write_csv(self.output_file, summary_rows,
                    fieldnames=["id", "sample_name", "alter_id", "profile",
-                               "expected_count", "found_count", "status"])
+                               "required_expected", "required_found",
+                               "optional_expected", "optional_found", "status"])
         missing_fpath = os.path.splitext(self.output_file)[0] + "_missing.csv"
         _write_csv(missing_fpath, missing_rows,
                    fieldnames=["id", "sample_name", "alter_id", "profile",
-                               "software_dirname", "expected_glob", "searched_path"])
+                               "software_name", "software_dirname",
+                               "expected_glob", "searched_path", "required"])
 
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
@@ -178,15 +167,29 @@ def _matches_species(doc, target_species):
     return any(c == target_species for c in candidates if c)
 
 
-def _glob_matches(search_dir, prefix, ext):
-    """Return absolute paths in `search_dir` whose names match `<prefix>_*<ext>`."""
+def _glob_matches(search_dir, prefix, mask, ext):
+    """Return absolute paths in `search_dir` whose names match `<prefix><mask><ext>`.
+
+    If `mask` contains a `*` the match is via fnmatch; otherwise it's a literal
+    equality check on the full filename.
+    """
     if not prefix or not os.path.isdir(search_dir):
         return []
-    matches = []
-    for name in os.listdir(search_dir):
-        if name.startswith(f"{prefix}_") and name.endswith(ext):
-            matches.append(os.path.join(search_dir, name))
-    return matches
+    if "*" in mask:
+        pattern = f"{prefix}{mask}{ext}"
+        return [
+            os.path.join(search_dir, name)
+            for name in os.listdir(search_dir)
+            if fnmatch.fnmatchcase(name, pattern)
+        ]
+    target = f"{prefix}{mask}{ext}"
+    full = os.path.join(search_dir, target)
+    return [full] if os.path.isfile(full) else []
+
+
+def _format_glob(prefix, mask, ext):
+    """Render the glob the matcher would have used, for diagnostic CSV output."""
+    return f"{prefix}{mask}{ext}"
 
 
 def _write_csv(path, rows, fieldnames):
