@@ -69,13 +69,15 @@ jasentool identify-missing \
 
 Cross-checks samples in MongoDB against the on-disk backup storage tree to find samples whose expected JASEN outputs are not yet backed up.
 
-Backup tree layout: `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames (e.g. `saureus`, `ecoli`) come from the per-profile config (default: `jasentool/data/jasen_profiles.yaml`). Each profile lists the `(dirname, ext)` pairs to look for. Files are matched per sample as `<sample_name>_*<ext>` (original Mongo `id`) and, with `--alter-sample-id`, also `<lims_id>_<sequencing_run>_*<ext>` (both lowercased). If both variants are present for the same expected output a warning is logged; either alone counts as backed up.
+Backup tree layout: `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames (e.g. `saureus`, `ecoli`) come from `jasentool/config.py` — that module holds the per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples. Edit it and reinstall the package to change which outputs are checked.
+
+Files are matched per sample as `<sample_id><mask><file_ext>` where `<sample_id>` is either the Mongo `id` (`sample_name`) or — with `--alter-sample-id` — the lowercased `<lims_id>_<sequencing_run>` form. The separator (typically `_`) lives inside `mask`, so empty-mask cases like sourmash `<sample>.sig` work without code changes. A `*` anywhere in `mask` enables `fnmatch` wildcard matching. If both id-form variants are present for the same expected output a warning is logged; either alone counts as backed up. Outputs declared `required: False` (feature/platform-gated tools like skesa, fastqc, kleborate, trimmomatic) are tracked when missing but do not flip a sample's status to FAIL.
 
 ```
 jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
                        --db-name <DB> --db-collection <COLLECTION>
                        -o <OUTPUT.csv>
-                       [--address <URI>] [--config <YAML>] [--alter-sample-id]
+                       [--address <URI>] [--alter-sample-id]
 ```
 
 | Argument | Required | Default | Description |
@@ -86,13 +88,12 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 | `--db-collection` | Yes | — | MongoDB collection name |
 | `-o`/`--output-file` | Yes | — | Summary CSV; per-file missing CSV uses the same stem with `_missing.csv` suffix |
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | MongoDB host address |
-| `--config` | No | bundled `jasen_profiles.yaml` | Override profile config path |
 | `--alter-sample-id` | No | False | Also accept alter-sample-id filename variant |
 
 **Outputs**
 
-- `<output>.csv` — one row per sample: `id, sample_name, alter_id, profile, expected_count, found_count, status` where `status ∈ {PASS, FAIL}`.
-- `<output>_missing.csv` — one row per missing expected file: `id, sample_name, alter_id, profile, software_dirname, expected_glob, searched_path`.
+- `<output>.csv` — one row per sample: `id, sample_name, alter_id, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
+- `<output>_missing.csv` — one row per missing expected file: `id, sample_name, alter_id, profile, software_name, software_dirname, expected_glob, searched_path, required`.
 
 **Example**
 

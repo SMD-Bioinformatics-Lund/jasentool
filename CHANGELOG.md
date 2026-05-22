@@ -9,18 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - `check-backup` subcommand — cross-checks MongoDB samples against the on-disk backup storage tree using a per-profile config of expected `(publishDir, ext)` outputs; emits a per-sample summary CSV and a per-missing-file CSV
- - `jasentool/data/jasen_profiles.yaml` package data — config skeleton mapping each JASEN profile to its species shortname and expected output entries; user populates `outputs:` per profile
+ - `check-backup` subcommand — cross-checks MongoDB samples against the on-disk backup storage tree; emits a per-sample summary CSV and a per-missing-file CSV
+ - `jasentool/config.py` module — per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples; populated from JASEN's `modules.config` for all five profiles (`staphylococcus_aureus`, `escherichia_coli`, `mycobacterium_tuberculosis`, `streptococcus_pyogenes`, `streptococcus`)
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
 
 ### Fixed
 
  - `--address`/`--uri` flag now actually overrides the MongoDB URI for `find` and `validate-pipelines`; previously it was accepted but ignored
+ - Capped `pymongo<4` in `pyproject.toml` and `environment.yml` so jasentool can talk to MongoDB 3.2 (cgviz reports wire version 4; pymongo ≥ 4.9 refuses anything older than MongoDB 4.2)
 
 ### Changed
 
  - `Database.initialize` accepts an optional `uri` argument to override the default `mongodb://localhost:27017/`
  - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
+ - File matching in `check-backup` now uses `<sample_id><mask><file_ext>` with `mask` carrying the separator (e.g. `_spades`, empty for `<sample>.sig`, or `_*` for wildcard). Outputs marked `required: False` are tracked when missing but no longer flip a sample's status to FAIL.
 
 ## [1.1.0]
 
