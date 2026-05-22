@@ -360,21 +360,21 @@ def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
 @click.option('--backup-dir', required=True,
               type=click.Path(exists=True, file_okay=False),
               help='Root of the backup storage tree')
-@click.option('--db-name', required=True, help='MongoDB database name')
-@click.option('--db-collection', required=True, help='MongoDB collection name')
+@click.option('--db-name', required=True,
+              help='Bonsai MongoDB database name')
+@click.option('--db-collection', required=True,
+              help='Bonsai MongoDB collection name')
 @click.option('--address', '--uri', default='mongodb://localhost:27017/',
-              help='MongoDB address')
-@click.option('--alter-sample-id', is_flag=True, default=False,
-              help='Also accept alter-sample-id filename variant')
+              help='Bonsai MongoDB address')
 @click.option('-o', '--output-file', required=True,
               help='Path to summary CSV; per-file missing CSV uses the same stem')
 def check_backup_cmd(profile, backup_dir, db_name, db_collection, address,
-                     alter_sample_id, output_file):
-    """Cross-check MongoDB samples against the backup storage tree."""
+                     output_file):
+    """Cross-check Bonsai samples against the backup storage tree."""
     options = types.SimpleNamespace(
         profile=profile, backup_dir=backup_dir, db_name=db_name,
         db_collection=db_collection, address=address,
-        alter_sample_id=alter_sample_id, output_file=output_file,
+        output_file=output_file,
     )
     _parser().check_backup(options)
 

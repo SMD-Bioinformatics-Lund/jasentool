@@ -1,4 +1,4 @@
-"""Cross-check MongoDB samples against the backup storage tree."""
+"""Cross-check Bonsai samples against the backup storage tree."""
 
 import csv
 import fnmatch
@@ -7,53 +7,50 @@ import os
 from jasentool.config import get_profile
 from jasentool.database import Database
 from jasentool.log import get_logger
-from jasentool.sample_utils import alter_sample_id as compose_alter_id
 
 logger = get_logger(__name__)
 
-QC_FIELD = "metadata.QC"
-QC_PASS = "OK"
-
 
 class CheckBackup:
-    """Compare MongoDB sample documents against on-disk backup outputs."""
+    """Compare Bonsai sample documents against on-disk backup outputs."""
 
     def __init__(self, options):
         self.options = options
         self.profile = options.profile
         self.backup_dir = options.backup_dir
         self.output_file = options.output_file
-        self.use_alter_id = options.alter_sample_id
 
     @staticmethod
-    def fetch_samples(db_collection, profile_species):
-        """Pull QC-OK samples for the requested species from MongoDB.
+    def fetch_samples(db_collection, profile_entry):
+        """Pull samples for the requested species from Bonsai.
 
-        Projects only the fields needed: `id`, `metadata.QC`, `run`,
-        plus best-effort `lims_id` / `clarity_sample_id` to support
-        alter-sample-id matching when present.
+        Filters by species (matched against either the short form `saureus`
+        or the profile-name-with-spaces form `staphylococcus aureus`). No
+        QC filter — Bonsai is assumed to be the curated set already.
         """
-        query = {QC_FIELD: QC_PASS}
-        projection = {
-            "id": 1,
-            "metadata.QC": 1,
-            "metadata.species": 1,
-            "species": 1,
-            "run": 1,
-            "lims_id": 1,
-            "clarity_sample_id": 1,
-            "sequencing_run": 1,
+        accepted_species = {
+            profile_entry["species"],
+            profile_entry["profile"].replace("_", " "),
         }
-        docs = Database.find(db_collection, query, projection)
-        return [doc for doc in docs if _matches_species(doc, profile_species)]
+        projection = {
+            "_id": 0,
+            "sample_id": 1,
+            "sample_name": 1,
+            "species": 1,
+            "metadata.species": 1,
+        }
+        docs = Database.find(db_collection, {}, projection)
+        return [doc for doc in docs if _matches_species(doc, accepted_species)]
 
     def scan(self, samples, outputs, species):
         """Walk each sample x expected output, return (summary_rows, missing_rows)."""
         summary_rows = []
         missing_rows = []
         for doc in samples:
-            sample_name = doc.get("id")
-            alter_id = self._resolve_alter_id(doc) if self.use_alter_id else None
+            sample_id = doc.get("sample_id")
+            if not sample_id:
+                logger.warning("Skipping bonsai doc with no sample_id: %s", doc)
+                continue
             required_total = sum(1 for o in outputs if o.get("required", True))
             required_found = 0
             optional_total = len(outputs) - required_total
@@ -65,39 +62,27 @@ class CheckBackup:
                 ext = output["file_ext"]
                 required = output.get("required", True)
                 search_dir = os.path.join(self.backup_dir, species, dirname)
-                orig_matches = _glob_matches(search_dir, sample_name, mask, ext)
-                alter_matches = (
-                    _glob_matches(search_dir, alter_id, mask, ext) if alter_id else []
-                )
-                if orig_matches and alter_matches:
-                    logger.warning(
-                        "Both sample-id forms present for %s in %s (orig=%s, alter=%s)",
-                        sample_name, search_dir,
-                        [os.path.basename(p) for p in orig_matches],
-                        [os.path.basename(p) for p in alter_matches],
-                    )
-                if orig_matches or alter_matches:
+                matches = _glob_matches(search_dir, sample_id, mask, ext)
+                if matches:
                     if required:
                         required_found += 1
                     else:
                         optional_found += 1
                 else:
                     missing_rows.append({
-                        "id": sample_name,
-                        "sample_name": sample_name,
-                        "alter_id": alter_id or "",
+                        "sample_id": sample_id,
+                        "sample_name": doc.get("sample_name", ""),
                         "profile": self.profile,
                         "software_name": software,
                         "software_dirname": dirname,
-                        "expected_glob": _format_glob(sample_name, mask, ext),
+                        "expected_glob": _format_glob(sample_id, mask, ext),
                         "searched_path": search_dir,
                         "required": str(required),
                     })
             status = "PASS" if required_total and required_found == required_total else "FAIL"
             summary_rows.append({
-                "id": sample_name,
-                "sample_name": sample_name,
-                "alter_id": alter_id or "",
+                "sample_id": sample_id,
+                "sample_name": doc.get("sample_name", ""),
                 "profile": self.profile,
                 "required_expected": required_total,
                 "required_found": required_found,
@@ -106,20 +91,6 @@ class CheckBackup:
                 "status": status,
             })
         return summary_rows, missing_rows
-
-    def _resolve_alter_id(self, doc):
-        """Compose the alter-sample-id form from a sample doc, or None on missing fields."""
-        lims = doc.get("lims_id") or doc.get("clarity_sample_id")
-        seqrun = doc.get("sequencing_run")
-        if not seqrun and doc.get("run"):
-            seqrun = os.path.basename(doc["run"].rstrip("/"))
-        if not lims or not seqrun:
-            logger.error(
-                "Cannot build alter-sample-id for %s: missing lims_id (%s) or seqrun (%s)",
-                doc.get("id"), lims, seqrun,
-            )
-            return None
-        return compose_alter_id(str(lims), str(seqrun))
 
     def run(self):
         """Entry point: resolve profile, fetch samples, scan disk, write outputs."""
@@ -133,21 +104,21 @@ class CheckBackup:
             )
 
         Database.initialize(self.options.db_name, uri=self.options.address)
-        samples = self.fetch_samples(self.options.db_collection, species)
+        samples = self.fetch_samples(self.options.db_collection, profile_entry)
         logger.info(
-            "%d samples found in %s/%s for species=%s",
-            len(samples), self.options.db_name, self.options.db_collection, species,
+            "%d bonsai samples for species=%s (from %s/%s)",
+            len(samples), species, self.options.db_name, self.options.db_collection,
         )
 
         summary_rows, missing_rows = self.scan(samples, outputs, species)
 
         _write_csv(self.output_file, summary_rows,
-                   fieldnames=["id", "sample_name", "alter_id", "profile",
+                   fieldnames=["sample_id", "sample_name", "profile",
                                "required_expected", "required_found",
                                "optional_expected", "optional_found", "status"])
         missing_fpath = os.path.splitext(self.output_file)[0] + "_missing.csv"
         _write_csv(missing_fpath, missing_rows,
-                   fieldnames=["id", "sample_name", "alter_id", "profile",
+                   fieldnames=["sample_id", "sample_name", "profile",
                                "software_name", "software_dirname",
                                "expected_glob", "searched_path", "required"])
 
@@ -157,14 +128,13 @@ class CheckBackup:
                     len(summary_rows), passed, failed)
 
 
-def _matches_species(doc, target_species):
-    """Tolerant species match against either `species` or `metadata.species`."""
-    if not target_species:
-        return True
+def _matches_species(doc, accepted_species):
+    """Return True if the doc's species (top-level or under metadata) is in `accepted_species`."""
     candidates = [doc.get("species")]
     metadata = doc.get("metadata") or {}
-    candidates.append(metadata.get("species") if isinstance(metadata, dict) else None)
-    return any(c == target_species for c in candidates if c)
+    if isinstance(metadata, dict):
+        candidates.append(metadata.get("species"))
+    return any(c in accepted_species for c in candidates if c)
 
 
 def _glob_matches(search_dir, prefix, mask, ext):
