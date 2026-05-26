@@ -5,7 +5,7 @@ import pytest
 from jasentool.config import PROFILES, get_profile
 
 
-PROFILE_KEYS = {"profile", "species", "outputs"}
+PROFILE_KEYS = {"profile", "species", "species_full", "outputs"}
 OUTPUT_KEYS = {"software_name", "dirname", "mask", "file_ext"}
 
 
