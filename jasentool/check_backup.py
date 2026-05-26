@@ -21,28 +21,24 @@ class CheckBackup:
         self.output_file = options.output_file
 
     @staticmethod
-    def fetch_samples(db_collection, profile_entry):
-        """Pull samples for the requested species from Bonsai.
+    def fetch_samples(db_collection, profile):
+        """Pull Bonsai samples whose `pipeline.analysis_profile` contains `profile`.
 
-        Filters by species (matched against either the short form `saureus`
-        or the profile-name-with-spaces form `staphylococcus aureus`). No
-        QC filter — Bonsai is assumed to be the curated set already.
+        Mongo array-equality semantics: querying `{"pipeline.analysis_profile": X}`
+        matches any document whose `analysis_profile` list contains X.
         """
-        accepted_species = {
-            profile_entry["species"],
-            profile_entry["profile"].replace("_", " "),
-        }
+        query = {"pipeline.analysis_profile": profile}
         projection = {
             "_id": 0,
             "sample_id": 1,
             "sample_name": 1,
-            "species": 1,
-            "metadata.species": 1,
+            "lims_id": 1,
+            "pipeline.analysis_profile": 1,
+            "species_prediction.scientific_name": 1,
         }
-        docs = Database.find(db_collection, {}, projection)
-        return [doc for doc in docs if _matches_species(doc, accepted_species)]
+        return Database.find(db_collection, query, projection)
 
-    def scan(self, samples, outputs, species):
+    def scan(self, samples, outputs, species, species_full=None):
         """Walk each sample x expected output, return (summary_rows, missing_rows)."""
         summary_rows = []
         missing_rows = []
@@ -51,51 +47,75 @@ class CheckBackup:
             if not sample_id:
                 logger.warning("Skipping bonsai doc with no sample_id: %s", doc)
                 continue
-            required_total = sum(1 for o in outputs if o.get("required", True))
-            required_found = 0
-            optional_total = len(outputs) - required_total
-            optional_found = 0
-            for output in outputs:
-                software = output["software_name"]
-                dirname = output["dirname"]
-                mask = output.get("mask", "")
-                ext = output["file_ext"]
-                required = output.get("required", True)
-                search_dir = os.path.join(self.backup_dir, species, dirname)
-                matches = _glob_matches(search_dir, sample_id, mask, ext)
-                if matches:
-                    if required:
-                        required_found += 1
-                    else:
-                        optional_found += 1
-                else:
-                    missing_rows.append({
-                        "sample_id": sample_id,
-                        "sample_name": doc.get("sample_name", ""),
-                        "profile": self.profile,
-                        "software_name": software,
-                        "software_dirname": dirname,
-                        "expected_glob": _format_glob(sample_id, mask, ext),
-                        "searched_path": search_dir,
-                        "required": str(required),
-                    })
-            status = "PASS" if required_total and required_found == required_total else "FAIL"
-            summary_rows.append({
-                "sample_id": sample_id,
-                "sample_name": doc.get("sample_name", ""),
-                "profile": self.profile,
-                "required_expected": required_total,
-                "required_found": required_found,
-                "optional_expected": optional_total,
-                "optional_found": optional_found,
-                "status": status,
-            })
+            _check_species_sanity(doc, species_full)
+            row, doc_missing = self._scan_sample(doc, outputs, species)
+            summary_rows.append(row)
+            missing_rows.extend(doc_missing)
         return summary_rows, missing_rows
+
+    def _scan_sample(self, doc, outputs, species):
+        """Scan one bonsai doc; return (summary_row, list_of_missing_rows)."""
+        sample_id = doc["sample_id"]
+        sample_name = doc.get("sample_name", "")
+        lims_id = doc.get("lims_id", "")
+        counters = {"req_total": 0, "req_found": 0, "opt_total": 0, "opt_found": 0}
+        doc_missing = []
+        for output in outputs:
+            self._check_one_output(sample_id, output, species, counters, doc_missing,
+                                   sample_name=sample_name, lims_id=lims_id)
+        status = (
+            "PASS"
+            if counters["req_total"] and counters["req_found"] == counters["req_total"]
+            else "FAIL"
+        )
+        summary_row = {
+            "sample_id": sample_id,
+            "sample_name": sample_name,
+            "lims_id": lims_id,
+            "profile": self.profile,
+            "required_expected": counters["req_total"],
+            "required_found": counters["req_found"],
+            "optional_expected": counters["opt_total"],
+            "optional_found": counters["opt_found"],
+            "status": status,
+        }
+        return summary_row, doc_missing
+
+    def _check_one_output(self, sample_id, output, species, counters, doc_missing,
+                          sample_name="", lims_id=""):
+        """Update `counters` and append to `doc_missing` for a single expected output."""
+        required = output.get("required", True)
+        if required:
+            counters["req_total"] += 1
+        else:
+            counters["opt_total"] += 1
+        dirname = output["dirname"]
+        mask = output.get("mask", "")
+        ext = output["file_ext"]
+        search_dir = os.path.join(self.backup_dir, species, dirname)
+        if _glob_matches(search_dir, sample_id, mask, ext):
+            if required:
+                counters["req_found"] += 1
+            else:
+                counters["opt_found"] += 1
+            return
+        doc_missing.append({
+            "sample_id": sample_id,
+            "sample_name": sample_name,
+            "lims_id": lims_id,
+            "profile": self.profile,
+            "software_name": output["software_name"],
+            "software_dirname": dirname,
+            "expected_glob": _format_glob(sample_id, mask, ext),
+            "searched_path": search_dir,
+            "required": str(required),
+        })
 
     def run(self):
         """Entry point: resolve profile, fetch samples, scan disk, write outputs."""
         profile_entry = get_profile(self.profile)
         species = profile_entry["species"]
+        species_full = profile_entry.get("species_full")
         outputs = profile_entry.get("outputs", []) or []
         if not outputs:
             logger.warning(
@@ -104,23 +124,25 @@ class CheckBackup:
             )
 
         Database.initialize(self.options.db_name, uri=self.options.address)
-        samples = self.fetch_samples(self.options.db_collection, profile_entry)
+        samples = self.fetch_samples(self.options.db_collection, self.profile)
         logger.info(
-            "%d bonsai samples for species=%s (from %s/%s)",
-            len(samples), species, self.options.db_name, self.options.db_collection,
+            "%d bonsai samples for profile=%s (from %s/%s)",
+            len(samples), self.profile, self.options.db_name, self.options.db_collection,
         )
 
-        summary_rows, missing_rows = self.scan(samples, outputs, species)
+        summary_rows, missing_rows = self.scan(samples, outputs, species, species_full)
 
-        _write_csv(self.output_file, summary_rows,
-                   fieldnames=["sample_id", "sample_name", "profile",
-                               "required_expected", "required_found",
-                               "optional_expected", "optional_found", "status"])
+        _write_csv(self.output_file, summary_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile",
+            "required_expected", "required_found",
+            "optional_expected", "optional_found", "status",
+        ])
         missing_fpath = os.path.splitext(self.output_file)[0] + "_missing.csv"
-        _write_csv(missing_fpath, missing_rows,
-                   fieldnames=["sample_id", "sample_name", "profile",
-                               "software_name", "software_dirname",
-                               "expected_glob", "searched_path", "required"])
+        _write_csv(missing_fpath, missing_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile",
+            "software_name", "software_dirname",
+            "expected_glob", "searched_path", "required",
+        ])
 
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
@@ -128,13 +150,20 @@ class CheckBackup:
                     len(summary_rows), passed, failed)
 
 
-def _matches_species(doc, accepted_species):
-    """Return True if the doc's species (top-level or under metadata) is in `accepted_species`."""
-    candidates = [doc.get("species")]
-    metadata = doc.get("metadata") or {}
-    if isinstance(metadata, dict):
-        candidates.append(metadata.get("species"))
-    return any(c in accepted_species for c in candidates if c)
+def _check_species_sanity(doc, expected_species_full):
+    """Warn if the doc's top species_prediction disagrees with the profile's species."""
+    if not expected_species_full:
+        return
+    preds = doc.get("species_prediction") or []
+    if not preds:
+        return
+    top = preds[0]
+    name = top.get("scientific_name") if isinstance(top, dict) else None
+    if name and name != expected_species_full:
+        logger.warning(
+            "Species mismatch for %s: top prediction=%s, profile expects=%s",
+            doc.get("sample_id"), name, expected_species_full,
+        )
 
 
 def _glob_matches(search_dir, prefix, mask, ext):
