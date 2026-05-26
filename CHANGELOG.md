@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree using each doc's `sample_id` as the filename prefix; emits a per-sample summary CSV and a per-missing-file CSV. No QC filter applied (Bonsai is the curated set).
+ - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree using each doc's `sample_id` as the filename prefix; emits per-sample summary and per-missing-file CSVs (both include `lims_id`). Filters Bonsai with `{"pipeline.analysis_profile": <PROFILE>}` and logs a warning when `species_prediction[0].scientific_name` disagrees with the profile's `species_full`. No QC filter applied (Bonsai is the curated set).
  - `jasentool/config.py` module — per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples; populated from JASEN's `modules.config` for all five profiles (`staphylococcus_aureus`, `escherichia_coli`, `mycobacterium_tuberculosis`, `streptococcus_pyogenes`, `streptococcus`)
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
 
