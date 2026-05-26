@@ -69,11 +69,11 @@ jasentool identify-missing \
 
 Cross-checks samples in the **Bonsai** MongoDB against the on-disk backup storage tree to find samples whose expected JASEN outputs are not yet backed up. Bonsai is the authoritative list of curated samples; each doc's `sample_id` is the filename prefix used in the backup tree.
 
-Backup tree layout: `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames (e.g. `saureus`, `ecoli`) come from `jasentool/config.py` — that module holds the per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples. Edit it and reinstall the package to change which outputs are checked.
+Backup tree layout: `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames (e.g. `saureus`, `ecoli`) come from `jasentool/config.py` — that module holds the per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples plus a `species_full` long-form name. Edit it and reinstall the package to change which outputs are checked.
 
 Files are matched per sample as `<sample_id><mask><file_ext>` where `<sample_id>` is the Bonsai doc's `sample_id` field. The separator (typically `_`) lives inside `mask`, so empty-mask cases like sourmash `<sample>.sig` work without code changes. A `*` anywhere in `mask` enables `fnmatch` wildcard matching. Outputs declared `required: False` (feature/platform-gated tools like skesa, fastqc, kleborate, trimmomatic) are tracked when missing but do not flip a sample's status to FAIL.
 
-Species filtering is permissive: a Bonsai doc matches the requested profile if its `species` (or `metadata.species`) equals either the short form (`saureus`) or the profile-name-with-spaces form (`staphylococcus aureus`). No QC filter is applied — Bonsai is assumed to be the curated set already.
+Server-side filter: `{"pipeline.analysis_profile": <PROFILE>}` — Mongo's array-equality semantics return every Bonsai doc whose `pipeline.analysis_profile` list contains the requested profile. No QC filter is applied (Bonsai is assumed to be the curated set already). Each returned doc's top `species_prediction[0].scientific_name` is compared against the profile's `species_full` and a `warning` is logged on mismatch (the doc is still scanned).
 
 ```
 jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
@@ -93,8 +93,8 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 
 **Outputs**
 
-- `<output>.csv` — one row per sample: `sample_id, sample_name, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
-- `<output>_missing.csv` — one row per missing expected file: `sample_id, sample_name, profile, software_name, software_dirname, expected_glob, searched_path, required`.
+- `<output>.csv` — one row per sample: `sample_id, sample_name, lims_id, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
+- `<output>_missing.csv` — one row per missing expected file: `sample_id, sample_name, lims_id, profile, software_name, software_dirname, expected_glob, searched_path, required`.
 
 **Example**
 
