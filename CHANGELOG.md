@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `jasentool/config.py` module — per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples; populated from JASEN's `modules.config` for all five profiles (`staphylococcus_aureus`, `escherichia_coli`, `mycobacterium_tuberculosis`, `streptococcus_pyogenes`, `streptococcus`)
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
  - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
+ - Per-output stats CSV from `check-backup` (`<output>_stats.csv`) — one row per declared output with `n_missing` / `n_found` / `missing_pct`, sorted worst-first; top 10 offenders also echoed to the log
 
 ### Fixed
 
