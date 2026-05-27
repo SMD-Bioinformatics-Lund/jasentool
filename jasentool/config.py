@@ -37,16 +37,18 @@ _COMMON_OUTPUTS = [
     _out("format_cdm", "cdm_input", "_qc_result", ".json"),
     _out("export_to_cdm", "qc", "", ".cdmpy"),
     _out("save_analysis_metadata", "analysis_metadata", "_analysis_meta", ".json"),
-    # Platform-gated short-read QC
-    _out("fastqc_html", "fastqc", "_*", ".html", required=False),
-    _out("fastqc_zip", "fastqc", "_*", ".zip", required=False),
-    _out("nanoplot_html", "nanoplot", "_NanoPlot-report", ".html", required=False),
-    _out("nanoplot_txt", "nanoplot", "_NanoStats", ".txt", required=False),
-    # Optional QC / preprocessing
-    _out("trimmomatic_R1", "trimmomatic", ".paired.trim_1", ".fastq.gz", required=False),
-    _out("trimmomatic_R2", "trimmomatic", ".paired.trim_2", ".fastq.gz", required=False),
-    _out("filtlong", "filtlong", "_filtered", ".fastq.gz", required=False),
-    _out("seqtk_sample", "seqtk_sample", "_seqtk", ".fastq.gz", required=False),
+    # Optional / feature- and platform-gated entries — uncomment if/when needed.
+    # The wildcard-mask entries (fastqc_*) trigger a full directory listing per
+    # sample, which dominates runtime on NFS-backed backup trees; reinstate them
+    # only alongside the (deferred) directory-listing cache in check_backup.py.
+    # _out("fastqc_html", "fastqc", "_*", ".html", required=False),
+    # _out("fastqc_zip", "fastqc", "_*", ".zip", required=False),
+    # _out("nanoplot_html", "nanoplot", "_NanoPlot-report", ".html", required=False),
+    # _out("nanoplot_txt", "nanoplot", "_NanoStats", ".txt", required=False),
+    # _out("trimmomatic_R1", "trimmomatic", ".paired.trim_1", ".fastq.gz", required=False),
+    # _out("trimmomatic_R2", "trimmomatic", ".paired.trim_2", ".fastq.gz", required=False),
+    # _out("filtlong", "filtlong", "_filtered", ".fastq.gz", required=False),
+    # _out("seqtk_sample", "seqtk_sample", "_seqtk", ".fastq.gz", required=False),
 ]
 
 # Outputs that run for every profile EXCEPT mycobacterium_tuberculosis.
@@ -55,7 +57,7 @@ _NON_TB_OUTPUTS = [
     _out("resfinder_json", "resfinder", "_resfinder", ".json"),
     _out("resfinder_meta", "resfinder", "_resfinder_meta", ".json"),
     _out("resfinder_pheno_table", "resfinder", "_pheno_table", ".txt"),
-    _out("resfinder_point_table", "resfinder", "_point_table", ".txt", required=False),
+    # _out("resfinder_point_table", "resfinder", "_point_table", ".txt", required=False),
     _out("virulencefinder_json", "virulencefinder", "_virulencefinder", ".json"),
     _out("virulencefinder_meta", "virulencefinder", "_virulencefinder_meta", ".json"),
     _out("plasmidfinder_json", "plasmidfinder", "_plasmidfinder", ".json"),
@@ -68,15 +70,16 @@ _NON_TB_OUTPUTS = [
     _out("mlst_tsv", "mlst", "_mlst", ".tsv"),
     _out("mlst_json", "mlst", "_mlst", ".json"),
     _out("freebayes", "vcf", "_freebayes", ".vcf"),
+    # Optional / feature- and platform-gated entries — uncomment if/when needed.
     # Non-TB assembly variants (one will run depending on platform / feature flags)
-    _out("spades", "fasta", "_spades", ".fasta", required=False),
-    _out("skesa", "fasta", "_skesa", ".fasta", required=False),
-    _out("flye", "fasta", "_flye", ".fasta", required=False),
-    _out("medaka", "fasta", "_medaka", ".fasta", required=False),
+    # _out("spades", "fasta", "_spades", ".fasta", required=False),
+    # _out("skesa", "fasta", "_skesa", ".fasta", required=False),
+    # _out("flye", "fasta", "_flye", ".fasta", required=False),
+    # _out("medaka", "fasta", "_medaka", ".fasta", required=False),
     # Non-TB alignment / variant ancillaries (gated by platform / use_masking)
-    _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
-    _out("clair3_ref", "vcf", "_clair3", ".vcf.gz", required=False),
-    _out("mask_polymorph", "mask", "_mask", ".fasta", required=False),
+    # _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
+    # _out("clair3_ref", "vcf", "_clair3", ".vcf.gz", required=False),
+    # _out("mask_polymorph", "mask", "_mask", ".fasta", required=False),
 ]
 
 # Outputs that run only for mycobacterium_tuberculosis.
@@ -98,9 +101,10 @@ _STAPH_OUTPUTS = [
 
 # Escherichia coli-specific outputs.
 _ECOLI_OUTPUTS = [
-    _out("kleborate", "kleborate", "_kleborate", ".txt", required=False),
-    _out("kleborate_hamronization", "kleborate",
-         "_kleborate_hAMRonization", ".txt", required=False),
+    # Optional / feature-gated entries — uncomment if/when needed.
+    # _out("kleborate", "kleborate", "_kleborate", ".txt", required=False),
+    # _out("kleborate_hamronization", "kleborate",
+    #      "_kleborate_hAMRonization", ".txt", required=False),
     _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json"),
     _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json"),
     _out("shigatyper", "shigatyper", "", ".tsv"),
