@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree using each doc's `sample_id` as the filename prefix; emits per-sample summary and per-missing-file CSVs (both include `lims_id`). Filters Bonsai with `{"pipeline.analysis_profile": <PROFILE>}` and logs a warning when `species_prediction[0].scientific_name` disagrees with the profile's `species_full`. No QC filter applied (Bonsai is the curated set).
  - `jasentool/config.py` module — per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples; populated from JASEN's `modules.config` for all five profiles (`staphylococcus_aureus`, `escherichia_coli`, `mycobacterium_tuberculosis`, `streptococcus_pyogenes`, `streptococcus`)
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
+ - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
 
 ### Fixed
 
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `Database.initialize` accepts an optional `uri` argument to override the default `mongodb://localhost:27017/`
  - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
  - File matching in `check-backup` now uses `<sample_id><mask><file_ext>` with `mask` carrying the separator (e.g. `_spades`, empty for `<sample>.sig`, or `_*` for wildcard). Outputs marked `required: False` are tracked when missing but no longer flip a sample's status to FAIL.
+ - All `required: False` entries in `jasentool/config.py` are now commented out by default to keep `check-backup` runs under control on NFS-backed backup trees; uncomment the relevant lines (and consider adding a directory-listing cache for any wildcard-mask entries) before reinstating
 
 ## [1.1.0]
 

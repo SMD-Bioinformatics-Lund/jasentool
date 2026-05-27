@@ -4,6 +4,8 @@ import csv
 import fnmatch
 import os
 
+from tqdm import tqdm
+
 from jasentool.config import get_profile
 from jasentool.database import Database
 from jasentool.log import get_logger
@@ -42,7 +44,15 @@ class CheckBackup:
         """Walk each sample x expected output, return (summary_rows, missing_rows)."""
         summary_rows = []
         missing_rows = []
-        for doc in samples:
+        progress = tqdm(
+            samples,
+            total=len(samples),
+            desc=f"check-backup [{self.profile}]",
+            unit="sample",
+        )
+        # TODO performance: pre-list every distinct (species, dirname) into a set
+        # so wildcard-mask entries don't trigger one os.listdir per sample on NFS.
+        for doc in progress:
             sample_id = doc.get("sample_id")
             if not sample_id:
                 logger.warning("Skipping bonsai doc with no sample_id: %s", doc)
