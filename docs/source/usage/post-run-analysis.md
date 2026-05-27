@@ -95,6 +95,7 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 
 - `<output>.csv` — one row per sample: `sample_id, sample_name, lims_id, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
 - `<output>_missing.csv` — one row per missing expected file: `sample_id, sample_name, lims_id, profile, software_name, software_dirname, expected_glob, searched_path, required`.
+- `<output>_stats.csv` — one row per declared output: `software_name, dirname, mask, file_ext, required, n_missing, n_found, total_samples, missing_pct`. Sorted by `n_missing` descending so the worst offenders are at the top. The top ten are also echoed to the log so you don't have to open the CSV to spot which software is the bottleneck.
 
 **Example**
 

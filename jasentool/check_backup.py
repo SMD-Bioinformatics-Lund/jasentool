@@ -154,10 +154,62 @@ class CheckBackup:
             "expected_glob", "searched_path", "required",
         ])
 
+        stats_rows = _per_output_stats(outputs, missing_rows, total=len(summary_rows))
+        stats_fpath = os.path.splitext(self.output_file)[0] + "_stats.csv"
+        _write_csv(stats_fpath, stats_rows, fieldnames=[
+            "software_name", "dirname", "mask", "file_ext", "required",
+            "n_missing", "n_found", "total_samples", "missing_pct",
+        ])
+
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
         logger.info("%d samples expected; %d backed up; %d not yet backed up",
                     len(summary_rows), passed, failed)
+        _log_top_missing(stats_rows)
+
+
+def _per_output_stats(outputs, missing_rows, total):
+    """Return one row per declared output with miss/found counts and percentage.
+
+    Sorted by `n_missing` descending so the worst offenders are at the top.
+    """
+    miss_counts = {}
+    for row in missing_rows:
+        sw = row["software_name"]
+        miss_counts[sw] = miss_counts.get(sw, 0) + 1
+    rows = []
+    for output in outputs:
+        sw = output["software_name"]
+        n_missing = miss_counts.get(sw, 0)
+        pct = (n_missing / total * 100) if total else 0.0
+        rows.append({
+            "software_name": sw,
+            "dirname": output["dirname"],
+            "mask": output.get("mask", ""),
+            "file_ext": output["file_ext"],
+            "required": str(output.get("required", True)),
+            "n_missing": n_missing,
+            "n_found": total - n_missing,
+            "total_samples": total,
+            "missing_pct": f"{pct:.1f}",
+        })
+    rows.sort(key=lambda r: r["n_missing"], reverse=True)
+    return rows
+
+
+def _log_top_missing(stats_rows, top_n=10):
+    """Log the worst-offending outputs so the user sees them without opening the CSV."""
+    offenders = [r for r in stats_rows if r["n_missing"] > 0][:top_n]
+    if not offenders:
+        logger.info("Every declared output is fully backed up for every sample.")
+        return
+    logger.info("Top %d outputs by missing count:", len(offenders))
+    for r in offenders:
+        logger.info(
+            "  %-30s missing=%d/%d (%s%%)  dir=%s",
+            r["software_name"], r["n_missing"], r["total_samples"],
+            r["missing_pct"], r["dirname"],
+        )
 
 
 def _check_species_sanity(doc, expected_species_full):
