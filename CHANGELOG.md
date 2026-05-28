@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
  - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
  - Per-output stats CSV from `check-backup` (`<output>_stats.csv`) — one row per declared output with `n_missing` / `n_found` / `missing_pct`, sorted worst-first; top 10 offenders also echoed to the log
+ - `--log-file <path>` top-level flag — appends formatted log records to the path while stderr stays active; tqdm progress output does not bleed into the file
 
 ### Fixed
 
