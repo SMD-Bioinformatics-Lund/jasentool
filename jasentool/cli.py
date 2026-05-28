@@ -19,9 +19,11 @@ def _parser():
 @click.group()
 @click.version_option(__version__)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Enable debug logging')
-def cli(verbose):
+@click.option('--log-file', type=click.Path(dir_okay=False), default=None,
+              help='Append log records to this file (stderr stays active)')
+def cli(verbose, log_file):
     """Multipurpose tool for the JASEN pipeline and Bonsai."""
-    setup_logging(level=logging.DEBUG if verbose else logging.INFO)
+    setup_logging(level=logging.DEBUG if verbose else logging.INFO, log_file=log_file)
 
 
 @cli.command('find')

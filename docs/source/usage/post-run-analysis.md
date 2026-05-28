@@ -93,9 +93,13 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 
 **Outputs**
 
-- `<output>.csv` — one row per sample: `sample_id, sample_name, lims_id, profile, required_expected, required_found, optional_expected, optional_found, status` where `status ∈ {PASS, FAIL}`. A sample passes when every required output is found; optional outputs are reported but don't gate the status.
-- `<output>_missing.csv` — one row per missing expected file: `sample_id, sample_name, lims_id, profile, software_name, software_dirname, expected_glob, searched_path, required`.
-- `<output>_stats.csv` — one row per declared output: `software_name, dirname, mask, file_ext, required, n_missing, n_found, total_samples, missing_pct`. Sorted by `n_missing` descending so the worst offenders are at the top. The top ten are also echoed to the log so you don't have to open the CSV to spot which software is the bottleneck.
+`--output-file` is taken verbatim for the primary summary; the two sibling files use the same stem with `_missing.csv` and `_stats.csv` suffixes. Pass `-o backup.csv` to keep all three files `.csv`-named — passing `-o backup.txt` writes CSV content to `backup.txt` while still producing `backup_missing.csv` and `backup_stats.csv` (the content is identical either way; only the suffix differs).
+
+- **`<output-file>`** — *per-sample summary*. One row per sample with columns `sample_id, sample_name, lims_id, profile, required_expected, required_found, optional_expected, optional_found, status`. `status` is `PASS` when every required output is found in the backup tree and `FAIL` otherwise (so 25-of-26 still counts as FAIL). Optional outputs (`required: False` in `jasentool/config.py`) are reported via `optional_found` but never gate the status.
+- **`<stem>_missing.csv`** — *per-missing-file detail*. One row per `(sample, missing-output)` pair: `sample_id, sample_name, lims_id, profile, software_name, software_dirname, expected_glob, searched_path, required`. `expected_glob` is the exact filename the matcher looked for (`<sample_id><mask><file_ext>`), and `searched_path` is the directory it looked in. Useful when one specific software is missing system-wide — group by `software_name` to confirm.
+- **`<stem>_stats.csv`** — *per-output aggregate*. One row per declared output: `software_name, dirname, mask, file_ext, required, n_missing, n_found, total_samples, missing_pct`. Sorted by `n_missing` descending so the worst offenders are at the top. The top ten are also echoed to the log line `Top N outputs by missing count: ...` so you can spot config drift without opening the CSV.
+
+Log records can be persisted to a file with the top-level `--log-file <path>` flag (records are appended). The tqdm progress bar still goes to stderr only and does not pollute the log file.
 
 **Example**
 
