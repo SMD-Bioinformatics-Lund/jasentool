@@ -124,6 +124,46 @@ class CheckBackup:
             "required": str(required),
         })
 
+    def find_orphans(self, sample_ids, outputs, species):
+        """Walk declared (species, dirname) dirs; return files not matching any expected output.
+
+        Wildcard-mask outputs are skipped (their dir contents can't be bounded
+        without per-file fnmatch on every sample). Currently no active outputs
+        use wildcards, but the guard keeps future config edits safe.
+        """
+        expected_per_dir = {}
+        skipped_dirs = set()
+        for output in outputs:
+            dirname = output["dirname"]
+            mask = output.get("mask", "")
+            if "*" in mask:
+                logger.warning(
+                    "Orphan check skips wildcard mask for %s", output["software_name"],
+                )
+                skipped_dirs.add(dirname)
+                continue
+            ext = output["file_ext"]
+            bucket = expected_per_dir.setdefault(dirname, set())
+            for sid in sample_ids:
+                bucket.add(f"{sid}{mask}{ext}")
+
+        orphans = []
+        for dirname, expected in expected_per_dir.items():
+            if dirname in skipped_dirs:
+                continue
+            search_dir = os.path.join(self.backup_dir, species, dirname)
+            if not os.path.isdir(search_dir):
+                continue
+            for name in os.listdir(search_dir):
+                if name not in expected:
+                    orphans.append({
+                        "filepath": os.path.join(search_dir, name),
+                        "species": species,
+                        "software_dirname": dirname,
+                        "filename": name,
+                    })
+        return orphans
+
     def run(self):
         """Entry point: resolve profile, fetch samples, scan disk, write outputs."""
         profile_entry = get_profile(self.profile)
@@ -170,6 +210,16 @@ class CheckBackup:
         logger.info("%d samples expected; %d backed up; %d not yet backed up",
                     len(summary_rows), passed, failed)
         _log_top_missing(stats_rows)
+
+        if getattr(self.options, "check_orphans", False):
+            sample_ids = [r["sample_id"] for r in summary_rows]
+            orphans = self.find_orphans(sample_ids, outputs, species)
+            orphan_fpath = os.path.splitext(self.output_file)[0] + "_orphans.csv"
+            _write_csv(orphan_fpath, orphans, fieldnames=[
+                "filepath", "species", "software_dirname", "filename",
+            ])
+            logger.info("%d orphan files in backup tree (see %s)",
+                        len(orphans), orphan_fpath)
 
 
 def _per_output_stats(outputs, missing_rows, total):
