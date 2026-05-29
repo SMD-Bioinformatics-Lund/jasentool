@@ -368,15 +368,18 @@ def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
               help='Bonsai MongoDB collection name')
 @click.option('--address', '--uri', default='mongodb://localhost:27017/',
               help='Bonsai MongoDB address')
+@click.option('--check-orphans', is_flag=True, default=False,
+              help='After scanning, also list files in the backup tree that do '
+                   'not match any expected <sample_id><mask><file_ext>')
 @click.option('-o', '--output-file', required=True,
               help='Path to summary CSV; per-file missing CSV uses the same stem')
 def check_backup_cmd(profile, backup_dir, db_name, db_collection, address,
-                     output_file):
+                     check_orphans, output_file):
     """Cross-check Bonsai samples against the backup storage tree."""
     options = types.SimpleNamespace(
         profile=profile, backup_dir=backup_dir, db_name=db_name,
         db_collection=db_collection, address=address,
-        output_file=output_file,
+        check_orphans=check_orphans, output_file=output_file,
     )
     _parser().check_backup(options)
 

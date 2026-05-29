@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
  - Per-output stats CSV from `check-backup` (`<output>_stats.csv`) — one row per declared output with `n_missing` / `n_found` / `missing_pct`, sorted worst-first; top 10 offenders also echoed to the log
  - `--log-file <path>` top-level flag — appends formatted log records to the path while stderr stays active; tqdm progress output does not bleed into the file
+ - `missing_software_output` column on `check-backup`'s per-sample summary CSV — semi-colon-joined list of every output identifier that was missing for that sample
+ - `--check-orphans` flag on `check-backup` — emits `<stem>_orphans.csv` listing files in the backup tree under known software dirs that don't match any expected `<sample_id><mask><file_ext>`; wildcard-mask outputs are skipped with a warning
 
 ### Fixed
 
