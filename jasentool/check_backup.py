@@ -59,6 +59,9 @@ class CheckBackup:
                 continue
             _check_species_sanity(doc, species_full)
             row, doc_missing = self._scan_sample(doc, outputs, species)
+            row["missing_software_output"] = ";".join(
+                m["software_name"] for m in doc_missing
+            )
             summary_rows.append(row)
             missing_rows.extend(doc_missing)
         return summary_rows, missing_rows
@@ -145,7 +148,8 @@ class CheckBackup:
         _write_csv(self.output_file, summary_rows, fieldnames=[
             "sample_id", "sample_name", "lims_id", "profile",
             "required_expected", "required_found",
-            "optional_expected", "optional_found", "status",
+            "optional_expected", "optional_found",
+            "missing_software_output", "status",
         ])
         missing_fpath = os.path.splitext(self.output_file)[0] + "_missing.csv"
         _write_csv(missing_fpath, missing_rows, fieldnames=[
