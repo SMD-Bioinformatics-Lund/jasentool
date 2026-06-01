@@ -151,6 +151,7 @@ class CheckBackup:
                 for ext in exts:
                     bucket.add(f"{sid}{mask}{ext}")
 
+        sample_ids_desc = sorted(sample_ids, key=len, reverse=True)
         orphans = []
         for dirname, expected in expected_per_dir.items():
             if dirname in skipped_dirs:
@@ -161,7 +162,8 @@ class CheckBackup:
             for name in os.listdir(search_dir):
                 if name in expected:
                     continue
-                if name.endswith("_versions.yml"):
+                if (name.endswith("_versions.yml")
+                        and _versions_sample_id(name, sample_ids_desc) is not None):
                     continue
                 orphans.append({
                     "filepath": os.path.join(search_dir, name),
@@ -327,6 +329,21 @@ def _as_list(value):
     if isinstance(value, (list, tuple)):
         return list(value)
     return [value]
+
+
+def _versions_sample_id(filename, sample_ids_desc):
+    """Return the known sample_id that prefixes a `<sid>_<...>_versions.yml` filename, or None.
+
+    JASEN writes per-process versions metadata as `<sample>_<process_path>_versions.yml`.
+    Because a sample_id can itself contain underscores, we longest-prefix-match against
+    the supplied sample_ids list (sorted descending by length).
+    """
+    if not filename.endswith("_versions.yml"):
+        return None
+    for sid in sample_ids_desc:
+        if filename.startswith(f"{sid}_"):
+            return sid
+    return None
 
 
 def _write_csv(path, rows, fieldnames):
