@@ -104,9 +104,12 @@ class CheckBackup:
             counters["opt_total"] += 1
         dirname = output["dirname"]
         mask = output.get("mask", "")
-        ext = output["file_ext"]
+        exts = _as_list(output["file_ext"])
         search_dir = os.path.join(self.backup_dir, species, dirname)
-        if _glob_matches(search_dir, sample_id, mask, ext):
+        found_any = any(
+            _glob_matches(search_dir, sample_id, mask, ext) for ext in exts
+        )
+        if found_any:
             if required:
                 counters["req_found"] += 1
             else:
@@ -119,7 +122,7 @@ class CheckBackup:
             "profile": self.profile,
             "software_name": output["software_name"],
             "software_dirname": dirname,
-            "expected_glob": _format_glob(sample_id, mask, ext),
+            "expected_glob": _format_glob(sample_id, mask, exts),
             "searched_path": search_dir,
             "required": str(required),
         })
@@ -142,10 +145,11 @@ class CheckBackup:
                 )
                 skipped_dirs.add(dirname)
                 continue
-            ext = output["file_ext"]
+            exts = _as_list(output["file_ext"])
             bucket = expected_per_dir.setdefault(dirname, set())
             for sid in sample_ids:
-                bucket.add(f"{sid}{mask}{ext}")
+                for ext in exts:
+                    bucket.add(f"{sid}{mask}{ext}")
 
         orphans = []
         for dirname, expected in expected_per_dir.items():
@@ -236,11 +240,13 @@ def _per_output_stats(outputs, missing_rows, total):
         sw = output["software_name"]
         n_missing = miss_counts.get(sw, 0)
         pct = (n_missing / total * 100) if total else 0.0
+        ext_value = output["file_ext"]
+        ext_display = "|".join(_as_list(ext_value))
         rows.append({
             "software_name": sw,
             "dirname": output["dirname"],
             "mask": output.get("mask", ""),
-            "file_ext": output["file_ext"],
+            "file_ext": ext_display,
             "required": str(output.get("required", True)),
             "n_missing": n_missing,
             "n_found": total - n_missing,
@@ -303,8 +309,21 @@ def _glob_matches(search_dir, prefix, mask, ext):
 
 
 def _format_glob(prefix, mask, ext):
-    """Render the glob the matcher would have used, for diagnostic CSV output."""
+    """Render the glob the matcher would have used, for diagnostic CSV output.
+
+    `ext` may be a string or a list of strings (multi-extension OR-match). For
+    lists, join the variants with `|` so the CSV shows every alternative tried.
+    """
+    if isinstance(ext, (list, tuple)):
+        return "|".join(f"{prefix}{mask}{e}" for e in ext)
     return f"{prefix}{mask}{ext}"
+
+
+def _as_list(value):
+    """Normalise scalar-or-list to a list."""
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [value]
 
 
 def _write_csv(path, rows, fieldnames):

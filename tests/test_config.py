@@ -58,6 +58,16 @@ def test_tb_profile_omits_non_tb_tools():
     assert "tbprofiler_json" in software
 
 
+def test_file_ext_can_be_str_or_list():
+    """`file_ext` is allowed to be a single extension or a list of allowed extensions."""
+    for profile in PROFILES:
+        for output in profile["outputs"]:
+            assert isinstance(output["file_ext"], (str, list)), (
+                f"{profile['profile']}/{output['software_name']} has invalid "
+                f"file_ext type: {type(output['file_ext']).__name__}"
+            )
+
+
 def test_ecoli_profile_includes_ecoli_specific_tools():
     ecoli = get_profile("escherichia_coli")
     software = {o["software_name"] for o in ecoli["outputs"]}
