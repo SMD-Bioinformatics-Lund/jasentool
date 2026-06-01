@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
  - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
  - Per-output stats CSV from `check-backup` (`<output>_stats.csv`) — one row per declared output with `n_missing` / `n_found` / `missing_pct`, sorted worst-first; top 10 offenders also echoed to the log
- - `--log-file <path>` top-level flag — appends formatted log records to the path while stderr stays active; tqdm progress output does not bleed into the file
+ - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist` only — the two subcommands that emit `logger.debug` records (file copies in `utils.py:129`; sample skips in `create_blacklist.py:74`)
  - `missing_software_output` column on `check-backup`'s per-sample summary CSV — semi-colon-joined list of every output identifier that was missing for that sample
  - `--check-orphans` flag on `check-backup` — emits `<stem>_orphans.csv` listing files in the backup tree under known software dirs that don't match any expected `<sample_id><mask><file_ext>`; wildcard-mask outputs are skipped with a warning
 
@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `Database.initialize` accepts an optional `uri` argument to override the default `mongodb://localhost:27017/`
  - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
  - File matching in `check-backup` now uses `<sample_id><mask><file_ext>` with `mask` carrying the separator (e.g. `_spades`, empty for `<sample>.sig`, or `_*` for wildcard). Outputs marked `required: False` are tracked when missing but no longer flip a sample's status to FAIL.
+ - Log records now go to **stdout** instead of stderr — redirect with `> log.txt` to persist (no `2>&1` needed). Group-level `--verbose` and `--log-file` flags removed; `--verbose` is per-subcommand and only attached where there are actual `logger.debug` call sites.
  - All `required: False` entries in `jasentool/config.py` are now commented out by default to keep `check-backup` runs under control on NFS-backed backup trees; uncomment the relevant lines (and consider adding a directory-listing cache for any wildcard-mask entries) before reinstating
 
 ## [1.1.0]
