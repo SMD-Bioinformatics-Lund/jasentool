@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `file_ext` in `jasentool.config` may now be a list (e.g. `[".tsv", ".out"]`); a sample's output counts as backed up if **any** listed extension is present. Used for tools whose output extension is in transition (`amrfinderplus`, `chewbbaca`).
  - `create_yaml` output mask updated from `""` to `"_bonsai"` — expected filename is now `<sample_id>_bonsai.yaml`, matching what JASEN actually writes.
  - Replaced `mlst_tsv` with `mlst_json` and commented out all four `plasmidfinder_*` entries in `_NON_TB_OUTPUTS` — these don't match the current backup tree. Uncomment the plasmidfinder lines to reinstate when JASEN writes them again.
- - Orphan detection in `check-backup` now skips `*_versions.yml` files. JASEN writes a per-process versions YAML alongside every result file (`<sample>_<process_path>_versions.yml`); those were previously misreported as orphans.
+ - Orphan detection for `*_versions.yml` files now extracts the `sample_id` from the filename prefix and checks it against the Bonsai sample set. Files belonging to known samples are silently skipped; files referencing samples no longer in Bonsai are still flagged. JASEN writes a per-process versions YAML alongside every result file (`<sample>_<process_path>_versions.yml`); previously those were either all reported as orphans (before the prior skip) or all silently skipped.
  - All `required: False` entries in `jasentool/config.py` are now commented out by default to keep `check-backup` runs under control on NFS-backed backup trees; uncomment the relevant lines (and consider adding a directory-listing cache for any wildcard-mask entries) before reinstating
 
 ## [1.1.0]
