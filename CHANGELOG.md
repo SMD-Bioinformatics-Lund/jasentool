@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
  - File matching in `check-backup` now uses `<sample_id><mask><file_ext>` with `mask` carrying the separator (e.g. `_spades`, empty for `<sample>.sig`, or `_*` for wildcard). Outputs marked `required: False` are tracked when missing but no longer flip a sample's status to FAIL.
  - Log records now go to **stdout** instead of stderr — redirect with `> log.txt` to persist (no `2>&1` needed). Group-level `--verbose` and `--log-file` flags removed; `--verbose` is per-subcommand and only attached where there are actual `logger.debug` call sites.
+ - `file_ext` in `jasentool.config` may now be a list (e.g. `[".tsv", ".out"]`); a sample's output counts as backed up if **any** listed extension is present. Used for tools whose output extension is in transition (`amrfinderplus`, `chewbbaca`).
+ - `create_yaml` output mask updated from `""` to `"_bonsai"` — expected filename is now `<sample_id>_bonsai.yaml`, matching what JASEN actually writes.
+ - Replaced `mlst_tsv` with `mlst_json` and commented out all four `plasmidfinder_*` entries in `_NON_TB_OUTPUTS` — these don't match the current backup tree. Uncomment the plasmidfinder lines to reinstate when JASEN writes them again.
  - All `required: False` entries in `jasentool/config.py` are now commented out by default to keep `check-backup` runs under control on NFS-backed backup trees; uncomment the relevant lines (and consider adding a directory-listing cache for any wildcard-mask entries) before reinstating
 
 ## [1.1.0]
