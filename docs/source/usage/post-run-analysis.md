@@ -101,7 +101,7 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 - **`<stem>_stats.csv`** — *per-output aggregate*. One row per declared output: `software_name, dirname, mask, file_ext, required, n_missing, n_found, total_samples, missing_pct`. Sorted by `n_missing` descending so the worst offenders are at the top. The top ten are also echoed to the log line `Top N outputs by missing count: ...` so you can spot config drift without opening the CSV.
 - **`<stem>_orphans.csv`** — *files in the backup tree without a matching expected entry*. Only written when `--check-orphans` is passed. One row per orphan: `filepath, species, software_dirname, filename`. Typical causes: filename starts with a `sample_id` no longer in Bonsai (sample deleted but files remain); filename starts with a recognised `sample_id` but the suffix doesn't match (`jasentool/config.py` is out of date with what the pipeline now writes); filename doesn't look like any `sample_id` (`README`, `.DS_Store`, half-written `.tmp`, manual upload).
 
-Log records can be persisted to a file with the top-level `--log-file <path>` flag (records are appended). The tqdm progress bar still goes to stderr only and does not pollute the log file.
+Log records are written to **stdout** (not stderr), so a plain shell redirect captures them: `jasentool check-backup ... > backup_run.log`. Note that the tqdm progress bar still writes to stderr (tqdm doesn't go through the logger) so the captured file stays free of progress-bar carriage-return noise.
 
 **Example**
 
