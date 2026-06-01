@@ -159,13 +159,16 @@ class CheckBackup:
             if not os.path.isdir(search_dir):
                 continue
             for name in os.listdir(search_dir):
-                if name not in expected:
-                    orphans.append({
-                        "filepath": os.path.join(search_dir, name),
-                        "species": species,
-                        "software_dirname": dirname,
-                        "filename": name,
-                    })
+                if name in expected:
+                    continue
+                if name.endswith("_versions.yml"):
+                    continue
+                orphans.append({
+                    "filepath": os.path.join(search_dir, name),
+                    "species": species,
+                    "software_dirname": dirname,
+                    "filename": name,
+                })
         return orphans
 
     def run(self):
