@@ -68,6 +68,7 @@ _NON_TB_OUTPUTS = [
     #      "_plasmidfinder_plasmid_seqs", ".fsa"),
     _out("chewbbaca", "chewbbaca", "_chewbbaca", [".tsv", ".out"]),
     _out("mlst_json", "mlst", "_mlst", ".json"),
+    _out("mlst_novel", "mlst", "_mlst", ".novel", required=False),
     _out("freebayes", "vcf", "_freebayes", ".vcf"),
     # Optional / feature- and platform-gated entries — uncomment if/when needed.
     # Non-TB assembly variants (one will run depending on platform / feature flags)
