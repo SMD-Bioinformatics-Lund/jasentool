@@ -57,7 +57,7 @@ _NON_TB_OUTPUTS = [
     _out("resfinder_json", "resfinder", "_resfinder", ".json"),
     _out("resfinder_meta", "resfinder", "_resfinder_meta", ".json"),
     _out("resfinder_pheno_table", "resfinder", "_pheno_table", ".txt"),
-    # _out("resfinder_point_table", "resfinder", "_point_table", ".txt", required=False),
+    _out("resfinder_point_table", "resfinder", "_point_table", ".txt", required=False),
     _out("virulencefinder_json", "virulencefinder", "_virulencefinder", ".json"),
     _out("virulencefinder_meta", "virulencefinder", "_virulencefinder_meta", ".json"),
     # _out("plasmidfinder_json", "plasmidfinder", "_plasmidfinder", ".json"),

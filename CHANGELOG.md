@@ -9,31 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree using each doc's `sample_id` as the filename prefix; emits per-sample summary and per-missing-file CSVs (both include `lims_id`). Filters Bonsai with `{"pipeline.analysis_profile": <PROFILE>}` and logs a warning when `species_prediction[0].scientific_name` disagrees with the profile's `species_full`. No QC filter applied (Bonsai is the curated set).
- - `jasentool/config.py` module — per-profile schedule of expected outputs as `(software_name, dirname, mask, file_ext, required)` tuples; populated from JASEN's `modules.config` for all five profiles (`staphylococcus_aureus`, `escherichia_coli`, `mycobacterium_tuberculosis`, `streptococcus_pyogenes`, `streptococcus`)
- - `jasentool/sample_utils.py` module — shared helpers extracted from `Missing` (`find_files`, `check_format`, `get_sample_name`, `parse_dir`, `filter_by_keys`) plus a new canonical `alter_sample_id(lims_id, sequencing_run)` builder
- - tqdm progress bar on `check-backup`'s per-sample scan loop, labelled with the active profile
- - Per-output stats CSV from `check-backup` (`<output>_stats.csv`) — one row per declared output with `n_missing` / `n_found` / `missing_pct`, sorted worst-first; top 10 offenders also echoed to the log
- - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist` only — the two subcommands that emit `logger.debug` records (file copies in `utils.py:129`; sample skips in `create_blacklist.py:74`)
- - `missing_software_output` column on `check-backup`'s per-sample summary CSV — semi-colon-joined list of every output identifier that was missing for that sample
- - `--check-orphans` flag on `check-backup` — emits `<stem>_orphans.csv` listing files in the backup tree under known software dirs that don't match any expected `<sample_id><mask><file_ext>`; wildcard-mask outputs are skipped with a warning
+ - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree per JASEN profile. Emits a per-sample summary, a per-missing-file detail CSV, and a per-output stats CSV.
+ - `--check-orphans` flag on `check-backup` — reverse check that lists backup files which don't match any expected sample × output.
+ - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
 
 ### Fixed
 
- - `--address`/`--uri` flag now actually overrides the MongoDB URI for `find` and `validate-pipelines`; previously it was accepted but ignored
- - Capped `pymongo<4` in `pyproject.toml` and `environment.yml` so jasentool can talk to MongoDB 3.2 (cgviz reports wire version 4; pymongo ≥ 4.9 refuses anything older than MongoDB 4.2)
+ - `--address`/`--uri` now actually overrides the MongoDB URI for `find` and `validate-pipelines` (previously accepted but ignored).
+ - Capped `pymongo<4` so jasentool can talk to older MongoDB servers (≥ 2.6).
 
 ### Changed
 
- - `Database.initialize` accepts an optional `uri` argument to override the default `mongodb://localhost:27017/`
- - `Utils.write_out_csv` and `Fix.fix_csv` now use `sample_utils.alter_sample_id` instead of duplicating the `<lims>_<seqrun>` lowercased composition
- - File matching in `check-backup` now uses `<sample_id><mask><file_ext>` with `mask` carrying the separator (e.g. `_spades`, empty for `<sample>.sig`, or `_*` for wildcard). Outputs marked `required: False` are tracked when missing but no longer flip a sample's status to FAIL.
- - Log records now go to **stdout** instead of stderr — redirect with `> log.txt` to persist (no `2>&1` needed). Group-level `--verbose` and `--log-file` flags removed; `--verbose` is per-subcommand and only attached where there are actual `logger.debug` call sites.
- - `file_ext` in `jasentool.config` may now be a list (e.g. `[".tsv", ".out"]`); a sample's output counts as backed up if **any** listed extension is present. Used for tools whose output extension is in transition (`amrfinderplus`, `chewbbaca`).
- - `create_yaml` output mask updated from `""` to `"_bonsai"` — expected filename is now `<sample_id>_bonsai.yaml`, matching what JASEN actually writes.
- - Replaced `mlst_tsv` with `mlst_json` and commented out all four `plasmidfinder_*` entries in `_NON_TB_OUTPUTS` — these don't match the current backup tree. Uncomment the plasmidfinder lines to reinstate when JASEN writes them again.
- - Orphan detection for `*_versions.yml` files now extracts the `sample_id` from the filename prefix and checks it against the Bonsai sample set. Files belonging to known samples are silently skipped; files referencing samples no longer in Bonsai are still flagged. JASEN writes a per-process versions YAML alongside every result file (`<sample>_<process_path>_versions.yml`); previously those were either all reported as orphans (before the prior skip) or all silently skipped.
- - All `required: False` entries in `jasentool/config.py` are now commented out by default to keep `check-backup` runs under control on NFS-backed backup trees; uncomment the relevant lines (and consider adding a directory-listing cache for any wildcard-mask entries) before reinstating
+ - Log records now go to stdout instead of stderr — redirect with `> log.txt` to persist.
 
 ## [1.1.0]
 
