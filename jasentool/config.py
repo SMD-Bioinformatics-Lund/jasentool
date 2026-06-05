@@ -30,7 +30,7 @@ def _out(software_name, dirname, mask, file_ext, required=True):
 _COMMON_OUTPUTS = [
     _out("quast", "quast", "_quast", ".tsv"),
     _out("sourmash", "sourmash", "", ".sig"),
-    _out("gambitcore", "gambitcore", "_gambitcore", ".tsv"),
+    _out("gambitcore", "gambitcore", "_gambitcore", ".tsv", required=False),
     _out("ska", "ska", "_ska_index", ".skf"),
     _out("create_yaml", "analysis_yaml", "_bonsai", ".yaml"),
     _out("format_jasen", "analysis_result", "_result", ".json"),
@@ -95,8 +95,8 @@ _TB_OUTPUTS = [
 
 # Staphylococcus aureus-specific outputs.
 _STAPH_OUTPUTS = [
-    _out("sccmec", "sccmec", "_sccmec", ".tsv"),
-    _out("spatyper", "spatyper", "_spatyper", ".tsv"),
+    _out("sccmec", "sccmec", "_sccmec", ".tsv", required=False),
+    _out("spatyper", "spatyper", "_spatyper", ".tsv", required=False),
 ]
 
 # Escherichia coli-specific outputs.
