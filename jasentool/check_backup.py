@@ -3,6 +3,7 @@
 import csv
 import fnmatch
 import os
+from collections import Counter
 
 from tqdm import tqdm
 
@@ -214,6 +215,14 @@ class CheckBackup:
             "n_missing", "n_found", "total_samples", "missing_pct",
         ])
 
+        review_rows = _detect_sample_quirks(samples, self.profile)
+        review_fpath = os.path.splitext(self.output_file)[0] + "_review.csv"
+        _write_csv(review_fpath, review_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile", "reason",
+        ])
+        logger.info("%d sample-review rows written (see %s)",
+                    len(review_rows), review_fpath)
+
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
         logger.info("%d samples expected; %d backed up; %d not yet backed up",
@@ -344,6 +353,37 @@ def _versions_sample_id(filename, sample_ids_desc):
         if filename.startswith(f"{sid}_"):
             return sid
     return None
+
+
+def _detect_sample_quirks(samples, profile):
+    """Return one row per (sample, reason) for samples that warrant human attention.
+
+    Reasons emitted:
+      - `name_equals_id` — the sample's `sample_name` equals its `sample_id`,
+        typically meaning the human-readable name was never set on import.
+      - `duplicate_sample_id` — this `sample_id` appears more than once in the
+        queried set (Mongo doesn't enforce uniqueness on this field by default).
+      - `duplicate_sample_name` — this `sample_name` appears more than once.
+
+    A sample can appear in multiple rows if more than one reason applies.
+    """
+    id_counts = Counter(s.get("sample_id") for s in samples if s.get("sample_id"))
+    name_counts = Counter(s.get("sample_name") for s in samples if s.get("sample_name"))
+    rows = []
+    for doc in samples:
+        sid = doc.get("sample_id")
+        if not sid:
+            continue
+        name = doc.get("sample_name", "")
+        lims = doc.get("lims_id", "")
+        base = {"sample_id": sid, "sample_name": name, "lims_id": lims, "profile": profile}
+        if sid == name:
+            rows.append({**base, "reason": "name_equals_id"})
+        if id_counts[sid] > 1:
+            rows.append({**base, "reason": "duplicate_sample_id"})
+        if name and name_counts[name] > 1:
+            rows.append({**base, "reason": "duplicate_sample_name"})
+    return rows
 
 
 def _write_csv(path, rows, fieldnames):
