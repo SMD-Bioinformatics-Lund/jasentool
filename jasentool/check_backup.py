@@ -13,6 +13,8 @@ from jasentool.log import get_logger
 
 logger = get_logger(__name__)
 
+ASSEMBLERS = ("spades", "skesa", "flye", "medaka")
+
 
 class CheckBackup:
     """Compare Bonsai sample documents against on-disk backup outputs."""
@@ -223,6 +225,17 @@ class CheckBackup:
         logger.info("%d sample-review rows written (see %s)",
                     len(review_rows), review_fpath)
 
+        assembly_rows = _collect_assembly_paths(
+            samples, self.backup_dir, species, self.profile,
+        )
+        assembly_fpath = os.path.splitext(self.output_file)[0] + "_assemblies.csv"
+        _write_csv(assembly_fpath, assembly_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile",
+            "assembler", "assembly_path",
+        ])
+        logger.info("%d backed-up assembly FASTAs listed (see %s)",
+                    len(assembly_rows), assembly_fpath)
+
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
         logger.info("%d samples expected; %d backed up; %d not yet backed up",
@@ -353,6 +366,38 @@ def _versions_sample_id(filename, sample_ids_desc):
         if filename.startswith(f"{sid}_"):
             return sid
     return None
+
+
+def _collect_assembly_paths(samples, backup_dir, species, profile):
+    """List backed-up FASTA assemblies for samples where sample_name != sample_id.
+
+    Walks `<backup-dir>/<species>/fasta/` once, then per filtered sample checks
+    each assembler's expected filename against the listing. One row per existing
+    `<sample_id>_<assembler>.fasta`. Samples with `sample_name == sample_id` are
+    skipped (complement of the review.csv `name_equals_id` filter).
+    """
+    fasta_dir = os.path.join(backup_dir, species, "fasta")
+    if not os.path.isdir(fasta_dir):
+        return []
+    available = set(os.listdir(fasta_dir))
+    rows = []
+    for doc in samples:
+        sid = doc.get("sample_id")
+        name = doc.get("sample_name", "")
+        if not sid or sid == name:
+            continue
+        for assembler in ASSEMBLERS:
+            fname = f"{sid}_{assembler}.fasta"
+            if fname in available:
+                rows.append({
+                    "sample_id": sid,
+                    "sample_name": name,
+                    "lims_id": doc.get("lims_id", ""),
+                    "profile": profile,
+                    "assembler": assembler,
+                    "assembly_path": os.path.join(fasta_dir, fname),
+                })
+    return rows
 
 
 def _detect_sample_quirks(samples, profile):

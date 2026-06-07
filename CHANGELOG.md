@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `--check-orphans` flag on `check-backup` — reverse check that lists backup files which don't match any expected sample × output.
  - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
  - `<stem>_review.csv` from `check-backup` — flags Bonsai samples where `sample_name == sample_id` and detects duplicates by `sample_id` or `sample_name`.
+ - `<stem>_assemblies.csv` from `check-backup` — lists backed-up FASTA assembly files per Bonsai sample (filtered to `sample_name != sample_id`), as an input manifest for re-running downstream tools.
 
 ### Fixed
 
