@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
  - `<stem>_review.csv` from `check-backup` — flags Bonsai samples where `sample_name == sample_id` and detects duplicates by `sample_id` or `sample_name`.
  - `<stem>_assemblies.csv` from `check-backup` — lists backed-up FASTA assembly files per Bonsai sample (filtered to `sample_name != sample_id`), as an input manifest for re-running downstream tools.
+ - `<stem>_group_orphans.csv` from `check-backup` — flags `sample_id`s referenced in `sample_group.included_samples` that don't exist in the `sample` collection. New `--db-collection-groups` option (default `sample_group`) selects the group collection.
 
 ### Fixed
 

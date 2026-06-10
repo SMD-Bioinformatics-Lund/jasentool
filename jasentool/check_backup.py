@@ -236,6 +236,17 @@ class CheckBackup:
         logger.info("%d backed-up assembly FASTAs listed (see %s)",
                     len(assembly_rows), assembly_fpath)
 
+        group_orphan_rows = _find_group_orphans(
+            self.options.db_collection,
+            self.options.db_collection_groups,
+        )
+        group_orphan_fpath = os.path.splitext(self.output_file)[0] + "_group_orphans.csv"
+        _write_csv(group_orphan_fpath, group_orphan_rows, fieldnames=[
+            "group_id", "group_name", "sample_id",
+        ])
+        logger.info("%d group-orphan rows written (see %s)",
+                    len(group_orphan_rows), group_orphan_fpath)
+
         passed = sum(1 for r in summary_rows if r["status"] == "PASS")
         failed = len(summary_rows) - passed
         logger.info("%d samples expected; %d backed up; %d not yet backed up",
@@ -366,6 +377,35 @@ def _versions_sample_id(filename, sample_ids_desc):
         if filename.startswith(f"{sid}_"):
             return sid
     return None
+
+
+def _find_group_orphans(db_collection, db_collection_groups):
+    """Return rows for each (group, sample_id) where sample_id isn't in the sample collection.
+
+    Profile-independent: queries the full `sample` collection (not the profile-filtered
+    subset used by `fetch_samples`) and the full `sample_group` collection. Same answer
+    regardless of which profile triggered `check-backup`.
+    """
+    sample_ids_in_db = {
+        doc["sample_id"]
+        for doc in Database.find(db_collection, {}, {"_id": 0, "sample_id": 1})
+        if doc.get("sample_id")
+    }
+    group_docs = Database.find(
+        db_collection_groups, {}, {"_id": 1, "name": 1, "included_samples": 1},
+    )
+    rows = []
+    for group in group_docs:
+        group_id = str(group.get("_id", ""))
+        name = group.get("name", "")
+        for sid in (group.get("included_samples") or []):
+            if sid not in sample_ids_in_db:
+                rows.append({
+                    "group_id": group_id,
+                    "group_name": name,
+                    "sample_id": sid,
+                })
+    return rows
 
 
 def _collect_assembly_paths(samples, backup_dir, species, profile):
