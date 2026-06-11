@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `--check-orphans` flag on `check-backup` — reverse check that lists backup files which don't match any expected sample × output.
  - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
  - `<stem>_review.csv` from `check-backup` — flags Bonsai samples where `sample_name == sample_id` and detects duplicates by `sample_id` or `sample_name`.
- - `<stem>_assemblies.csv` from `check-backup` — lists backed-up FASTA assembly files per Bonsai sample (filtered to `sample_name != sample_id`), as an input manifest for re-running downstream tools.
+ - `<stem>_masked_assemblies.csv` from `check-backup` — lists backed-up masked FASTA assemblies per Bonsai sample (filtered to `sample_name != sample_id`), the exact input JASEN's chewBBACA step originally consumed.
+ - `rerun-chewbbaca` subcommand — consumes `<stem>_masked_assemblies.csv`, writes a batch-input list, runs `chewie AlleleCall` in one batch. Useful after a chewBBACA schema or version update.
  - `<stem>_group_orphans.csv` from `check-backup` — flags `sample_id`s referenced in `sample_group.included_samples` that don't exist in the `sample` collection. New `--db-collection-groups` option (default `sample_group`) selects the group collection.
 
 ### Fixed

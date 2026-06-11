@@ -38,6 +38,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 | Subcommand | Description |
 |------------|-------------|
 | `check-backup` | Cross-check Bonsai samples against the backup storage tree |
+| `rerun-chewbbaca` | Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |

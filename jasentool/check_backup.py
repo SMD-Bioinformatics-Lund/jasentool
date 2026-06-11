@@ -13,8 +13,6 @@ from jasentool.log import get_logger
 
 logger = get_logger(__name__)
 
-ASSEMBLERS = ("spades", "skesa", "flye", "medaka")
-
 
 class CheckBackup:
     """Compare Bonsai sample documents against on-disk backup outputs."""
@@ -225,16 +223,15 @@ class CheckBackup:
         logger.info("%d sample-review rows written (see %s)",
                     len(review_rows), review_fpath)
 
-        assembly_rows = _collect_assembly_paths(
+        masked_rows = _collect_masked_assemblies(
             samples, self.backup_dir, species, self.profile,
         )
-        assembly_fpath = os.path.splitext(self.output_file)[0] + "_assemblies.csv"
-        _write_csv(assembly_fpath, assembly_rows, fieldnames=[
-            "sample_id", "sample_name", "lims_id", "profile",
-            "assembler", "assembly_path",
+        masked_fpath = os.path.splitext(self.output_file)[0] + "_masked_assemblies.csv"
+        _write_csv(masked_fpath, masked_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile", "masked_assembly_path",
         ])
-        logger.info("%d backed-up assembly FASTAs listed (see %s)",
-                    len(assembly_rows), assembly_fpath)
+        logger.info("%d masked-assembly FASTAs listed (see %s)",
+                    len(masked_rows), masked_fpath)
 
         group_orphan_rows = _find_group_orphans(
             self.options.db_collection,
@@ -408,35 +405,37 @@ def _find_group_orphans(db_collection, db_collection_groups):
     return rows
 
 
-def _collect_assembly_paths(samples, backup_dir, species, profile):
-    """List backed-up FASTA assemblies for samples where sample_name != sample_id.
+def _collect_masked_assemblies(samples, backup_dir, species, profile):
+    """List backed-up masked FASTA assemblies for samples where sample_name != sample_id.
 
-    Walks `<backup-dir>/<species>/fasta/` once, then per filtered sample checks
-    each assembler's expected filename against the listing. One row per existing
-    `<sample_id>_<assembler>.fasta`. Samples with `sample_name == sample_id` are
-    skipped (complement of the review.csv `name_equals_id` filter).
+    Walks `<backup-dir>/<species>/mask/` once, then per filtered sample checks for
+    `<sample_id>_mask.fasta`. One row per existing file. Samples with
+    `sample_name == sample_id` are skipped (complement of the review.csv
+    `name_equals_id` filter).
+
+    These masked FASTAs are what JASEN's `mask_polymorph_assembly` step produces
+    and what gets fed into chewBBACA downstream; use the matching script
+    `scripts/rerun_chewbbaca.py` to consume this CSV.
     """
-    fasta_dir = os.path.join(backup_dir, species, "fasta")
-    if not os.path.isdir(fasta_dir):
+    mask_dir = os.path.join(backup_dir, species, "mask")
+    if not os.path.isdir(mask_dir):
         return []
-    available = set(os.listdir(fasta_dir))
+    available = set(os.listdir(mask_dir))
     rows = []
     for doc in samples:
         sid = doc.get("sample_id")
         name = doc.get("sample_name", "")
         if not sid or sid == name:
             continue
-        for assembler in ASSEMBLERS:
-            fname = f"{sid}_{assembler}.fasta"
-            if fname in available:
-                rows.append({
-                    "sample_id": sid,
-                    "sample_name": name,
-                    "lims_id": doc.get("lims_id", ""),
-                    "profile": profile,
-                    "assembler": assembler,
-                    "assembly_path": os.path.join(fasta_dir, fname),
-                })
+        fname = f"{sid}_mask.fasta"
+        if fname in available:
+            rows.append({
+                "sample_id": sid,
+                "sample_name": name,
+                "lims_id": doc.get("lims_id", ""),
+                "profile": profile,
+                "masked_assembly_path": os.path.join(mask_dir, fname),
+            })
     return rows
 
 

@@ -24,6 +24,7 @@ from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
 from jasentool.check_backup import CheckBackup
+from jasentool.rerun_chewbbaca import RerunChewbbaca
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -197,6 +198,10 @@ class OptionsParser:
     def check_backup(self, options):
         """Cross-check MongoDB samples against the backup storage tree."""
         CheckBackup(options).run()
+
+    def rerun_chewbbaca(self, options):
+        """Re-run chewBBACA AlleleCall on a check-backup _masked_assemblies.csv."""
+        RerunChewbbaca(options).run()
 
     def parse_options(self, options):
         """Options parser"""
