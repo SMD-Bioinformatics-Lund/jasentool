@@ -404,6 +404,41 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
     _parser().check_backup(options)
 
 
+@cli.command('rerun-chewbbaca')
+@click.option('--masked-assemblies', required=True, type=click.Path(),
+              help='Path to _masked_assemblies.csv from `check-backup`')
+@click.option('--schema-dir', required=True, type=click.Path(),
+              help='chewBBACA schema directory (passed as --schema-directory)')
+@click.option('--output-dir', required=True, type=click.Path(),
+              help='Output directory; chewBBACA results land in <output-dir>/output_dir/, '
+                   'batch list in <output-dir>/batch_input.list')
+@click.option('--training-file', default=None, type=click.Path(),
+              help='Optional chewBBACA training file (--ptf)')
+@click.option('--cpus', default=4, show_default=True, type=int,
+              help='chewBBACA --cpu value')
+@click.option('--chewie-bin', default='chewie', show_default=True,
+              help='Path or name of the chewie executable')
+@click.option('--singularity-image', default=None, type=click.Path(),
+              help='If set, wrap chewie invocation as `singularity exec <image> chewie ...`')
+@click.option('--singularity-bind', default=None,
+              help='Comma-separated bind list passed to `singularity exec --bind` '
+                   '(e.g. "/media/isilon,/data,/scratch"). Only used with --singularity-image.')
+@click.option('--profile-filter', default=None,
+              help='If set, include only rows whose `profile` column matches this value')
+def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file,
+                        cpus, chewie_bin, singularity_image, singularity_bind,
+                        profile_filter):
+    """Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV."""
+    _init_logging()
+    options = types.SimpleNamespace(
+        masked_assemblies=masked_assemblies, schema_dir=schema_dir,
+        output_dir=output_dir, training_file=training_file,
+        cpus=cpus, chewie_bin=chewie_bin, singularity_image=singularity_image,
+        singularity_bind=singularity_bind, profile_filter=profile_filter,
+    )
+    _parser().rerun_chewbbaca(options)
+
+
 @cli.command('annotate-delly')
 @click.option('-v', '--vcf', required=True, type=click.Path(exists=True, path_type=Path),
               help='Delly VCF/BCF to annotate')
