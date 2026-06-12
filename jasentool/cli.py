@@ -240,6 +240,9 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--mykrobe', type=click.Path(), default=None)
 @click.option('--nanoplot', type=click.Path(), default=None)
 @click.option('--nextflow-run-info', type=click.Path(), default=None)
+@click.option('--plasmidfinder', type=click.Path(), default=None)
+@click.option('--plasmidfinder-genome-hits', type=click.Path(), default=None)
+@click.option('--plasmidfinder-plasmid-seqs', type=click.Path(), default=None)
 @click.option('--samtools-bedcov', type=click.Path(), default=None)
 @click.option('--samtools-stats', type=click.Path(), default=None)
 @click.option('--quast', type=click.Path(), default=None)
@@ -252,6 +255,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--sccmec', type=click.Path(), default=None)
 @click.option('--serotypefinder', type=click.Path(), default=None)
 @click.option('--shigapass', type=click.Path(), default=None)
+@click.option('--shigatyper', type=click.Path(), default=None)
 @click.option('--ska-index', type=click.Path(), default=None)
 @click.option('--software-info', type=click.Path(), multiple=True)
 @click.option('--sourmash-signature', type=click.Path(), default=None)
@@ -265,12 +269,14 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('-o', '--output', required=True, type=click.Path())
 def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
-                    mykrobe, nanoplot, nextflow_run_info, quast,
+                    mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
+                    plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
+                    quast,
                     ref_genome_annotation, ref_genome_sequence, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
-                    ska_index, software_info, sourmash_signature, spatyper,
-                    tb_grading_rules_bed, tbdb_bed, tbprofiler,
+                    shigatyper, ska_index, software_info, sourmash_signature,
+                    spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
                     vcf, versions, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     options = types.SimpleNamespace(
@@ -279,19 +285,67 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         kleborate=kleborate, kleborate_hamronization=kleborate_hamronization,
         kraken=kraken, lims_id=lims_id, mlst=mlst, mykrobe=mykrobe,
         nanoplot=nanoplot, nextflow_run_info=nextflow_run_info,
+        plasmidfinder=plasmidfinder,
+        plasmidfinder_genome_hits=plasmidfinder_genome_hits,
+        plasmidfinder_plasmid_seqs=plasmidfinder_plasmid_seqs,
         quast=quast,
         ref_genome_annotation=ref_genome_annotation,
         ref_genome_sequence=ref_genome_sequence, resfinder=resfinder,
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
         samtools_bedcov=samtools_bedcov, samtools_stats=samtools_stats,
         sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
-        ska_index=ska_index, software_info=software_info,
+        shigatyper=shigatyper, ska_index=ska_index, software_info=software_info,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
         tbprofiler=tbprofiler, vcf=vcf, versions=versions,
         virulencefinder=virulencefinder, output=output,
     )
     _parser().create_yaml(options)
+
+
+@cli.command('minority-report')
+@click.option('--mpileup', required=True, type=click.Path(exists=True),
+              help='Input mpileup file (.mpileup or .mpileup.gz)')
+@click.option('--blacklist', default=None, type=click.Path(exists=True),
+              help='Optional blacklist TSV file of positions to exclude')
+@click.option('-o', '--output', required=True, help='Output path stem (no extension)')
+def minority_report_cmd(mpileup, blacklist, output):
+    """Compute minority base frequency distribution from a samtools mpileup file."""
+    options = types.SimpleNamespace(mpileup=mpileup, blacklist=blacklist, output=output)
+    _parser().minority_report(options)
+
+
+@cli.command('create-blacklist')
+@click.option('-i', '--input-file', default=None,
+              help='Text file containing BAM file paths (one per line)')
+@click.option('--input-dir', default=None,
+              help='Directory containing *.bam files')
+@click.option('--output-dir', required=True, help='Directory for intermediate files')
+@click.option('-o', '--output-file', required=True, help='Path to the output blacklist TSV')
+@click.option('--bed-file', default=None, type=click.Path(exists=True),
+              help='BED file passed to samtools mpileup -l')
+@click.option('--samtools', default='samtools', show_default=True,
+              help='Path or name of the samtools executable')
+@click.option('--sample-pattern', default='.*', show_default=True,
+              help='Regex to filter sample names included in blacklist aggregation')
+@click.option('--min-freq', default=0.05, show_default=True, type=float,
+              help='Minimum minority frequency to count a position')
+@click.option('--min-count', default=5, show_default=True, type=int,
+              help='Minimum number of samples a position must appear in to enter the blacklist')
+def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
+                         bed_file, samtools, sample_pattern, min_freq, min_count):
+    """Create a minority variant blacklist from a set of BAM files."""
+    if not input_file and not input_dir:
+        raise click.UsageError("One of --input-file or --input-dir is required.")
+    if input_file and input_dir:
+        raise click.UsageError("--input-file and --input-dir are mutually exclusive.")
+    options = types.SimpleNamespace(
+        input_file=input_file, input_dir=input_dir,
+        output_dir=output_dir, output_file=output_file,
+        bed_file=bed_file, samtools=samtools,
+        sample_pattern=sample_pattern, min_freq=min_freq, min_count=min_count,
+    )
+    _parser().create_blacklist(options)
 
 
 @cli.command('annotate-delly')

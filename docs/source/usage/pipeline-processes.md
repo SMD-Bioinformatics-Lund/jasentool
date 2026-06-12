@@ -81,13 +81,14 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | `--mykrobe` | Mykrobe output |
 | `--nanoplot` | NanoPlot output |
 | `--nextflow-run-info` | Nextflow run info JSON |
+| `--postalnqc` | Post-alignment QC output (mutually exclusive with `--samtools-bedcov`/`--samtools-stats`) |
 | `--quast` | QUAST output |
 | `--ref-genome-annotation` | Reference genome annotation |
 | `--ref-genome-sequence` | Reference genome FASTA |
 | `--resfinder` | ResFinder output |
 | `--samtools` | Samtools stats output |
-| `--samtools-bedcov` | Samtools bedcov output |
-| `--samtools-stats` | Samtools stats (detailed) output |
+| `--samtools-bedcov` | Samtools bedcov output (mutually exclusive with `--postalnqc`) |
+| `--samtools-stats` | Samtools stats (detailed) output (mutually exclusive with `--postalnqc`) |
 | `--sccmec` | SCCmec output |
 | `--serotypefinder` | SerotypeFinder output |
 | `--shigapass` | ShigaPass output |
@@ -151,6 +152,76 @@ jasentool annotate-delly \
   -v delly.bcf \
   -b converged_who_fohm_tbdb.bed.gz \
   -o delly_annotated.vcf
+```
+
+## create-blacklist
+
+Build a minority variant blacklist by running `samtools mpileup` and minority base distribution
+analysis across a set of BAM files, then aggregating positions that exceed a frequency threshold
+in enough samples. The resulting TSV can be passed to `minority-report` via `--blacklist` to
+exclude known high-noise positions.
+
+Intermediate per-sample mpileup and distribution files are written to `--output-dir`. Only
+samples whose stem matches `--sample-pattern` contribute to the final blacklist.
+
+```
+jasentool create-blacklist (--input-file <FILE> | --input-dir <DIR>)
+                            --output-dir <DIR> -o <FILE>
+                            [--bed-file <FILE>] [--samtools <PATH>]
+                            [--sample-pattern <REGEX>]
+                            [--min-freq <FLOAT>] [--min-count <INT>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `-i`/`--input-file` | Yes (or `--input-dir`) | — | Text file of BAM paths, one per line |
+| `--input-dir` | Yes (or `--input-file`) | — | Directory containing `*.bam` files |
+| `--output-dir` | Yes | — | Directory for intermediate files |
+| `-o`/`--output-file` | Yes | — | Output blacklist TSV path |
+| `--bed-file` | No | — | BED file passed to `samtools mpileup -l` |
+| `--samtools` | No | `samtools` | Path or name of the samtools executable |
+| `--sample-pattern` | No | `.*` | Regex to filter which sample names contribute to the blacklist |
+| `--min-freq` | No | `0.05` | Minimum minority frequency to count a position |
+| `--min-count` | No | `5` | Minimum number of samples a position must appear in |
+
+**Example**
+
+```bash
+# From a directory of BAM files, only including samples matching ^[0-9]{2}MT
+jasentool create-blacklist \
+  --input-dir /data/bams \
+  --output-dir /data/blacklist_work \
+  -o blacklist.tsv \
+  --bed-file targets.bed \
+  --sample-pattern '^[0-9]{2}MT'
+```
+
+## minority-report
+
+Compute minority base frequency distribution from a pre-computed `samtools mpileup` file. For each
+position with coverage between 30 and 100, the second-highest base count divided by coverage is
+recorded as the minority frequency. Outputs two files:
+
+- `<output>` — one minority frequency per line (no position)
+- `<output>.withpos` — tab-separated `position\tminority_freq`
+
+```
+jasentool minority-report --mpileup <FILE> -o <OUTPUT_STEM> [--blacklist <FILE>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--mpileup` | Yes | — | Input mpileup file (`.mpileup` or `.mpileup.gz`) |
+| `-o`/`--output` | Yes | — | Output path stem (no extension) |
+| `--blacklist` | No | — | Blacklist TSV of positions to exclude (see `create-blacklist`) |
+
+**Example**
+
+```bash
+jasentool minority-report \
+  --mpileup sample.mpileup.gz \
+  --blacklist blacklist.tsv \
+  -o sample_minority_dist
 ```
 
 ## post-align-qc

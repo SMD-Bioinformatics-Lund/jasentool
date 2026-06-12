@@ -225,11 +225,15 @@ def test_create_yaml_analysis_result(tmp_path):
         "--sample-id", "SAMP003",
         "--sample-name", "Sample 003",
         "--groups", "group1",
+        "--plasmidfinder", "plasmidfinder.json",
+        "--plasmidfinder-genome-hits", "plasmidfinder_hit_in_genome_seq.fsa",
+        "--plasmidfinder-plasmid-seqs", "plasmidfinder_plasmid_seqs.fsa",
         "--resfinder", "resfinder.json",
         "--samtools", "samtools_coverage.txt",
         "--samtools-bedcov", "samtools_bedcov.txt",
         "--samtools-stats", "samtools_stats.txt",
         "--sccmec", "sccmec.tsv",
+        "--shigatyper", "shigatyper.tsv",
         "--sourmash-signature", "sourmash.sig",
         "--ska-index", "index.skf",
         "-o", str(out),
@@ -237,11 +241,15 @@ def test_create_yaml_analysis_result(tmp_path):
     assert result.exit_code == 0, result.output
     data = yaml.safe_load(out.read_text())
     results = {(e["software"], e.get("subcommand")): e for e in data["analysis_result"]}
+    assert results[("plasmidfinder", None)]["uri"] == "plasmidfinder.json"
+    assert results[("plasmidfinder", "genome_hits")]["uri"] == "plasmidfinder_hit_in_genome_seq.fsa"
+    assert results[("plasmidfinder", "plasmid_seqs")]["uri"] == "plasmidfinder_plasmid_seqs.fsa"
     assert results[("resfinder", None)]["uri"] == "resfinder.json"
     assert results[("samtools", "coverage")]["uri"] == "samtools_coverage.txt"
     assert results[("samtools", "bedcov")]["uri"] == "samtools_bedcov.txt"
     assert results[("samtools", "stats")]["uri"] == "samtools_stats.txt"
     assert results[("sccmectyper", None)]["uri"] == "sccmec.tsv"
+    assert results[("shigatyper", None)]["uri"] == "shigatyper.tsv"
     assert data["index_artifacts"]["sourmash_signature"] == "sourmash.sig"
     assert data["index_artifacts"]["ska_index"] == "index.skf"
 

@@ -9,16 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - Added `--versions` arg to `create-yaml` to enrich `analysis_result` entries with `software_version` from a concatenated versions YAML
- - Added `concatenated_versions.yml` fixture with versions for all supported tools
+ - `--versions` arg to `create-yaml` to enrich `analysis_result` entries with `software_version` from a concatenated versions YAML
+ - `concatenated_versions.yml` fixture with versions for all supported tools
 
 ### Fixed
 
 ### Changed
 
- - Replaced `--postalnqc` arg with `--samtools-stats` and `--samtools-bedcov` args in `create-yaml`
+ - Removed `--postalnqc` arg from `create-yaml`; replaced by `--samtools-stats` and `--samtools-bedcov`
  - Restructured `create-yaml` output to updated manifest format: analysis tools grouped under `analysis_result` list, `sourmash_signature` and `ska_index` moved to `index_artifacts`
  - Output YAML key order now matches the manifest spec (`sample_id`, `sample_name`, `lims_id`, `groups`, …, `igv_annotations`, `analysis_result`, `index_artifacts`)
+
+## [1.1.0]
+
+### Added
+
+ - `minority-report` subcommand — computes minority base frequency distribution from a pre-computed `samtools mpileup` file (`.mpileup` or `.mpileup.gz`), with optional blacklist filtering
+ - `create-blacklist` subcommand — runs mpileup and minority base distribution across a set of BAM files, then aggregates per-position frequencies to produce a minority variant blacklist TSV
+ - `--plasmidfinder`, `--plasmidfinder-genome-hits`, `--plasmidfinder-plasmid-seqs` flags in `create-yaml` — emit PlasmidFinder result + the `Hit_in_genome_seq.fsa` and `Plasmid_seqs.fsa` paths
+ - `--shigatyper` flag in `create-yaml` — emits ShigaTyper result path under the `shigatyper` key (#47)
+ - `--samtools-stats` and `--samtools-bedcov` flags in `create-yaml` — mutually exclusive with `--postalnqc`
+
+### Fixed
+
+### Changed
 
 ## [1.0.0]
 
