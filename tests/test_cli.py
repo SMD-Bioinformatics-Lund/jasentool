@@ -1,5 +1,7 @@
 """Tests for the jasentool CLI."""
 import json
+import shutil
+import subprocess
 
 import yaml
 
@@ -196,6 +198,75 @@ def test_concatenated_versions_fixture(concatenated_versions):
     }
     for software, version in expected.items():
         assert versions.get(software) == version, f"unexpected version for {software}"
+
+
+# ── module versions.yml heredoc rendering ───────────────────────────────────────
+# JASEN nf modules emit versions.yml via `cat <<-END_VERSIONS`, where the body and
+# terminator carry a leading TAB (stripped by `<<-`) and the YAML nesting itself uses
+# spaces. These tests render that exact construct through bash and assert the result
+# is tab-free, correctly-nested YAML that jasentool can parse.
+
+# Leading whitespace below is a literal TAB followed by space-based YAML nesting.
+_MODULE_HEREDOC = (
+    "set -e\n"
+    "cat <<-END_VERSIONS > {out}\n"
+    "\tsamtools_stats:\n"
+    "\t samtools:\n"
+    "\t  version: 1.17\n"
+    "\t  container: docker://clinicalgenomicslund/samtools:1.17\n"
+    "\tEND_VERSIONS\n"
+)
+
+
+def _render_module_versions(tmp_path):
+    """Render a module-style tab-indented heredoc via bash and return the output path."""
+    out = tmp_path / "samtools_stats_versions.yml"
+    script = tmp_path / "gen.sh"
+    script.write_text(_MODULE_HEREDOC.format(out=out))
+    subprocess.run(["bash", str(script)], check=True)
+    return out
+
+
+requires_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash required")
+
+
+@requires_bash
+def test_module_heredoc_renders_tabfree_nested_yaml(tmp_path):
+    out = _render_module_versions(tmp_path)
+    text = out.read_text()
+    assert "\t" not in text  # `<<-` stripped every leading tab; YAML keeps no tabs
+    assert yaml.safe_load(text) == {
+        "samtools_stats": {
+            "samtools": {
+                "version": 1.17,
+                "container": "docker://clinicalgenomicslund/samtools:1.17",
+            }
+        }
+    }
+
+
+@requires_bash
+def test_concatenate_files_parses_module_heredoc(tmp_path):
+    out = _render_module_versions(tmp_path)
+    merged = tmp_path / "versions.yml"
+    result = runner.invoke(cli, ["concatenate-files", "-i", str(out), "-o", str(merged)])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(merged.read_text())
+    assert data["samtools_stats"]["samtools"]["version"] == 1.17
+
+
+@requires_bash
+def test_create_yaml_parses_module_heredoc_versions(tmp_path):
+    out = _render_module_versions(tmp_path)
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "p1000",
+        "--sample-name", "p1000",
+        "--groups", "grpA",
+        "--versions", str(out),
+        "-o", str(tmp_path / "sample.yaml"),
+    ])
+    assert result.exit_code == 0, result.output
 
 
 # ── create-yaml ────────────────────────────────────────────────────────────────
