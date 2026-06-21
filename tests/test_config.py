@@ -54,8 +54,22 @@ def test_tb_profile_omits_non_tb_tools():
     software = {o["software_name"] for o in tb["outputs"]}
     assert "resfinder_json" not in software
     assert "mlst_tsv" not in software
+    assert "mask_polymorph" not in software
     assert "mykrobe" in software
     assert "tbprofiler_json" in software
+
+
+def test_non_tb_profiles_include_masked_assembly():
+    """Masked polymorph FASTAs are required for non-TB profiles (illumina default)."""
+    for name in ("staphylococcus_aureus", "escherichia_coli",
+                 "streptococcus_pyogenes", "streptococcus"):
+        entry = get_profile(name)
+        mask = next(o for o in entry["outputs"]
+                    if o["software_name"] == "mask_polymorph")
+        assert mask["dirname"] == "mask"
+        assert mask["mask"] == "_mask"
+        assert mask["file_ext"] == ".fasta"
+        assert mask["required"] is True
 
 
 def test_file_ext_can_be_str_or_list():

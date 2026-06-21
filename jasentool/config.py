@@ -79,7 +79,7 @@ _NON_TB_OUTPUTS = [
     # Non-TB alignment / variant ancillaries (gated by platform / use_masking)
     # _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
     # _out("clair3_ref", "vcf", "_clair3", ".vcf.gz", required=False),
-    # _out("mask_polymorph", "mask", "_mask", ".fasta", required=False),
+    _out("mask_polymorph", "mask", "_mask", ".fasta"),
 ]
 
 # Outputs that run only for mycobacterium_tuberculosis.
