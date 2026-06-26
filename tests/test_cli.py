@@ -271,3 +271,56 @@ def test_download_ncbi(tmp_path):
     gff   = tmp_path / "GCF_000012045.1.gff"
     assert fasta.exists() and fasta.stat().st_size > 0
     assert gff.exists()   and gff.stat().st_size > 0
+
+
+# ── compare-distances ───────────────────────────────────────────────────────────
+
+def _write_tsv(path, rows):
+    path.write_text("\n".join("\t".join(map(str, row)) for row in rows) + "\n")
+
+
+def test_compare_distances(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 2, 3],
+        ["s2", 1, 2, 4],
+        ["s3", 5, 2, 3],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 2, 3],
+        ["s2", 1, 2, 3],
+        ["s3", 5, 2, 3],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "--file1", str(f1), "--file2", str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    m1 = pd.read_csv(out / "file1_distance_matrix.tsv", sep="\t", index_col=0)
+    m2 = pd.read_csv(out / "file2_distance_matrix.tsv", sep="\t", index_col=0)
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+
+    # distance = number of mismatching loci
+    assert m1.loc["s2", "s3"] == 2
+    assert m1.loc["s1", "s2"] == 1
+    assert m1.loc["s1", "s1"] == 0
+    assert m2.loc["s1", "s2"] == 0
+    # diff = matrix1 - matrix2
+    assert diff.loc["s2", "s3"] == 1
+    assert diff.loc["s1", "s3"] == 0
+
+
+def test_compare_distances_help():
+    result = runner.invoke(cli, ["compare-distances", "--help"])
+    assert result.exit_code == 0
+
+
+def test_compare_distances_missing_args():
+    result = runner.invoke(cli, ["compare-distances"])
+    assert result.exit_code != 0

@@ -439,6 +439,20 @@ def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file
     _parser().rerun_chewbbaca(options)
 
 
+@cli.command('compare-distances')
+@click.option('--file1', required=True, type=click.Path(exists=True, dir_okay=False),
+              help='First chewBBACA allele-call table (sample_id in column 1, loci calls after)')
+@click.option('--file2', required=True, type=click.Path(exists=True, dir_okay=False),
+              help='Second chewBBACA allele-call table (same sample names as --file1)')
+@click.option('-o', '--output-dir', required=True, type=click.Path(),
+              help='Output directory for the two distance matrices and their difference')
+def compare_distances_cmd(file1, file2, output_dir):
+    """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
+    _init_logging()
+    options = types.SimpleNamespace(file1=file1, file2=file2, output_dir=output_dir)
+    _parser().compare_distances(options)
+
+
 @cli.command('annotate-delly')
 @click.option('-v', '--vcf', required=True, type=click.Path(exists=True, path_type=Path),
               help='Delly VCF/BCF to annotate')

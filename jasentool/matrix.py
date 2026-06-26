@@ -38,7 +38,8 @@ class Matrix:
             jasen_cgmlst_alleles = list(jasen_cgmlst[0]["result"]["alleles"].values())
         return jasen_cgmlst_alleles
 
-    def compare_cgmlst_alleles(self, row_cgmlst_alleles, col_cgmlst_alleles):
+    @staticmethod
+    def compare_cgmlst_alleles(row_cgmlst_alleles, col_cgmlst_alleles):
         """Parse through cgmlst alleles of old and new pipeline and compare results"""
         mismatch_count = 0
         null_values = ["-", "EXC", "INF", "LNF", "PLNF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "PAMA", "ASM", "ALM"]
@@ -53,7 +54,8 @@ class Matrix:
                 print(f"One following alleles are not in integer format: {row_allele} (row) or {col_allele} (column)")
         return mismatch_count
 
-    def generate_matrix(self, sample_ids, get_cgmlst_data):
+    @staticmethod
+    def generate_matrix(sample_ids, get_cgmlst_data):
         """Generate pairwise matrix by comparing cgmlst alleles"""
         matrix_df = pd.DataFrame(index=sample_ids, columns=sample_ids)
         id_allele_dict = {sample_id: get_cgmlst_data(sample_id) for sample_id in sample_ids}
@@ -63,7 +65,7 @@ class Matrix:
             for col_sample in sample_ids:
                 col_sample_cgmlst = id_allele_dict[col_sample]
                 if row_sample_cgmlst and col_sample_cgmlst:
-                    matrix_df.loc[row_sample, col_sample] = self.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
+                    matrix_df.loc[row_sample, col_sample] = Matrix.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
         return matrix_df
 
     def plot_heatmap(self, distance_df, output_plot_fpath):
