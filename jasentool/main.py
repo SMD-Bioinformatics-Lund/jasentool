@@ -25,6 +25,7 @@ from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
 from jasentool.check_backup import CheckBackup
 from jasentool.rerun_chewbbaca import RerunChewbbaca
+from jasentool.compare_distances import CompareDistances
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -202,6 +203,10 @@ class OptionsParser:
     def rerun_chewbbaca(self, options):
         """Re-run chewBBACA AlleleCall on a check-backup _masked_assemblies.csv."""
         RerunChewbbaca(options).run()
+
+    def compare_distances(self, options):
+        """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
+        CompareDistances(options).run()
 
     def parse_options(self, options):
         """Options parser"""
