@@ -122,9 +122,11 @@ jasentool check-backup \
 
 Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Useful for quantifying how sample-to-sample distances shift between two chewBBACA runs — e.g. before vs after re-running chewBBACA on masked assemblies (see `rerun-chewbbaca`) or after a schema/version change.
 
-Each input is a chewBBACA table: one sample per row, `sample_id` in the first column and the per-locus allele calls in the remaining columns. A leading `FILE` header row is auto-detected and skipped, and the delimiter is auto-detected (tab, falling back to comma). Both files are expected to share the same sample names.
+Each input is a chewBBACA table: a required header row, then one sample per row with `sample_id` in the first column and the per-locus allele calls in the remaining columns. The header is required (the command errors if the first row isn't a header) and may use either style — newer output leads with `FILE` (`FILE<tab>locus...`), older output with `#Name` (`#Name<tab>ST<tab>locus...`). The header is used to drop the leading `ST` column (older AlleleCall output) so only per-locus calls are compared. The delimiter is auto-detected (tab, falling back to comma). Loci are compared positionally within each file, so the two files need not share locus naming, but they should share the same sample names. The two files may use different header styles.
 
 For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`). Comparison reuses `jasentool/matrix.py`: calls are compared as integers, and loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
+
+Samples present in only one of the two files are identified and written to a missing-samples report; they are excluded from the difference matrix, which still runs over the shared samples.
 
 ```
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
@@ -141,7 +143,8 @@ File names derive from the input basenames (`<stem>` = filename without extensio
 
 - **`<stem1>_distance_matrix.tsv`** — sample × sample mismatch-count (distance) matrix for the first file. Symmetric; diagonal is 0.
 - **`<stem2>_distance_matrix.tsv`** — the same for the second file.
-- **`<stem1>_vs_<stem2>_diff_matrix.tsv`** — element-wise `matrix1 - matrix2`, restricted to the samples present in both files (samples unique to one file are logged and excluded).
+- **`<stem1>_vs_<stem2>_diff_matrix.tsv`** — element-wise `matrix1 - matrix2`, restricted to the samples present in both files (samples unique to one file are excluded).
+- **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
 
 **Example**
 

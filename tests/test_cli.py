@@ -315,6 +315,87 @@ def test_compare_distances(tmp_path):
     assert diff.loc["s2", "s3"] == 1
     assert diff.loc["s1", "s3"] == 0
 
+    # identical sample sets -> missing-samples report is header-only
+    missing = (out / "file1_vs_file2_missing_samples.tsv").read_text().splitlines()
+    assert missing == ["sample_id\tpresent_in\tmissing_from"]
+
+
+def test_compare_distances_excludes_missing_samples(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # s3 is only in file1; comparison should still run over the shared s1/s2.
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+        ["s3", 9, 9],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 4],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+    assert list(diff.index) == ["s1", "s2"]  # s3 excluded
+    assert "s3" not in diff.columns
+
+    rows = [r.split("\t") for r in
+            (out / "file1_vs_file2_missing_samples.tsv").read_text().splitlines()]
+    assert rows[0] == ["sample_id", "present_in", "missing_from"]
+    assert ["s3", "file1.tsv", "file2.tsv"] in rows[1:]
+
+
+def test_compare_distances_drops_st_and_handles_old_header(tmp_path):
+    import pandas as pd
+
+    old = tmp_path / "old.tsv"   # older chewBBACA: #Name, ST, loci...
+    new = tmp_path / "new.tsv"   # newer chewBBACA: FILE, loci...
+    # s1/s2 share both loci but have different ST; if ST were NOT dropped it would
+    # show up as a mismatch (distance 1) instead of 0.
+    _write_tsv(old, [
+        ["#Name", "ST", "loc1", "loc2"],
+        ["s1", 10, 1, 2],
+        ["s2", 20, 1, 2],
+    ])
+    _write_tsv(new, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(old), str(new), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    m_old = pd.read_csv(out / "old_distance_matrix.tsv", sep="\t", index_col=0)
+    m_new = pd.read_csv(out / "new_distance_matrix.tsv", sep="\t", index_col=0)
+    # ST dropped -> s1 vs s2 identical across loci -> distance 0
+    assert m_old.loc["s1", "s2"] == 0
+    # cross-format comparison still works positionally
+    assert m_new.loc["s1", "s2"] == 1
+
+
+def test_compare_distances_errors_without_header(tmp_path):
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # No header row (first cell is a sample id, not FILE/#Name) -> error.
+    _write_tsv(f1, [["s1", 1, 2], ["s2", 1, 3]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3]])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code != 0
+
 
 def test_compare_distances_help():
     result = runner.invoke(cli, ["compare-distances", "--help"])
