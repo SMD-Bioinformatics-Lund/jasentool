@@ -5,7 +5,9 @@ first column and the per-locus allele calls in the remaining columns. For each f
 sample x sample distance matrix is built where a cell is the number of loci at which the
 two samples' calls differ (matching loci score 0, mismatching loci +1; missing/error
 calls such as "-" are skipped). Three matrices are written: one per input file and their
-element-wise difference (matrix1 - matrix2).
+element-wise difference (matrix1 - matrix2). Samples present in only one file are written
+to a separate missing-samples report and excluded from the difference matrix, which still
+runs over the shared samples.
 
 The pairwise comparison and matrix subtraction reuse `jasentool.matrix.Matrix`.
 """
@@ -33,8 +35,18 @@ class CompareDistances:
             first_line = fin.readline()
         return "\t" if "\t" in first_line else ","
 
+    # First-column header markers across chewBBACA versions: newer outputs lead
+    # with "FILE", older ones with "#Name".
+    HEADER_MARKERS = {"FILE", "#NAME", "NAME"}
+
     def _read_calls(self, fpath):
-        """Return an ordered {sample_id: [allele_calls]} dict from a chewBBACA table."""
+        """Return an ordered {sample_id: [allele_calls]} dict from a chewBBACA table.
+
+        A header row is required (errors otherwise) and may use either style:
+        newer `FILE<tab>locus...` or older `#Name<tab>ST<tab>locus...`. The sample
+        id comes from the first column and an `ST` column (older AlleleCall output)
+        is dropped so only per-locus calls remain.
+        """
         delimiter = self._detect_delimiter(fpath)
         with open(fpath, newline="", encoding="utf-8") as fin:
             rows = [row for row in csv.reader(fin, delimiter=delimiter) if row]
@@ -42,15 +54,33 @@ class CompareDistances:
             logger.error("No rows in %s", fpath)
             sys.exit(1)
 
-        # chewBBACA results tables lead with a "FILE" header row; drop it if present.
-        if rows[0][0].strip().upper() == "FILE":
-            rows = rows[1:]
+        # A header row is required; the first column is the sample name.
+        first_cell = rows[0][0].strip()
+        if not (first_cell.upper() in self.HEADER_MARKERS or first_cell.startswith("#")):
+            logger.error(
+                "Expected a header row (first column 'FILE' or '#Name') in %s, got %r",
+                fpath, first_cell,
+            )
+            sys.exit(1)
+
+        header = rows[0]
+        rows = rows[1:]
+        # Column indices to ignore when collecting per-locus calls: the sample id
+        # (col 0) and an "ST" column if the older output includes one.
+        st_index = next(
+            (i for i, col in enumerate(header) if col.strip().upper() == "ST"),
+            None,
+        )
+        if st_index is not None:
+            logger.info("Dropping 'ST' column (index %d) from %s", st_index, fpath)
+
+        drop = {0} if st_index is None else {0, st_index}
 
         calls = {}
         n_loci = None
         for row in rows:
             sample_id = row[0].strip()
-            allele_calls = [call.strip() for call in row[1:]]
+            allele_calls = [call.strip() for i, call in enumerate(row) if i not in drop]
             if n_loci is None:
                 n_loci = len(allele_calls)
             elif len(allele_calls) != n_loci:
@@ -81,14 +111,19 @@ class CompareDistances:
         matrix1 = Matrix.generate_matrix(list(calls1), lambda sid: calls1[sid])
         matrix2 = Matrix.generate_matrix(list(calls2), lambda sid: calls2[sid])
 
-        # Difference matrix over the samples shared by both files.
+        # Identify samples present in one file but not the other. These are
+        # excluded from the difference matrix, which still runs on shared samples.
+        file1_name = os.path.basename(self.options.file1)
+        file2_name = os.path.basename(self.options.file2)
         shared = [sid for sid in calls1 if sid in calls2]
         only_in_1 = [sid for sid in calls1 if sid not in calls2]
         only_in_2 = [sid for sid in calls2 if sid not in calls1]
         if only_in_1:
-            logger.warning("Samples only in %s: %s", self.options.file1, ", ".join(only_in_1))
+            logger.warning("Samples in %s missing from %s: %s",
+                           file1_name, file2_name, ", ".join(only_in_1))
         if only_in_2:
-            logger.warning("Samples only in %s: %s", self.options.file2, ", ".join(only_in_2))
+            logger.warning("Samples in %s missing from %s: %s",
+                           file2_name, file1_name, ", ".join(only_in_2))
         if not shared:
             logger.error("No shared samples between the two files")
             sys.exit(1)
@@ -96,8 +131,8 @@ class CompareDistances:
                 - matrix2.loc[shared, shared].astype(float))
 
         os.makedirs(self.options.output_dir, exist_ok=True)
-        stem1 = os.path.splitext(os.path.basename(self.options.file1))[0]
-        stem2 = os.path.splitext(os.path.basename(self.options.file2))[0]
+        stem1 = os.path.splitext(file1_name)[0]
+        stem2 = os.path.splitext(file2_name)[0]
         if stem1 == stem2:
             stem1, stem2 = f"{stem1}_1", f"{stem2}_2"
         out1 = os.path.join(self.options.output_dir, f"{stem1}_distance_matrix.tsv")
@@ -109,3 +144,15 @@ class CompareDistances:
         logger.info("Wrote %s", out1)
         logger.info("Wrote %s", out2)
         logger.info("Wrote %s", out_diff)
+
+        # Report of samples excluded from the diff because they're missing from
+        # one file. Always written (header-only when both files share all samples).
+        out_missing = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_missing_samples.tsv")
+        with open(out_missing, "w", newline="", encoding="utf-8") as fout:
+            writer = csv.writer(fout, delimiter="\t")
+            writer.writerow(["sample_id", "present_in", "missing_from"])
+            writer.writerows((sid, file1_name, file2_name) for sid in only_in_1)
+            writer.writerows((sid, file2_name, file1_name) for sid in only_in_2)
+        logger.info("Wrote %s (%d sample(s) missing from one file)",
+                    out_missing, len(only_in_1) + len(only_in_2))
