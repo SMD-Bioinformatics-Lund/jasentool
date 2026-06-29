@@ -384,6 +384,44 @@ def test_compare_distances_drops_st_and_handles_old_header(tmp_path):
     assert m_new.loc["s1", "s2"] == 1
 
 
+def test_compare_distances_dash_control(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # file1: s1 vs s2 differ at loc2 (3 vs 4) and loc3 is "-" in s2 (skipped).
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 3, 5],
+        ["s2", 1, 4, "-"],
+    ])
+    # file2: s1 vs s2 differ at loc2 only; no missing data.
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 3, 5],
+        ["s2", 1, 4, 5],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    dash1 = pd.read_csv(out / "file1_dash_matrix.tsv", sep="\t", index_col=0)
+    dash2 = pd.read_csv(out / "file2_dash_matrix.tsv", sep="\t", index_col=0)
+    dash_diff = pd.read_csv(out / "file1_vs_file2_dash_diff_matrix.tsv", sep="\t", index_col=0)
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+    corrected = pd.read_csv(out / "file1_vs_file2_corrected_diff_matrix.tsv", sep="\t", index_col=0)
+
+    # one "-" locus involves the s1/s2 pair in file1, none in file2
+    assert dash1.loc["s1", "s2"] == 1
+    assert dash2.loc["s1", "s2"] == 0
+    assert dash_diff.loc["s1", "s2"] == 1
+    # both files have 1 mismatch (loc2) -> raw diff 0; corrected = 0 - 1 = -1
+    assert diff.loc["s1", "s2"] == 0
+    assert corrected.loc["s1", "s2"] == -1
+
+
 def test_compare_distances_matrices_are_sorted(tmp_path):
     import pandas as pd
 
