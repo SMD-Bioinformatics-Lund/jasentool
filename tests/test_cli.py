@@ -298,7 +298,7 @@ def test_compare_distances(tmp_path):
     ])
     out = tmp_path / "out"
     result = runner.invoke(cli, [
-        "compare-distances", "--file1", str(f1), "--file2", str(f2), "-o", str(out),
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
     ])
     assert result.exit_code == 0, result.output
 

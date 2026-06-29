@@ -118,6 +118,39 @@ jasentool check-backup \
   -o backup_status.csv
 ```
 
+## compare-distances
+
+Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Useful for quantifying how sample-to-sample distances shift between two chewBBACA runs — e.g. before vs after re-running chewBBACA on masked assemblies (see `rerun-chewbbaca`) or after a schema/version change.
+
+Each input is a chewBBACA table: one sample per row, `sample_id` in the first column and the per-locus allele calls in the remaining columns. A leading `FILE` header row is auto-detected and skipped, and the delimiter is auto-detected (tab, falling back to comma). Both files are expected to share the same sample names.
+
+For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`). Comparison reuses `jasentool/matrix.py`: calls are compared as integers, and loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
+
+```
+jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `-i`/`--input` | Yes | — | The two chewBBACA cgMLST allele-call TSVs, listed one after the other |
+| `-o`/`--output-dir` | Yes | — | Output directory for the two distance matrices and their difference (created if missing) |
+
+**Outputs**
+
+File names derive from the input basenames (`<stem>` = filename without extension; if both stems match, `_1`/`_2` are appended).
+
+- **`<stem1>_distance_matrix.tsv`** — sample × sample mismatch-count (distance) matrix for the first file. Symmetric; diagonal is 0.
+- **`<stem2>_distance_matrix.tsv`** — the same for the second file.
+- **`<stem1>_vs_<stem2>_diff_matrix.tsv`** — element-wise `matrix1 - matrix2`, restricted to the samples present in both files (samples unique to one file are logged and excluded).
+
+**Example**
+
+```bash
+jasentool compare-distances \
+  -i original_chewbbaca.tsv rerun_chewbbaca.tsv \
+  -o distance_comparison/
+```
+
 ## validate-pipelines
 
 ```
