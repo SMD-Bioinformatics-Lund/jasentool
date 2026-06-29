@@ -4,10 +4,16 @@ Each input is a chewBBACA allele-call table: one sample per row, the sample id i
 first column and the per-locus allele calls in the remaining columns. For each file a
 sample x sample distance matrix is built where a cell is the number of loci at which the
 two samples' calls differ (matching loci score 0, mismatching loci +1; missing/error
-calls such as "-" are skipped). Three matrices are written: one per input file and their
-element-wise difference (matrix1 - matrix2). Samples present in only one file are written
-to a separate missing-samples report and excluded from the difference matrix, which still
-runs over the shared samples.
+calls such as "-" are skipped). The per-file distance matrices and their element-wise
+difference (matrix1 - matrix2) are written.
+
+Because "-" loci are skipped, a file with more missing data yields systematically smaller
+distances. To control for this, a "-" count matrix is also built per file (per-pair count
+of loci where either sample is "-"), along with their difference; the "-" differential is
+subtracted from the distance difference to give a corrected difference matrix.
+
+Samples present in only one file are written to a separate missing-samples report and
+excluded from the difference matrices, which run over the shared samples.
 
 The pairwise comparison and matrix subtraction reuse `jasentool.matrix.Matrix`.
 """
@@ -15,6 +21,8 @@ The pairwise comparison and matrix subtraction reuse `jasentool.matrix.Matrix`.
 import csv
 import os
 import sys
+
+import pandas as pd
 
 from jasentool.matrix import Matrix
 from jasentool.log import get_logger
@@ -98,6 +106,26 @@ class CompareDistances:
         logger.info("Read %d samples (%d loci) from %s", len(calls), n_loci, fpath)
         return calls
 
+    @staticmethod
+    def _build_dash_matrix(calls):
+        """Pairwise count of loci where at least one of the two samples is "-".
+
+        These are exactly the loci skipped from a pair's distance, so the matrix
+        quantifies how much missing data each pair's distance was computed around.
+        """
+        sample_ids = list(calls)
+        n = len(sample_ids)
+        mat = [[0] * n for _ in range(n)]
+        for i in range(n):
+            row_calls = calls[sample_ids[i]]
+            for j in range(i, n):
+                col_calls = calls[sample_ids[j]]
+                count = sum(1 for x, y in zip(row_calls, col_calls)
+                            if x == "-" or y == "-")
+                mat[i][j] = count
+                mat[j][i] = count
+        return pd.DataFrame(mat, index=sample_ids, columns=sample_ids)
+
     def run(self):
         """Read both tables, build their distance matrices, write the matrices and diff."""
         for fpath in (self.options.file1, self.options.file2):
@@ -110,6 +138,10 @@ class CompareDistances:
 
         matrix1 = Matrix.generate_matrix(list(calls1), lambda sid: calls1[sid])
         matrix2 = Matrix.generate_matrix(list(calls2), lambda sid: calls2[sid])
+
+        # "-" (missing) control: per-pair count of loci skipped due to a "-" call.
+        dash1 = self._build_dash_matrix(calls1)
+        dash2 = self._build_dash_matrix(calls2)
 
         # Identify samples present in one file but not the other. These are
         # excluded from the difference matrix, which still runs on shared samples.
@@ -129,27 +161,39 @@ class CompareDistances:
             sys.exit(1)
         diff = (matrix1.loc[shared, shared].astype(float)
                 - matrix2.loc[shared, shared].astype(float))
+        dash_diff = (dash1.loc[shared, shared].astype(float)
+                     - dash2.loc[shared, shared].astype(float))
+        # Subtract the "-" differential to control for differing amounts of missing
+        # data between the two files skewing the raw distance difference.
+        corrected_diff = diff - dash_diff
 
-        # Sort rows and columns by sample id so all three matrices share a stable,
+        # Sort rows and columns by sample id so all matrices share a stable,
         # readable ordering regardless of input row order.
-        matrix1 = matrix1.sort_index(axis=0).sort_index(axis=1)
-        matrix2 = matrix2.sort_index(axis=0).sort_index(axis=1)
-        diff = diff.sort_index(axis=0).sort_index(axis=1)
+        def _sorted(frame):
+            return frame.sort_index(axis=0).sort_index(axis=1)
+
+        matrix1, matrix2, diff = _sorted(matrix1), _sorted(matrix2), _sorted(diff)
+        dash1, dash2, dash_diff = _sorted(dash1), _sorted(dash2), _sorted(dash_diff)
+        corrected_diff = _sorted(corrected_diff)
 
         os.makedirs(self.options.output_dir, exist_ok=True)
         stem1 = os.path.splitext(file1_name)[0]
         stem2 = os.path.splitext(file2_name)[0]
         if stem1 == stem2:
             stem1, stem2 = f"{stem1}_1", f"{stem2}_2"
-        out1 = os.path.join(self.options.output_dir, f"{stem1}_distance_matrix.tsv")
-        out2 = os.path.join(self.options.output_dir, f"{stem2}_distance_matrix.tsv")
-        out_diff = os.path.join(self.options.output_dir, f"{stem1}_vs_{stem2}_diff_matrix.tsv")
-        matrix1.to_csv(out1, sep="\t")
-        matrix2.to_csv(out2, sep="\t")
-        diff.to_csv(out_diff, sep="\t")
-        logger.info("Wrote %s", out1)
-        logger.info("Wrote %s", out2)
-        logger.info("Wrote %s", out_diff)
+        outputs = [
+            (matrix1, f"{stem1}_distance_matrix.tsv"),
+            (matrix2, f"{stem2}_distance_matrix.tsv"),
+            (diff, f"{stem1}_vs_{stem2}_diff_matrix.tsv"),
+            (dash1, f"{stem1}_dash_matrix.tsv"),
+            (dash2, f"{stem2}_dash_matrix.tsv"),
+            (dash_diff, f"{stem1}_vs_{stem2}_dash_diff_matrix.tsv"),
+            (corrected_diff, f"{stem1}_vs_{stem2}_corrected_diff_matrix.tsv"),
+        ]
+        for frame, name in outputs:
+            fpath = os.path.join(self.options.output_dir, name)
+            frame.to_csv(fpath, sep="\t")
+            logger.info("Wrote %s", fpath)
 
         # Report of samples excluded from the diff because they're missing from
         # one file. Always written (header-only when both files share all samples).

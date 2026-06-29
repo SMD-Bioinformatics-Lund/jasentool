@@ -126,7 +126,9 @@ Each input is a chewBBACA table: a required header row, then one sample per row 
 
 For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`). Comparison reuses `jasentool/matrix.py`: calls are compared as integers, and loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
 
-Samples present in only one of the two files are identified and written to a missing-samples report; they are excluded from the difference matrix, which still runs over the shared samples.
+**Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data yields systematically smaller distances, which skews the raw difference. To control for this, a per-file `-` count matrix is also built — each cell is the number of loci where **at least one** of the pair is `-` (exactly the loci excluded from that pair's distance) — together with their difference (`dash1 - dash2`). The `-` differential is then subtracted from the distance difference to give a **corrected difference matrix** (`(distance1 - distance2) - (dash1 - dash2)`). Only the literal `-` code is counted here (other null/error codes are not).
+
+Samples present in only one of the two files are identified and written to a missing-samples report; they are excluded from the difference matrices, which still run over the shared samples.
 
 ```
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
@@ -144,6 +146,9 @@ All matrices have their rows and columns sorted by sample id (so the two distanc
 - **`<stem1>_distance_matrix.tsv`** — sample × sample mismatch-count (distance) matrix for the first file. Symmetric; diagonal is 0.
 - **`<stem2>_distance_matrix.tsv`** — the same for the second file.
 - **`<stem1>_vs_<stem2>_diff_matrix.tsv`** — element-wise `matrix1 - matrix2`, restricted to the samples present in both files (samples unique to one file are excluded).
+- **`<stem1>_dash_matrix.tsv`** / **`<stem2>_dash_matrix.tsv`** — per-file `-` count matrices (per-pair count of loci where either sample is `-`).
+- **`<stem1>_vs_<stem2>_dash_diff_matrix.tsv`** — element-wise `dash1 - dash2` over shared samples.
+- **`<stem1>_vs_<stem2>_corrected_diff_matrix.tsv`** — the distance difference with the `-` differential subtracted: `(matrix1 - matrix2) - (dash1 - dash2)`.
 - **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
 
 **Example**
