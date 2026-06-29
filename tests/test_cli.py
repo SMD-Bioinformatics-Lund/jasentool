@@ -389,13 +389,13 @@ def test_compare_distances_dash_control(tmp_path):
 
     f1 = tmp_path / "file1.tsv"
     f2 = tmp_path / "file2.tsv"
-    # file1: s1 vs s2 differ at loc2 (3 vs 4) and loc3 is "-" in s2 (skipped).
+    # file1: s1 vs s2 differ at loc2 (3 vs 4); loc3 is "-" in s2 (skipped).
     _write_tsv(f1, [
         ["FILE", "loc1", "loc2", "loc3"],
         ["s1", 1, 3, 5],
         ["s2", 1, 4, "-"],
     ])
-    # file2: s1 vs s2 differ at loc2 only; no missing data.
+    # file2: s1 vs s2 differ at loc2 only; no missing data, so loc3 is comparable.
     _write_tsv(f2, [
         ["FILE", "loc1", "loc2", "loc3"],
         ["s1", 1, 3, 5],
@@ -407,20 +407,45 @@ def test_compare_distances_dash_control(tmp_path):
     ])
     assert result.exit_code == 0, result.output
 
-    dash1 = pd.read_csv(out / "file1_dash_matrix.tsv", sep="\t", index_col=0)
-    dash2 = pd.read_csv(out / "file2_dash_matrix.tsv", sep="\t", index_col=0)
-    dash_diff = pd.read_csv(out / "file1_vs_file2_dash_diff_matrix.tsv", sep="\t", index_col=0)
     diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
-    corrected = pd.read_csv(out / "file1_vs_file2_corrected_diff_matrix.tsv", sep="\t", index_col=0)
+    abs_diff = pd.read_csv(out / "file1_vs_file2_abs_diff_matrix.tsv", sep="\t", index_col=0)
+    dash_change = pd.read_csv(out / "file1_vs_file2_dash_change_matrix.tsv", sep="\t", index_col=0)
+    unexplained = pd.read_csv(out / "file1_vs_file2_unexplained_matrix.tsv", sep="\t", index_col=0)
 
-    # file1: only s2 is "-" at loc3 -> cell[s1][s2] = 0 - 1 = -1, skew-symmetric
-    assert dash1.loc["s1", "s2"] == -1
-    assert dash1.loc["s2", "s1"] == 1
-    assert dash2.loc["s1", "s2"] == 0
-    assert dash_diff.loc["s1", "s2"] == -1
-    # both files have 1 mismatch (loc2) -> raw diff 0; corrected = 0 - (-1) = 1
+    # both files have 1 mismatch (loc2) -> diff 0; loc3 comparable only in file2
     assert diff.loc["s1", "s2"] == 0
-    assert corrected.loc["s1", "s2"] == 1
+    assert abs_diff.loc["s1", "s2"] == 0
+    assert dash_change.loc["s1", "s2"] == 1   # symmetric
+    assert dash_change.loc["s2", "s1"] == 1
+    # |diff| (0) <= dash_change (1) -> fully attributable to missing data
+    assert unexplained.loc["s1", "s2"] == 0
+
+
+def test_compare_distances_dash_per_sample(tmp_path):
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, "-", "-"],
+        ["s2", 1, 4, 5],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 2, "-"],
+        ["s2", 1, 4, 5],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    rows = [r.split("\t") for r in
+            (out / "file1_vs_file2_dash_per_sample.tsv").read_text().splitlines()]
+    assert rows[0] == ["sample_id", "n_dash_file1", "n_dash_file2", "delta"]
+    body = {r[0]: r[1:] for r in rows[1:]}
+    assert body["s1"] == ["2", "1", "1"]   # 2 dashes in file1, 1 in file2, delta 1
+    assert body["s2"] == ["0", "0", "0"]
 
 
 def test_compare_distances_matrices_are_sorted(tmp_path):

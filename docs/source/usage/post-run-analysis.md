@@ -126,7 +126,13 @@ Each input is a chewBBACA table: a required header row, then one sample per row 
 
 For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`). Comparison reuses `jasentool/matrix.py`: calls are compared as integers, and loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
 
-**Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data yields systematically smaller distances, which skews the raw difference. To control for this, a per-file signed `-` matrix is also built: for each pair it counts loci where **only the row sample** is `-` (`+1`) minus loci where **only the column sample** is `-` (`-1`); loci where **both** or **neither** are `-` score `0`. This matrix is therefore skew-symmetric (`cell[A][B] == -cell[B][A]`) and captures the imbalance in missing data between the two samples. Their difference (`dash1 - dash2`) is subtracted from the distance difference to give a **corrected difference matrix** (`(distance1 - distance2) - (dash1 - dash2)`); because the `-` matrices are signed, the corrected matrix is not symmetric. Only the literal `-` code is counted here (other null/error codes are not).
+**Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data yields systematically smaller distances, which skews the difference. Several outputs help attribute the difference to missing data versus genuine allele changes:
+
+- a per-sample `-` count summary (`n_dash` in each file plus their `delta`) — usually the quickest way to see whether the version change shifted missing data, and which samples drive it;
+- a **dash_change** matrix: per pair, the number of loci that are *comparable in exactly one* of the two files (a `-` appeared or disappeared between versions). Symmetric and non-negative;
+- an **unexplained** matrix: `max(0, |distance1 - distance2| - dash_change)`. Read it as a lower bound on genuine allele-call differences — where it is `0`, the distance difference is fully attributable to missing data; where it is positive, at least that many loci genuinely changed.
+
+Only the literal `-` code is counted (other null/error codes are not). `dash_change`/`unexplained` compare the files locus-by-locus, so they require both files to list the **same loci in the same column order** (same cgMLST scheme); if the loci counts differ they are skipped with a warning.
 
 Samples present in only one of the two files are identified and written to a missing-samples report; they are excluded from the difference matrices, which still run over the shared samples.
 
@@ -146,9 +152,10 @@ All matrices have their rows and columns sorted by sample id (so the two distanc
 - **`<stem1>_distance_matrix.tsv`** — sample × sample mismatch-count (distance) matrix for the first file. Symmetric; diagonal is 0.
 - **`<stem2>_distance_matrix.tsv`** — the same for the second file.
 - **`<stem1>_vs_<stem2>_diff_matrix.tsv`** — element-wise `matrix1 - matrix2`, restricted to the samples present in both files (samples unique to one file are excluded).
-- **`<stem1>_dash_matrix.tsv`** / **`<stem2>_dash_matrix.tsv`** — per-file signed `-` matrices (per pair: loci where only the row sample is `-` minus loci where only the column sample is `-`; both/neither score 0). Skew-symmetric.
-- **`<stem1>_vs_<stem2>_dash_diff_matrix.tsv`** — element-wise `dash1 - dash2` over shared samples.
-- **`<stem1>_vs_<stem2>_corrected_diff_matrix.tsv`** — the distance difference with the `-` differential subtracted: `(matrix1 - matrix2) - (dash1 - dash2)`.
+- **`<stem1>_vs_<stem2>_abs_diff_matrix.tsv`** — `|matrix1 - matrix2|`.
+- **`<stem1>_vs_<stem2>_dash_change_matrix.tsv`** — per pair, loci comparable in exactly one of the two files (a `-` appeared/disappeared between versions). Symmetric, non-negative. Omitted if the files' loci counts differ.
+- **`<stem1>_vs_<stem2>_unexplained_matrix.tsv`** — `max(0, |diff| - dash_change)`; a lower bound on differences not attributable to missing data. Omitted if the files' loci counts differ.
+- **`<stem1>_vs_<stem2>_dash_per_sample.tsv`** — per-sample `-` counts: `sample_id, n_dash_<stem1>, n_dash_<stem2>, delta` (delta blank for samples absent from a file).
 - **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
 
 **Example**

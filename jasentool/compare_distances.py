@@ -8,11 +8,13 @@ calls such as "-" are skipped). The per-file distance matrices and their element
 difference (matrix1 - matrix2) are written.
 
 Because "-" loci are skipped, a file with more missing data yields systematically smaller
-distances. To control for this, a signed "-" matrix is also built per file: per pair it
-counts loci where only the row sample is "-" (+1) minus loci where only the column sample
-is "-" (-1), with both-"-" and neither-"-" loci scoring 0 (so the matrix is
-skew-symmetric). Their difference (dash1 - dash2) is subtracted from the distance
-difference to give a corrected difference matrix.
+distances. To attribute the difference to missing data the following are also written:
+an absolute difference matrix (|distance1 - distance2|); a per-sample "-" count summary
+(n_dash per file plus their delta) to spot version-wide shifts in missing data; a
+dash_change matrix (per pair, loci comparable in exactly one of the two files); and an
+unexplained matrix (max(0, |diff| - dash_change)) -- a lower bound on the differences not
+attributable to missing data, i.e. genuine allele-call changes. The dash_change and
+unexplained matrices require both files to list the same loci in the same column order.
 
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
@@ -109,29 +111,53 @@ class CompareDistances:
         return calls
 
     @staticmethod
-    def _build_dash_matrix(calls):
-        """Pairwise signed count of loci where exactly one of the pair is "-".
+    def _build_dash_change_matrix(calls1, calls2, sample_ids):
+        """Per pair, count loci comparable in exactly one of the two files.
 
-        Per locus: only the row sample is "-" -> +1; only the column sample is
-        "-" -> -1; both "-" or neither "-" -> 0. The matrix is therefore
-        skew-symmetric (cell[i][j] == -cell[j][i]) and measures the imbalance in
-        missing data between the two samples.
+        A locus is "comparable" for a pair when neither sample is "-" at it. This
+        counts loci whose comparability flips between the two files (a "-" appeared
+        or disappeared between versions), i.e. the loci through which differing
+        missing data can change the distance. Symmetric and non-negative.
+
+        Compares the two files locus-by-locus, so it assumes both list the same
+        loci in the same column order.
         """
-        sample_ids = list(calls)
         n = len(sample_ids)
         mat = [[0] * n for _ in range(n)]
         for i in range(n):
-            row_calls = calls[sample_ids[i]]
+            a1, a2 = calls1[sample_ids[i]], calls2[sample_ids[i]]
             for j in range(i + 1, n):
-                col_calls = calls[sample_ids[j]]
-                count = sum(
-                    (1 if x == "-" and y != "-" else 0)
-                    - (1 if y == "-" and x != "-" else 0)
-                    for x, y in zip(row_calls, col_calls)
-                )
+                b1, b2 = calls1[sample_ids[j]], calls2[sample_ids[j]]
+                count = 0
+                for x1, y1, x2, y2 in zip(a1, b1, a2, b2):
+                    comparable1 = x1 != "-" and y1 != "-"
+                    comparable2 = x2 != "-" and y2 != "-"
+                    if comparable1 != comparable2:
+                        count += 1
                 mat[i][j] = count
-                mat[j][i] = -count
+                mat[j][i] = count
         return pd.DataFrame(mat, index=sample_ids, columns=sample_ids)
+
+    @staticmethod
+    def _dash_per_sample_rows(calls1, calls2):
+        """Rows of (sample_id, n_dash_file1, n_dash_file2, delta) over all samples.
+
+        delta = n_dash_file1 - n_dash_file2 when the sample is in both files, else
+        blank. Counts are blank for files the sample is absent from.
+        """
+        all_ids = sorted(set(calls1) | set(calls2))
+        rows = []
+        for sid in all_ids:
+            d1 = calls1[sid].count("-") if sid in calls1 else None
+            d2 = calls2[sid].count("-") if sid in calls2 else None
+            delta = d1 - d2 if d1 is not None and d2 is not None else ""
+            rows.append((
+                sid,
+                "" if d1 is None else d1,
+                "" if d2 is None else d2,
+                delta,
+            ))
+        return rows
 
     def run(self):
         """Read both tables, build their distance matrices, write the matrices and diff."""
@@ -145,10 +171,6 @@ class CompareDistances:
 
         matrix1 = Matrix.generate_matrix(list(calls1), lambda sid: calls1[sid])
         matrix2 = Matrix.generate_matrix(list(calls2), lambda sid: calls2[sid])
-
-        # "-" (missing) control: per-pair count of loci skipped due to a "-" call.
-        dash1 = self._build_dash_matrix(calls1)
-        dash2 = self._build_dash_matrix(calls2)
 
         # Identify samples present in one file but not the other. These are
         # excluded from the difference matrix, which still runs on shared samples.
@@ -168,20 +190,27 @@ class CompareDistances:
             sys.exit(1)
         diff = (matrix1.loc[shared, shared].astype(float)
                 - matrix2.loc[shared, shared].astype(float))
-        dash_diff = (dash1.loc[shared, shared].astype(float)
-                     - dash2.loc[shared, shared].astype(float))
-        # Subtract the "-" differential to control for differing amounts of missing
-        # data between the two files skewing the raw distance difference.
-        corrected_diff = diff - dash_diff
+        abs_diff = diff.abs()
+
+        # Missing-data control: dash_change counts loci whose comparability flips
+        # between the files (needs equal loci counts / same column order). The
+        # unexplained residual is the part of |diff| not coverable by those flips
+        # (a lower bound on genuine allele-call differences).
+        loci1 = len(next(iter(calls1.values())))
+        loci2 = len(next(iter(calls2.values())))
+        dash_change = unexplained = None
+        if loci1 == loci2:
+            dash_change = self._build_dash_change_matrix(calls1, calls2, shared)
+            unexplained = (abs_diff - dash_change).clip(lower=0)
+        else:
+            logger.warning(
+                "Loci counts differ (%d vs %d); skipping dash_change/unexplained "
+                "matrices (they require matching loci/column order)", loci1, loci2)
 
         # Sort rows and columns by sample id so all matrices share a stable,
         # readable ordering regardless of input row order.
         def _sorted(frame):
             return frame.sort_index(axis=0).sort_index(axis=1)
-
-        matrix1, matrix2, diff = _sorted(matrix1), _sorted(matrix2), _sorted(diff)
-        dash1, dash2, dash_diff = _sorted(dash1), _sorted(dash2), _sorted(dash_diff)
-        corrected_diff = _sorted(corrected_diff)
 
         os.makedirs(self.options.output_dir, exist_ok=True)
         stem1 = os.path.splitext(file1_name)[0]
@@ -192,15 +221,24 @@ class CompareDistances:
             (matrix1, f"{stem1}_distance_matrix.tsv"),
             (matrix2, f"{stem2}_distance_matrix.tsv"),
             (diff, f"{stem1}_vs_{stem2}_diff_matrix.tsv"),
-            (dash1, f"{stem1}_dash_matrix.tsv"),
-            (dash2, f"{stem2}_dash_matrix.tsv"),
-            (dash_diff, f"{stem1}_vs_{stem2}_dash_diff_matrix.tsv"),
-            (corrected_diff, f"{stem1}_vs_{stem2}_corrected_diff_matrix.tsv"),
+            (abs_diff, f"{stem1}_vs_{stem2}_abs_diff_matrix.tsv"),
         ]
+        if dash_change is not None:
+            outputs.append((dash_change, f"{stem1}_vs_{stem2}_dash_change_matrix.tsv"))
+            outputs.append((unexplained, f"{stem1}_vs_{stem2}_unexplained_matrix.tsv"))
         for frame, name in outputs:
             fpath = os.path.join(self.options.output_dir, name)
-            frame.to_csv(fpath, sep="\t")
+            _sorted(frame).to_csv(fpath, sep="\t")
             logger.info("Wrote %s", fpath)
+
+        # Per-sample "-" counts in each file, to spot version changes in missing data.
+        out_per_sample = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_dash_per_sample.tsv")
+        with open(out_per_sample, "w", newline="", encoding="utf-8") as fout:
+            writer = csv.writer(fout, delimiter="\t")
+            writer.writerow(["sample_id", f"n_dash_{stem1}", f"n_dash_{stem2}", "delta"])
+            writer.writerows(self._dash_per_sample_rows(calls1, calls2))
+        logger.info("Wrote %s", out_per_sample)
 
         # Report of samples excluded from the diff because they're missing from
         # one file. Always written (header-only when both files share all samples).
