@@ -8,6 +8,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from jasentool.database import Database
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Matrix:
     """Class to validate old pipeline (cgviz) with new pipeline (jasen)"""
@@ -51,7 +54,8 @@ class Matrix:
                 if int(row_allele) != int(col_allele):
                     mismatch_count += 1
             except ValueError:
-                print(f"One following alleles are not in integer format: {row_allele} (row) or {col_allele} (column)")
+                logger.debug("Skipping locus with non-integer allele: %s (row) vs %s (column)",
+                             row_allele, col_allele)
         return mismatch_count
 
     @staticmethod
@@ -59,7 +63,8 @@ class Matrix:
         """Generate pairwise matrix by comparing cgmlst alleles"""
         matrix_df = pd.DataFrame(index=sample_ids, columns=sample_ids)
         id_allele_dict = {sample_id: get_cgmlst_data(sample_id) for sample_id in sample_ids}
-        print(f"The sample id - alleles dict is approximately {sys.getsizeof(id_allele_dict)} bytes in size")
+        logger.debug("The sample id - alleles dict is approximately %d bytes in size",
+                     sys.getsizeof(id_allele_dict))
         for row_sample in sample_ids:
             row_sample_cgmlst = id_allele_dict[row_sample]
             for col_sample in sample_ids:
