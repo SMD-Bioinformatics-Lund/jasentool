@@ -8,9 +8,11 @@ calls such as "-" are skipped). The per-file distance matrices and their element
 difference (matrix1 - matrix2) are written.
 
 Because "-" loci are skipped, a file with more missing data yields systematically smaller
-distances. To control for this, a "-" count matrix is also built per file (per-pair count
-of loci where either sample is "-"), along with their difference; the "-" differential is
-subtracted from the distance difference to give a corrected difference matrix.
+distances. To control for this, a signed "-" matrix is also built per file: per pair it
+counts loci where only the row sample is "-" (+1) minus loci where only the column sample
+is "-" (-1), with both-"-" and neither-"-" loci scoring 0 (so the matrix is
+skew-symmetric). Their difference (dash1 - dash2) is subtracted from the distance
+difference to give a corrected difference matrix.
 
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
@@ -108,22 +110,27 @@ class CompareDistances:
 
     @staticmethod
     def _build_dash_matrix(calls):
-        """Pairwise count of loci where at least one of the two samples is "-".
+        """Pairwise signed count of loci where exactly one of the pair is "-".
 
-        These are exactly the loci skipped from a pair's distance, so the matrix
-        quantifies how much missing data each pair's distance was computed around.
+        Per locus: only the row sample is "-" -> +1; only the column sample is
+        "-" -> -1; both "-" or neither "-" -> 0. The matrix is therefore
+        skew-symmetric (cell[i][j] == -cell[j][i]) and measures the imbalance in
+        missing data between the two samples.
         """
         sample_ids = list(calls)
         n = len(sample_ids)
         mat = [[0] * n for _ in range(n)]
         for i in range(n):
             row_calls = calls[sample_ids[i]]
-            for j in range(i, n):
+            for j in range(i + 1, n):
                 col_calls = calls[sample_ids[j]]
-                count = sum(1 for x, y in zip(row_calls, col_calls)
-                            if x == "-" or y == "-")
+                count = sum(
+                    (1 if x == "-" and y != "-" else 0)
+                    - (1 if y == "-" and x != "-" else 0)
+                    for x, y in zip(row_calls, col_calls)
+                )
                 mat[i][j] = count
-                mat[j][i] = count
+                mat[j][i] = -count
         return pd.DataFrame(mat, index=sample_ids, columns=sample_ids)
 
     def run(self):

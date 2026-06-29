@@ -413,13 +413,14 @@ def test_compare_distances_dash_control(tmp_path):
     diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
     corrected = pd.read_csv(out / "file1_vs_file2_corrected_diff_matrix.tsv", sep="\t", index_col=0)
 
-    # one "-" locus involves the s1/s2 pair in file1, none in file2
-    assert dash1.loc["s1", "s2"] == 1
+    # file1: only s2 is "-" at loc3 -> cell[s1][s2] = 0 - 1 = -1, skew-symmetric
+    assert dash1.loc["s1", "s2"] == -1
+    assert dash1.loc["s2", "s1"] == 1
     assert dash2.loc["s1", "s2"] == 0
-    assert dash_diff.loc["s1", "s2"] == 1
-    # both files have 1 mismatch (loc2) -> raw diff 0; corrected = 0 - 1 = -1
+    assert dash_diff.loc["s1", "s2"] == -1
+    # both files have 1 mismatch (loc2) -> raw diff 0; corrected = 0 - (-1) = 1
     assert diff.loc["s1", "s2"] == 0
-    assert corrected.loc["s1", "s2"] == -1
+    assert corrected.loc["s1", "s2"] == 1
 
 
 def test_compare_distances_matrices_are_sorted(tmp_path):
