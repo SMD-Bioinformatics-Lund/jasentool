@@ -130,6 +130,12 @@ class CompareDistances:
         diff = (matrix1.loc[shared, shared].astype(float)
                 - matrix2.loc[shared, shared].astype(float))
 
+        # Sort rows and columns by sample id so all three matrices share a stable,
+        # readable ordering regardless of input row order.
+        matrix1 = matrix1.sort_index(axis=0).sort_index(axis=1)
+        matrix2 = matrix2.sort_index(axis=0).sort_index(axis=1)
+        diff = diff.sort_index(axis=0).sort_index(axis=1)
+
         os.makedirs(self.options.output_dir, exist_ok=True)
         stem1 = os.path.splitext(file1_name)[0]
         stem2 = os.path.splitext(file2_name)[0]

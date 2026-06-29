@@ -139,7 +139,7 @@ jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
 
 **Outputs**
 
-File names derive from the input basenames (`<stem>` = filename without extension; if both stems match, `_1`/`_2` are appended).
+All matrices have their rows and columns sorted by sample id (so the two distance matrices and the diff share a stable, readable ordering regardless of input row order). File names derive from the input basenames (`<stem>` = filename without extension; if both stems match, `_1`/`_2` are appended).
 
 - **`<stem1>_distance_matrix.tsv`** — sample × sample mismatch-count (distance) matrix for the first file. Symmetric; diagonal is 0.
 - **`<stem2>_distance_matrix.tsv`** — the same for the second file.

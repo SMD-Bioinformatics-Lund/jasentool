@@ -384,6 +384,37 @@ def test_compare_distances_drops_st_and_handles_old_header(tmp_path):
     assert m_new.loc["s1", "s2"] == 1
 
 
+def test_compare_distances_matrices_are_sorted(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # rows out of order; output matrices should be sorted by sample id
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2"],
+        ["s3", 1, 2],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2"],
+        ["s2", 1, 2],
+        ["s3", 1, 2],
+        ["s1", 1, 2],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    for name in ("file1_distance_matrix.tsv", "file2_distance_matrix.tsv",
+                 "file1_vs_file2_diff_matrix.tsv"):
+        m = pd.read_csv(out / name, sep="\t", index_col=0)
+        assert list(m.index) == ["s1", "s2", "s3"]
+        assert list(m.columns) == ["s1", "s2", "s3"]
+
+
 def test_compare_distances_errors_without_header(tmp_path):
     f1 = tmp_path / "file1.tsv"
     f2 = tmp_path / "file2.tsv"
