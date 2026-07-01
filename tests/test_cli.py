@@ -492,6 +492,51 @@ def test_compare_distances_errors_without_header(tmp_path):
     assert result.exit_code != 0
 
 
+def test_compare_distances_uses_cgmlst_dists(monkeypatch, tmp_path):
+    import pandas as pd
+
+    # Fake cgmlst-dists output; values differ from what the alleles imply (all
+    # identical -> Python fallback would be 0), proving the cgmlst-dists path was used.
+    matrix_text = "cgmlst-dists\ts1\ts2\ts3\ns1\t0\t5\t7\ns2\t5\t0\t9\ns3\t7\t9\t0\n"
+
+    class FakeProc:
+        stdout = matrix_text
+        stderr = ""
+        returncode = 0
+
+    monkeypatch.setattr("jasentool.compare_distances.subprocess.run",
+                        lambda *a, **k: FakeProc())
+
+    rows = [["FILE", "loc1", "loc2"], ["s1", 1, 1], ["s2", 1, 1], ["s3", 1, 1]]
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, rows)
+    _write_tsv(f2, rows)
+    out = tmp_path / "out"
+    result = runner.invoke(cli, ["compare-distances", "-i", str(f1), str(f2), "-o", str(out)])
+    assert result.exit_code == 0, result.output
+
+    m1 = pd.read_csv(out / "file1_distance_matrix.tsv", sep="\t", index_col=0)
+    assert m1.loc["s1", "s2"] == 5
+    assert m1.loc["s2", "s3"] == 9
+    assert (out / "file1_clean.tsv").exists()   # preprocessed input fed to cgmlst-dists
+
+
+def test_compare_distances_plots(tmp_path):
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    st = tmp_path / "st.csv"
+    st.write_text("sample_name,mlst_st\ns1,1\ns2,1\ns3,22\n")
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out), "--mlst", str(st),
+    ])
+    assert result.exit_code == 0, result.output
+    assert (out / "file1_vs_file2_distance_scatter.png").exists()
+    assert (out / "file1_vs_file2_bland_altman.png").exists()
+    assert (out / "file1_vs_file2_missing_vs_st.png").exists()
+
+
 def test_compare_distances_help():
     result = runner.invoke(cli, ["compare-distances", "--help"])
     assert result.exit_code == 0

@@ -19,14 +19,25 @@ unexplained matrices require both files to list the same loci in the same column
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
 
-The pairwise comparison and matrix subtraction reuse `jasentool.matrix.Matrix`.
+Per-file distances are computed with `cgmlst-dists` (each file is first written out
+sorted by sample id with the `ST` column dropped); if the binary is unavailable the
+in-Python `jasentool.matrix.Matrix` method is used instead. Diagnostic plots are also
+written: a scatter and a Bland-Altman of the two files' pairwise distances, and -- when a
+`sample_name,mlst_st` map is supplied -- per-sample missing-loci counts grouped by ST.
 """
 
 import csv
 import os
+import subprocess
 import sys
+from io import StringIO
 
+import matplotlib
+matplotlib.use("Agg")  # headless: set before any pyplot import (incl. via jasentool.matrix)
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from jasentool.matrix import Matrix
 from jasentool.log import get_logger
@@ -159,6 +170,142 @@ class CompareDistances:
             ))
         return rows
 
+    @staticmethod
+    def _write_clean_tsv(calls, path):
+        """Write a sorted, ST-dropped TSV (FILE<tab>locus...) for cgmlst-dists."""
+        sample_ids = sorted(calls)
+        n_loci = len(calls[sample_ids[0]]) if sample_ids else 0
+        with open(path, "w", newline="", encoding="utf-8") as fout:
+            writer = csv.writer(fout, delimiter="\t")
+            writer.writerow(["FILE"] + [f"locus_{i + 1}" for i in range(n_loci)])
+            for sid in sample_ids:
+                writer.writerow([sid] + calls[sid])
+
+    @staticmethod
+    def _distances_via_cgmlst_dists(clean_path, bin_path):
+        """Run cgmlst-dists on a cleaned TSV; return a DataFrame, or None on failure."""
+        try:
+            proc = subprocess.run(
+                [bin_path, clean_path],
+                capture_output=True, text=True, check=True,
+            )
+        except FileNotFoundError:
+            logger.warning("cgmlst-dists binary '%s' not found; using Python fallback",
+                           bin_path)
+            return None
+        except subprocess.CalledProcessError as exc:
+            logger.warning("cgmlst-dists failed (exit %s); using Python fallback: %s",
+                           exc.returncode, (exc.stderr or "").strip())
+            return None
+        matrix = pd.read_csv(StringIO(proc.stdout), sep="\t", index_col=0)
+        matrix.index = matrix.index.astype(str)
+        matrix.columns = matrix.columns.astype(str)
+        matrix.index.name = None
+        return matrix
+
+    def _distance_matrix(self, calls, stem):
+        """Per-file distance matrix via cgmlst-dists, falling back to the Python method."""
+        clean_path = os.path.join(self.options.output_dir, f"{stem}_clean.tsv")
+        self._write_clean_tsv(calls, clean_path)
+        logger.info("Wrote %s", clean_path)
+        matrix = self._distances_via_cgmlst_dists(clean_path, self.options.cgmlst_dists_bin)
+        if matrix is None:
+            matrix = Matrix.generate_matrix(list(calls), lambda sid: calls[sid])
+        else:
+            logger.info("Computed %s distances with cgmlst-dists", stem)
+        return matrix
+
+    @staticmethod
+    def _read_st_map(path):
+        """Read a sample_name,mlst_st table into {sample_id: st}; skips a header row."""
+        delimiter = CompareDistances._detect_delimiter(path)
+        with open(path, newline="", encoding="utf-8") as fin:
+            rows = [r for r in csv.reader(fin, delimiter=delimiter) if r and len(r) >= 2]
+        header_terms = {"sample_name", "sample", "sample_id", "mlst_st", "st", "mlst"}
+        if rows and any(cell.strip().lower() in header_terms for cell in rows[0]):
+            rows = rows[1:]
+        return {r[0].strip(): r[1].strip() for r in rows}
+
+    @staticmethod
+    def _st_order(values):
+        """Order ST labels numerically when possible, else lexicographically."""
+        return sorted(set(values), key=lambda s: (0, int(s)) if str(s).isdigit() else (1, str(s)))
+
+    def _distance_plots(self, matrix1, matrix2, shared, stem1, stem2):
+        """Scatter and Bland-Altman of the two files' pairwise distances (upper triangle)."""
+        if len(shared) < 2:
+            logger.warning("Fewer than 2 shared samples; skipping distance plots")
+            return
+        m1 = matrix1.loc[shared, shared].to_numpy(dtype=float)
+        m2 = matrix2.loc[shared, shared].to_numpy(dtype=float)
+        iu = np.triu_indices(len(shared), k=1)
+        d1, d2 = m1[iu], m2[iu]
+
+        plt.figure(figsize=(8, 8))
+        plt.scatter(d1, d2, s=8, alpha=0.3)
+        lim = max(d1.max(), d2.max(), 1)
+        plt.plot([0, lim], [0, lim], color="red", lw=1)
+        plt.xlabel(f"{stem1} distance")
+        plt.ylabel(f"{stem2} distance")
+        plt.title("Pairwise cgMLST distances")
+        scatter_path = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_distance_scatter.png")
+        plt.tight_layout()
+        plt.savefig(scatter_path, dpi=300)
+        plt.close()
+        logger.info("Wrote %s", scatter_path)
+
+        mean, diff = (d1 + d2) / 2, d1 - d2
+        md, sd = diff.mean(), diff.std()
+        plt.figure(figsize=(8, 6))
+        plt.scatter(mean, diff, s=8, alpha=0.3)
+        plt.axhline(md, color="red", lw=1, label=f"mean {md:.2f}")
+        plt.axhline(md + 1.96 * sd, color="grey", ls="--", lw=1, label="±1.96 SD")
+        plt.axhline(md - 1.96 * sd, color="grey", ls="--", lw=1)
+        plt.xlabel("Mean distance")
+        plt.ylabel(f"Difference ({stem1} - {stem2})")
+        plt.title("Bland-Altman of pairwise distances")
+        plt.legend()
+        ba_path = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_bland_altman.png")
+        plt.tight_layout()
+        plt.savefig(ba_path, dpi=300)
+        plt.close()
+        logger.info("Wrote %s", ba_path)
+
+    def _missing_vs_st_plot(self, calls1, calls2, stem1, stem2):
+        """Per-sample missing-loci ('-') counts grouped by MLST ST, for both files."""
+        st_map = self._read_st_map(self.options.mlst)
+        records = []
+        for stem, calls in ((stem1, calls1), (stem2, calls2)):
+            for sid, alleles in calls.items():
+                if sid in st_map:
+                    records.append({"ST": st_map[sid], "version": stem,
+                                    "n_dash": alleles.count("-")})
+        unmatched = (set(calls1) | set(calls2)) - set(st_map)
+        if unmatched:
+            logger.warning("%d sample(s) not in the MLST map (excluded from ST plot): %s",
+                           len(unmatched), ", ".join(sorted(unmatched)))
+        if not records:
+            logger.warning("No samples matched the MLST map; skipping missing-vs-ST plot")
+            return
+        df = pd.DataFrame(records)
+        order = self._st_order(df["ST"])
+        plt.figure(figsize=(max(8, 0.6 * len(order)), 6))
+        sns.boxplot(data=df, x="ST", y="n_dash", hue="version", order=order)
+        sns.stripplot(data=df, x="ST", y="n_dash", hue="version", order=order,
+                      dodge=True, size=3, alpha=0.5, legend=False)
+        plt.xticks(rotation=90)
+        plt.xlabel("MLST ST")
+        plt.ylabel("Missing loci (-) per sample")
+        plt.title("Missing loci vs MLST ST")
+        path = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_missing_vs_st.png")
+        plt.tight_layout()
+        plt.savefig(path, dpi=300)
+        plt.close()
+        logger.info("Wrote %s", path)
+
     def run(self):
         """Read both tables, build their distance matrices, write the matrices and diff."""
         for fpath in (self.options.file1, self.options.file2):
@@ -169,13 +316,19 @@ class CompareDistances:
         calls1 = self._read_calls(self.options.file1)
         calls2 = self._read_calls(self.options.file2)
 
-        matrix1 = Matrix.generate_matrix(list(calls1), lambda sid: calls1[sid])
-        matrix2 = Matrix.generate_matrix(list(calls2), lambda sid: calls2[sid])
+        file1_name = os.path.basename(self.options.file1)
+        file2_name = os.path.basename(self.options.file2)
+        os.makedirs(self.options.output_dir, exist_ok=True)
+        stem1 = os.path.splitext(file1_name)[0]
+        stem2 = os.path.splitext(file2_name)[0]
+        if stem1 == stem2:
+            stem1, stem2 = f"{stem1}_1", f"{stem2}_2"
+
+        matrix1 = self._distance_matrix(calls1, stem1)
+        matrix2 = self._distance_matrix(calls2, stem2)
 
         # Identify samples present in one file but not the other. These are
         # excluded from the difference matrix, which still runs on shared samples.
-        file1_name = os.path.basename(self.options.file1)
-        file2_name = os.path.basename(self.options.file2)
         shared = [sid for sid in calls1 if sid in calls2]
         only_in_1 = [sid for sid in calls1 if sid not in calls2]
         only_in_2 = [sid for sid in calls2 if sid not in calls1]
@@ -212,11 +365,6 @@ class CompareDistances:
         def _sorted(frame):
             return frame.sort_index(axis=0).sort_index(axis=1)
 
-        os.makedirs(self.options.output_dir, exist_ok=True)
-        stem1 = os.path.splitext(file1_name)[0]
-        stem2 = os.path.splitext(file2_name)[0]
-        if stem1 == stem2:
-            stem1, stem2 = f"{stem1}_1", f"{stem2}_2"
         outputs = [
             (matrix1, f"{stem1}_distance_matrix.tsv"),
             (matrix2, f"{stem2}_distance_matrix.tsv"),
@@ -251,3 +399,8 @@ class CompareDistances:
             writer.writerows((sid, file2_name, file1_name) for sid in only_in_2)
         logger.info("Wrote %s (%d sample(s) missing from one file)",
                     out_missing, len(only_in_1) + len(only_in_2))
+
+        # Diagnostic plots.
+        self._distance_plots(matrix1, matrix2, shared, stem1, stem2)
+        if getattr(self.options, "mlst", None):
+            self._missing_vs_st_plot(calls1, calls2, stem1, stem2)

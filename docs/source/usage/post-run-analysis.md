@@ -124,7 +124,7 @@ Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call table
 
 Each input is a chewBBACA table: a required header row, then one sample per row with `sample_id` in the first column and the per-locus allele calls in the remaining columns. The header is required (the command errors if the first row isn't a header) and may use either style — newer output leads with `FILE` (`FILE<tab>locus...`), older output with `#Name` (`#Name<tab>ST<tab>locus...`). The header is used to drop the leading `ST` column (older AlleleCall output) so only per-locus calls are compared. The delimiter is auto-detected (tab, falling back to comma). Loci are compared positionally within each file, so the two files need not share locus naming, but they should share the same sample names. The two files may use different header styles.
 
-For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`). Comparison reuses `jasentool/matrix.py`: calls are compared as integers, and loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
+For each file a sample × sample matrix is built where a cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci `+1`); loci where either call is missing/error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...) are skipped rather than counted as a mismatch. Distances are computed with [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists): each file is first written out sorted by sample id with the `ST` column dropped (`<stem>_clean.tsv`), then passed to `cgmlst-dists`. If the binary isn't found (configurable via `--cgmlst-dists-bin`) it falls back to the in-Python method in `jasentool/matrix.py`. The difference matrix is `matrix1 - matrix2` over the samples shared by both files.
 
 **Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data yields systematically smaller distances, which skews the difference. Several outputs help attribute the difference to missing data versus genuine allele changes:
 
@@ -138,12 +138,17 @@ Samples present in only one of the two files are identified and written to a mis
 
 ```
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
+                            [--mlst <SAMPLE_ST.csv>] [--cgmlst-dists-bin <PATH>]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `-i`/`--input` | Yes | — | The two chewBBACA cgMLST allele-call TSVs, listed one after the other |
-| `-o`/`--output-dir` | Yes | — | Output directory for the two distance matrices and their difference (created if missing) |
+| `-o`/`--output-dir` | Yes | — | Output directory for the matrices, plots and reports (created if missing) |
+| `--mlst` | No | — | `sample_name,mlst_st` CSV/TSV; enables the missing-loci-vs-ST plot |
+| `--cgmlst-dists-bin` | No | `cgmlst-dists` | Path/name of the cgmlst-dists executable (Python fallback if absent) |
+
+> `cgmlst-dists` is a separate (bioconda) tool, not a Python dependency — install it via the conda `environment.yml` (or your own means) to use it; otherwise the Python fallback runs.
 
 **Outputs**
 
@@ -157,6 +162,10 @@ All matrices have their rows and columns sorted by sample id (so the two distanc
 - **`<stem1>_vs_<stem2>_unexplained_matrix.tsv`** — `max(0, |diff| - dash_change)`; a lower bound on differences not attributable to missing data. Omitted if the files' loci counts differ.
 - **`<stem1>_vs_<stem2>_dash_per_sample.tsv`** — per-sample `-` counts: `sample_id, n_dash_<stem1>, n_dash_<stem2>, delta` (delta blank for samples absent from a file).
 - **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
+- **`<stem1>_clean.tsv`** / **`<stem2>_clean.tsv`** — each input sorted by sample id with the `ST` column dropped; these are what `cgmlst-dists` is run on.
+- **`<stem1>_vs_<stem2>_distance_scatter.png`** — scatter of every shared sample-pair's distance in file 1 (x) vs file 2 (y), with a `y=x` identity line.
+- **`<stem1>_vs_<stem2>_bland_altman.png`** — Bland–Altman of the pairwise distances: mean of the two distances (x) vs their difference (y), with the mean difference and ±1.96·SD limits.
+- **`<stem1>_vs_<stem2>_missing_vs_st.png`** — *only with `--mlst`*. Per-sample missing-loci (`-`) counts grouped by MLST ST, with one box+points per ST for each file, to spot STs carrying more missing data.
 
 **Example**
 
