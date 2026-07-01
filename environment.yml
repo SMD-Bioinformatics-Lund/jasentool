@@ -1,9 +1,11 @@
 name: jasentool
 channels:
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   - python>=3.10
+  - cgmlst-dists
   - numpy>=1.24
   - pandas
   - matplotlib

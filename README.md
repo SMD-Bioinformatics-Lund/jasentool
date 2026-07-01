@@ -23,6 +23,8 @@ conda activate jasentool
 
 `environment.yml` installs every binary-heavy dependency (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge and then performs an editable pip install of jasentool itself.
 
+`compare-distances` uses [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists) (from bioconda) to compute distance matrices; it's included in `environment.yml`. It is **not** a Python/pip dependency, so a plain `pip install jasentool` won't provide it — install it via conda (or build it yourself). If it isn't found, `compare-distances` falls back to a slower in-Python distance calculation.
+
 ## Usage
 
 ```
