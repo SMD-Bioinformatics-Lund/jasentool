@@ -450,12 +450,15 @@ def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file
               help='Optional sample_name,mlst_st CSV/TSV; enables the missing-loci-vs-ST plot')
 @click.option('--cgmlst-dists-bin', default='cgmlst-dists', show_default=True,
               help='Path or name of the cgmlst-dists executable (Python fallback if absent)')
-def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin):
+@click.option('-v', '--verbose', is_flag=True, default=False,
+              help='Verbose logging and write the underlying plot point tables (*_points.tsv) '
+                   'so individual points can be checked by hand')
+def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin, verbose):
     """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
-    _init_logging()
+    _init_logging(verbose)
     options = types.SimpleNamespace(
         file1=input_files[0], file2=input_files[1], output_dir=output_dir,
-        mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin,
+        mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin, verbose=verbose,
     )
     _parser().compare_distances(options)
 

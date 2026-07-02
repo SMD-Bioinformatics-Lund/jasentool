@@ -147,6 +147,7 @@ jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
 | `-o`/`--output-dir` | Yes | — | Output directory for the matrices, plots and reports (created if missing) |
 | `--mlst` | No | — | `sample_name,mlst_st` CSV/TSV; enables the missing-loci-vs-ST plot |
 | `--cgmlst-dists-bin` | No | `cgmlst-dists` | Path/name of the cgmlst-dists executable (Python fallback if absent) |
+| `-v`/`--verbose` | No | off | Verbose logging and write the plots' underlying point tables (`*_points.tsv`) for manual checking |
 
 > `cgmlst-dists` is a separate (bioconda) tool, not a Python dependency — install it via the conda `environment.yml` (or your own means) to use it; otherwise the Python fallback runs.
 
@@ -166,6 +167,8 @@ All matrices have their rows and columns sorted by sample id (so the two distanc
 - **`<stem1>_vs_<stem2>_distance_scatter.png`** — scatter of every shared sample-pair's distance in file 1 (x) vs file 2 (y), with a `y=x` identity line.
 - **`<stem1>_vs_<stem2>_bland_altman.png`** — Bland–Altman of the pairwise distances: mean of the two distances (x) vs their difference (y), with the mean difference and ±1.96·SD limits.
 - **`<stem1>_vs_<stem2>_missing_vs_st.png`** — *only with `--mlst`*. Per-sample missing-loci counts grouped by MLST ST, with one box+points per ST for each file, to spot STs carrying more missing data.
+- **`<stem1>_vs_<stem2>_distance_points.tsv`** — *only with `-v`*. One row per sample pair behind the scatter/Bland–Altman: `sample_a, sample_b, <stem1>_distance, <stem2>_distance, mean, diff`.
+- **`<stem1>_vs_<stem2>_missing_vs_st_points.tsv`** — *only with `-v` and `--mlst`*. The points behind the ST plot: `sample, ST, version, n_missing`.
 
 **Example**
 

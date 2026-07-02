@@ -539,6 +539,27 @@ def test_compare_distances_plots(tmp_path):
     assert (out / "file1_vs_file2_missing_vs_st.png").exists()
 
 
+def test_compare_distances_verbose_points(tmp_path):
+    import pandas as pd
+
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    st = tmp_path / "st.csv"
+    st.write_text("sample_name,mlst_st\ns1,1\ns2,1\ns3,22\n")
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out), "--mlst", str(st), "-v",
+    ])
+    assert result.exit_code == 0, result.output
+
+    pts = pd.read_csv(out / "file1_vs_file2_distance_points.tsv", sep="\t")
+    assert len(pts) == 3   # 3 shared samples -> 3 upper-triangle pairs
+    row = pts[(pts.sample_a == "s1") & (pts.sample_b == "s2")].iloc[0]
+    assert row["file1_distance"] == 1 and row["file2_distance"] == 1 and row["diff"] == 0
+    assert (out / "file1_vs_file2_missing_vs_st_points.tsv").exists()
+
+
 def test_compare_distances_help():
     result = runner.invoke(cli, ["compare-distances", "--help"])
     assert result.exit_code == 0
