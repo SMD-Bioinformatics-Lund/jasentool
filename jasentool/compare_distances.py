@@ -7,14 +7,23 @@ two samples' calls differ (matching loci score 0, mismatching loci +1; missing/e
 calls such as "-" are skipped). The per-file distance matrices and their element-wise
 difference (matrix1 - matrix2) are written.
 
-Because "-" loci are skipped, a file with more missing data yields systematically smaller
-distances. To attribute the difference to missing data the following are also written:
-an absolute difference matrix (|distance1 - distance2|); a per-sample "-" count summary
-(n_dash per file plus their delta) to spot version-wide shifts in missing data; a
-dash_change matrix (per pair, loci comparable in exactly one of the two files); and an
-unexplained matrix (max(0, |diff| - dash_change)) -- a lower bound on the differences not
-attributable to missing data, i.e. genuine allele-call changes. The dash_change and
-unexplained matrices require both files to list the same loci in the same column order.
+Because missing loci are skipped, a file with more missing data yields systematically
+smaller distances. To attribute the difference to missing data the following are also
+written: an absolute difference matrix (|distance1 - distance2|); a per-sample
+missing-loci count summary (n_missing per file plus their delta) to spot version-wide
+shifts in missing data; a dash_change matrix (per pair, loci comparable in exactly one of
+the two files); and an unexplained matrix (max(0, |diff| - dash_change)) -- a lower bound
+on the differences not attributable to missing data, i.e. genuine allele-call changes. The
+dash_change and unexplained matrices require both files to list the same loci in the same
+column order.
+
+A call counts as missing unless it is an integer allele; chewBBACA inferred alleles
+(`INF-<n>`) have the `INF-` prefix stripped and count as allele `<n>`. This rule is used by
+the missing-loci summary, the ST plot, and dash_change, and matches cgmlst-dists, which
+strips the alpha prefix so `INF-431` becomes allele 431 (only codes resolving to 0, e.g.
+`-`/`LNF`/`NIPH`/`PLOT`/`ASM`, are missing). The in-Python fallback in
+`jasentool.matrix.Matrix` does NOT strip `INF-`, so it differs there when cgmlst-dists is
+absent.
 
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
@@ -121,14 +130,15 @@ class CompareDistances:
         logger.info("Read %d samples (%d loci) from %s", len(calls), n_loci, fpath)
         return calls
 
-    @staticmethod
-    def _build_dash_change_matrix(calls1, calls2, sample_ids):
+    @classmethod
+    def _build_dash_change_matrix(cls, calls1, calls2, sample_ids):
         """Per pair, count loci comparable in exactly one of the two files.
 
-        A locus is "comparable" for a pair when neither sample is "-" at it. This
-        counts loci whose comparability flips between the two files (a "-" appeared
-        or disappeared between versions), i.e. the loci through which differing
-        missing data can change the distance. Symmetric and non-negative.
+        A locus is "comparable" for a pair when neither sample is missing at it
+        (missing per `_is_missing`: any non-integer call except stripped `INF-<n>`).
+        This counts loci whose comparability flips between the two files (missing
+        appeared or disappeared between versions), i.e. the loci through which
+        differing missing data can change the distance. Symmetric and non-negative.
 
         Compares the two files locus-by-locus, so it assumes both list the same
         loci in the same column order.
@@ -141,8 +151,8 @@ class CompareDistances:
                 b1, b2 = calls1[sample_ids[j]], calls2[sample_ids[j]]
                 count = 0
                 for x1, y1, x2, y2 in zip(a1, b1, a2, b2):
-                    comparable1 = x1 != "-" and y1 != "-"
-                    comparable2 = x2 != "-" and y2 != "-"
+                    comparable1 = not cls._is_missing(x1) and not cls._is_missing(y1)
+                    comparable2 = not cls._is_missing(x2) and not cls._is_missing(y2)
                     if comparable1 != comparable2:
                         count += 1
                 mat[i][j] = count
@@ -150,17 +160,34 @@ class CompareDistances:
         return pd.DataFrame(mat, index=sample_ids, columns=sample_ids)
 
     @staticmethod
-    def _dash_per_sample_rows(calls1, calls2):
-        """Rows of (sample_id, n_dash_file1, n_dash_file2, delta) over all samples.
+    def _is_missing(call):
+        """True unless the call is a valid integer allele.
 
-        delta = n_dash_file1 - n_dash_file2 when the sample is in both files, else
-        blank. Counts are blank for files the sample is absent from.
+        chewBBACA inferred alleles are written `INF-<n>`; the `INF-` prefix is
+        stripped so they count as the integer allele `<n>` (not missing). Every
+        other non-integer value (`-`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, ...)
+        is treated as missing.
+        """
+        value = call[4:] if call.startswith("INF-") else call
+        return not value.isdigit()
+
+    @classmethod
+    def _n_missing(cls, alleles):
+        """Count missing loci in a sample's allele list."""
+        return sum(1 for call in alleles if cls._is_missing(call))
+
+    @classmethod
+    def _missing_per_sample_rows(cls, calls1, calls2):
+        """Rows of (sample_id, n_missing_file1, n_missing_file2, delta) over all samples.
+
+        delta = n_missing_file1 - n_missing_file2 when the sample is in both files,
+        else blank. Counts are blank for files the sample is absent from.
         """
         all_ids = sorted(set(calls1) | set(calls2))
         rows = []
         for sid in all_ids:
-            d1 = calls1[sid].count("-") if sid in calls1 else None
-            d2 = calls2[sid].count("-") if sid in calls2 else None
+            d1 = cls._n_missing(calls1[sid]) if sid in calls1 else None
+            d2 = cls._n_missing(calls2[sid]) if sid in calls2 else None
             delta = d1 - d2 if d1 is not None and d2 is not None else ""
             rows.append((
                 sid,
@@ -281,7 +308,7 @@ class CompareDistances:
             for sid, alleles in calls.items():
                 if sid in st_map:
                     records.append({"ST": st_map[sid], "version": stem,
-                                    "n_dash": alleles.count("-")})
+                                    "n_missing": self._n_missing(alleles)})
         unmatched = (set(calls1) | set(calls2)) - set(st_map)
         if unmatched:
             logger.warning("%d sample(s) not in the MLST map (excluded from ST plot): %s",
@@ -292,12 +319,12 @@ class CompareDistances:
         df = pd.DataFrame(records)
         order = self._st_order(df["ST"])
         plt.figure(figsize=(max(8, 0.6 * len(order)), 6))
-        sns.boxplot(data=df, x="ST", y="n_dash", hue="version", order=order)
-        sns.stripplot(data=df, x="ST", y="n_dash", hue="version", order=order,
+        sns.boxplot(data=df, x="ST", y="n_missing", hue="version", order=order)
+        sns.stripplot(data=df, x="ST", y="n_missing", hue="version", order=order,
                       dodge=True, size=3, alpha=0.5, legend=False)
         plt.xticks(rotation=90)
         plt.xlabel("MLST ST")
-        plt.ylabel("Missing loci (-) per sample")
+        plt.ylabel("Missing loci per sample")
         plt.title("Missing loci vs MLST ST")
         path = os.path.join(
             self.options.output_dir, f"{stem1}_vs_{stem2}_missing_vs_st.png")
@@ -379,13 +406,14 @@ class CompareDistances:
             _sorted(frame).to_csv(fpath, sep="\t")
             logger.info("Wrote %s", fpath)
 
-        # Per-sample "-" counts in each file, to spot version changes in missing data.
+        # Per-sample missing-loci counts in each file, to spot version changes in
+        # missing data (missing = any non-integer call except stripped INF-<n>).
         out_per_sample = os.path.join(
-            self.options.output_dir, f"{stem1}_vs_{stem2}_dash_per_sample.tsv")
+            self.options.output_dir, f"{stem1}_vs_{stem2}_missing_loci_per_sample.tsv")
         with open(out_per_sample, "w", newline="", encoding="utf-8") as fout:
             writer = csv.writer(fout, delimiter="\t")
-            writer.writerow(["sample_id", f"n_dash_{stem1}", f"n_dash_{stem2}", "delta"])
-            writer.writerows(self._dash_per_sample_rows(calls1, calls2))
+            writer.writerow(["sample_id", f"n_missing_{stem1}", f"n_missing_{stem2}", "delta"])
+            writer.writerows(self._missing_per_sample_rows(calls1, calls2))
         logger.info("Wrote %s", out_per_sample)
 
         # Report of samples excluded from the diff because they're missing from

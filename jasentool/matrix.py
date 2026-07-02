@@ -42,20 +42,30 @@ class Matrix:
         return jasen_cgmlst_alleles
 
     @staticmethod
+    def _parse_allele(call):
+        """Return the integer allele, or None if missing.
+
+        Mirrors cgmlst-dists: chewBBACA inferred alleles `INF-<n>` count as allele
+        `<n>`; every other non-integer (`-`, `LNF`, `NIPH`, `PLOT3`, `PLOT5`,
+        `ASM`, ...) is treated as missing.
+        """
+        value = call[4:] if isinstance(call, str) and call.startswith("INF-") else call
+        try:
+            return abs(int(value))
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
     def compare_cgmlst_alleles(row_cgmlst_alleles, col_cgmlst_alleles):
-        """Parse through cgmlst alleles of old and new pipeline and compare results"""
+        """Count loci where both samples have a valid allele and the alleles differ."""
         mismatch_count = 0
-        null_values = ["-", "EXC", "INF", "LNF", "PLNF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "PAMA", "ASM", "ALM"]
         for idx, row_allele in enumerate(row_cgmlst_alleles):
-            col_allele = col_cgmlst_alleles[idx]
-            if row_allele in null_values or col_allele in null_values:
+            row = Matrix._parse_allele(row_allele)
+            col = Matrix._parse_allele(col_cgmlst_alleles[idx])
+            if row is None or col is None:
                 continue
-            try:
-                if int(row_allele) != int(col_allele):
-                    mismatch_count += 1
-            except ValueError:
-                logger.debug("Skipping locus with non-integer allele: %s (row) vs %s (column)",
-                             row_allele, col_allele)
+            if row != col:
+                mismatch_count += 1
         return mismatch_count
 
     @staticmethod
