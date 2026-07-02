@@ -128,11 +128,11 @@ For each file a sample × sample matrix is built where a cell is the number of l
 
 **Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data yields systematically smaller distances, which skews the difference. Several outputs help attribute the difference to missing data versus genuine allele changes:
 
-- a per-sample `-` count summary (`n_dash` in each file plus their `delta`) — usually the quickest way to see whether the version change shifted missing data, and which samples drive it;
+- a per-sample **missing-loci** count summary (`n_missing` in each file plus their `delta`) — usually the quickest way to see whether the version change shifted missing data, and which samples drive it. A call counts as missing unless it's an integer allele; chewBBACA inferred alleles (`INF-<n>`) have the `INF-` prefix stripped and count as allele `<n>`, so `-`, `LNF`, `PLOT3`, `NIPH`, etc. are missing but `INF-123` is not;
 - a **dash_change** matrix: per pair, the number of loci that are *comparable in exactly one* of the two files (a `-` appeared or disappeared between versions). Symmetric and non-negative;
 - an **unexplained** matrix: `max(0, |distance1 - distance2| - dash_change)`. Read it as a lower bound on genuine allele-call differences — where it is `0`, the distance difference is fully attributable to missing data; where it is positive, at least that many loci genuinely changed.
 
-Only the literal `-` code is counted (other null/error codes are not). `dash_change`/`unexplained` compare the files locus-by-locus, so they require both files to list the **same loci in the same column order** (same cgMLST scheme); if the loci counts differ they are skipped with a warning.
+`dash_change`/`unexplained` use the same missing definition (any non-integer call except stripped `INF-<n>`), and compare the files locus-by-locus, so they require both files to list the **same loci in the same column order** (same cgMLST scheme); if the loci counts differ they are skipped with a warning.
 
 Samples present in only one of the two files are identified and written to a missing-samples report; they are excluded from the difference matrices, which still run over the shared samples.
 
@@ -160,12 +160,12 @@ All matrices have their rows and columns sorted by sample id (so the two distanc
 - **`<stem1>_vs_<stem2>_abs_diff_matrix.tsv`** — `|matrix1 - matrix2|`.
 - **`<stem1>_vs_<stem2>_dash_change_matrix.tsv`** — per pair, loci comparable in exactly one of the two files (a `-` appeared/disappeared between versions). Symmetric, non-negative. Omitted if the files' loci counts differ.
 - **`<stem1>_vs_<stem2>_unexplained_matrix.tsv`** — `max(0, |diff| - dash_change)`; a lower bound on differences not attributable to missing data. Omitted if the files' loci counts differ.
-- **`<stem1>_vs_<stem2>_dash_per_sample.tsv`** — per-sample `-` counts: `sample_id, n_dash_<stem1>, n_dash_<stem2>, delta` (delta blank for samples absent from a file).
+- **`<stem1>_vs_<stem2>_missing_loci_per_sample.tsv`** — per-sample missing-loci counts: `sample_id, n_missing_<stem1>, n_missing_<stem2>, delta` (delta blank for samples absent from a file). Missing = any non-integer call except stripped `INF-<n>` inferred alleles.
 - **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
 - **`<stem1>_clean.tsv`** / **`<stem2>_clean.tsv`** — each input sorted by sample id with the `ST` column dropped; these are what `cgmlst-dists` is run on.
 - **`<stem1>_vs_<stem2>_distance_scatter.png`** — scatter of every shared sample-pair's distance in file 1 (x) vs file 2 (y), with a `y=x` identity line.
 - **`<stem1>_vs_<stem2>_bland_altman.png`** — Bland–Altman of the pairwise distances: mean of the two distances (x) vs their difference (y), with the mean difference and ±1.96·SD limits.
-- **`<stem1>_vs_<stem2>_missing_vs_st.png`** — *only with `--mlst`*. Per-sample missing-loci (`-`) counts grouped by MLST ST, with one box+points per ST for each file, to spot STs carrying more missing data.
+- **`<stem1>_vs_<stem2>_missing_vs_st.png`** — *only with `--mlst`*. Per-sample missing-loci counts grouped by MLST ST, with one box+points per ST for each file, to spot STs carrying more missing data.
 
 **Example**
 

@@ -389,13 +389,13 @@ def test_compare_distances_dash_control(tmp_path):
 
     f1 = tmp_path / "file1.tsv"
     f2 = tmp_path / "file2.tsv"
-    # file1: s1 vs s2 differ at loc2 (3 vs 4); loc3 is "-" in s2 (skipped).
+    # file1: loc3 is an error code (LNF) in s2 -> missing (broader than just "-").
     _write_tsv(f1, [
         ["FILE", "loc1", "loc2", "loc3"],
         ["s1", 1, 3, 5],
-        ["s2", 1, 4, "-"],
+        ["s2", 1, 4, "LNF"],
     ])
-    # file2: s1 vs s2 differ at loc2 only; no missing data, so loc3 is comparable.
+    # file2: no missing data, so loc3 is comparable there.
     _write_tsv(f2, [
         ["FILE", "loc1", "loc2", "loc3"],
         ["s1", 1, 3, 5],
@@ -413,6 +413,7 @@ def test_compare_distances_dash_control(tmp_path):
     unexplained = pd.read_csv(out / "file1_vs_file2_unexplained_matrix.tsv", sep="\t", index_col=0)
 
     # both files have 1 mismatch (loc2) -> diff 0; loc3 comparable only in file2
+    # (LNF counts as missing -> proves the broader definition, not just "-")
     assert diff.loc["s1", "s2"] == 0
     assert abs_diff.loc["s1", "s2"] == 0
     assert dash_change.loc["s1", "s2"] == 1   # symmetric
@@ -421,18 +422,19 @@ def test_compare_distances_dash_control(tmp_path):
     assert unexplained.loc["s1", "s2"] == 0
 
 
-def test_compare_distances_dash_per_sample(tmp_path):
+def test_compare_distances_missing_loci_per_sample(tmp_path):
     f1 = tmp_path / "file1.tsv"
     f2 = tmp_path / "file2.tsv"
+    # missing = non-integer except INF-<n> (which counts as allele <n>)
     _write_tsv(f1, [
-        ["FILE", "loc1", "loc2", "loc3"],
-        ["s1", 1, "-", "-"],
-        ["s2", 1, 4, 5],
+        ["FILE", "loc1", "loc2", "loc3", "loc4"],
+        ["s1", 1, "-", "LNF", "INF-5"],   # missing: loc2, loc3 (INF-5 is NOT missing) = 2
+        ["s2", 1, 4, 5, 6],               # 0 missing
     ])
     _write_tsv(f2, [
-        ["FILE", "loc1", "loc2", "loc3"],
-        ["s1", 1, 2, "-"],
-        ["s2", 1, 4, 5],
+        ["FILE", "loc1", "loc2", "loc3", "loc4"],
+        ["s1", 1, 2, "PLOT3", 5],         # missing: loc3 = 1
+        ["s2", 1, 4, 5, 6],               # 0 missing
     ])
     out = tmp_path / "out"
     result = runner.invoke(cli, [
@@ -441,10 +443,10 @@ def test_compare_distances_dash_per_sample(tmp_path):
     assert result.exit_code == 0, result.output
 
     rows = [r.split("\t") for r in
-            (out / "file1_vs_file2_dash_per_sample.tsv").read_text().splitlines()]
-    assert rows[0] == ["sample_id", "n_dash_file1", "n_dash_file2", "delta"]
+            (out / "file1_vs_file2_missing_loci_per_sample.tsv").read_text().splitlines()]
+    assert rows[0] == ["sample_id", "n_missing_file1", "n_missing_file2", "delta"]
     body = {r[0]: r[1:] for r in rows[1:]}
-    assert body["s1"] == ["2", "1", "1"]   # 2 dashes in file1, 1 in file2, delta 1
+    assert body["s1"] == ["2", "1", "1"]   # 2 missing in file1, 1 in file2, delta 1
     assert body["s2"] == ["0", "0", "0"]
 
 
