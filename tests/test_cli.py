@@ -506,8 +506,13 @@ def test_compare_distances_uses_cgmlst_dists(monkeypatch, tmp_path):
         stderr = ""
         returncode = 0
 
-    monkeypatch.setattr("jasentool.compare_distances.subprocess.run",
-                        lambda *a, **k: FakeProc())
+    calls = []
+
+    def fake_run(cmd, *a, **k):
+        calls.append(cmd)
+        return FakeProc()
+
+    monkeypatch.setattr("jasentool.compare_distances.subprocess.run", fake_run)
 
     rows = [["FILE", "loc1", "loc2"], ["s1", 1, 1], ["s2", 1, 1], ["s3", 1, 1]]
     f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
@@ -521,6 +526,8 @@ def test_compare_distances_uses_cgmlst_dists(monkeypatch, tmp_path):
     assert m1.loc["s1", "s2"] == 5
     assert m1.loc["s2", "s3"] == 9
     assert (out / "file1_clean.tsv").exists()   # preprocessed input fed to cgmlst-dists
+    # distance cap raised so large distances aren't clamped to the 999 default
+    assert ["-x", "2000"] == calls[0][1:3]
 
 
 def test_compare_distances_plots(tmp_path):

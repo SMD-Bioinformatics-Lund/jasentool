@@ -208,12 +208,16 @@ class CompareDistances:
             for sid in sample_ids:
                 writer.writerow([sid] + calls[sid])
 
-    @staticmethod
-    def _distances_via_cgmlst_dists(clean_path, bin_path):
+    # cgmlst-dists caps distances at its `-x` value (default 999), returning that
+    # value early; raise it above the scheme's loci count so nothing is clamped.
+    MAX_DISTANCE = 2000
+
+    @classmethod
+    def _distances_via_cgmlst_dists(cls, clean_path, bin_path):
         """Run cgmlst-dists on a cleaned TSV; return a DataFrame, or None on failure."""
         try:
             proc = subprocess.run(
-                [bin_path, clean_path],
+                [bin_path, "-x", str(cls.MAX_DISTANCE), clean_path],
                 capture_output=True, text=True, check=True,
             )
         except FileNotFoundError:
