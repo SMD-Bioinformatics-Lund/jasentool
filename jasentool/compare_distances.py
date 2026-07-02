@@ -268,6 +268,21 @@ class CompareDistances:
         iu = np.triu_indices(len(shared), k=1)
         d1, d2 = m1[iu], m2[iu]
 
+        if getattr(self.options, "verbose", False):
+            points = pd.DataFrame({
+                "sample_a": [shared[a] for a in iu[0]],
+                "sample_b": [shared[b] for b in iu[1]],
+                f"{stem1}_distance": d1.astype(int),
+                f"{stem2}_distance": d2.astype(int),
+                "mean": (d1 + d2) / 2,
+                "diff": (d1 - d2).astype(int),
+            })
+            pts_path = os.path.join(
+                self.options.output_dir, f"{stem1}_vs_{stem2}_distance_points.tsv")
+            points.to_csv(pts_path, sep="\t", index=False)
+            logger.info("Wrote %s (%d pairs; feeds both the scatter and Bland-Altman)",
+                        pts_path, len(points))
+
         plt.figure(figsize=(8, 8))
         plt.scatter(d1, d2, s=8, alpha=0.3)
         lim = max(d1.max(), d2.max(), 1)
@@ -307,7 +322,7 @@ class CompareDistances:
         for stem, calls in ((stem1, calls1), (stem2, calls2)):
             for sid, alleles in calls.items():
                 if sid in st_map:
-                    records.append({"ST": st_map[sid], "version": stem,
+                    records.append({"sample": sid, "ST": st_map[sid], "version": stem,
                                     "n_missing": self._n_missing(alleles)})
         unmatched = (set(calls1) | set(calls2)) - set(st_map)
         if unmatched:
@@ -317,6 +332,12 @@ class CompareDistances:
             logger.warning("No samples matched the MLST map; skipping missing-vs-ST plot")
             return
         df = pd.DataFrame(records)
+        if getattr(self.options, "verbose", False):
+            pts_path = os.path.join(
+                self.options.output_dir, f"{stem1}_vs_{stem2}_missing_vs_st_points.tsv")
+            df.sort_values(["ST", "version", "sample"]).to_csv(pts_path, sep="\t", index=False)
+            logger.info("Wrote %s", pts_path)
+
         order = self._st_order(df["ST"])
         plt.figure(figsize=(max(8, 0.6 * len(order)), 6))
         sns.boxplot(data=df, x="ST", y="n_missing", hue="version", order=order)
