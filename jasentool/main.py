@@ -10,6 +10,7 @@ from jasentool.database import Database
 from jasentool.validate import Validate
 from jasentool.utils import Utils
 from jasentool.missing import Missing
+from jasentool.sample_utils import parse_dir
 from jasentool.convert import Convert
 from jasentool.fix import Fix
 from jasentool.converge import Converge
@@ -22,6 +23,9 @@ from jasentool.create_yaml import CreateYaml
 from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
+from jasentool.check_backup import CheckBackup
+from jasentool.rerun_chewbbaca import RerunChewbbaca
+from jasentool.compare_distances import CompareDistances
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -68,7 +72,7 @@ class OptionsParser:
 
     def find(self, options):
         """Find entry in mongodb"""
-        Database.initialize(options.db_name)
+        Database.initialize(options.db_name, uri=options.address)
         output_fpaths = self._get_output_fpaths(options.query, options.output_dir,
                                                 options.output_file, options.prefix,
                                                 options.combined_output)
@@ -84,7 +88,7 @@ class OptionsParser:
 
     def validate_pipelines(self, options):
         """Execute validation of old vs new pipeline results"""
-        Database.initialize(options.db_name)
+        Database.initialize(options.db_name, uri=options.address)
         input_files = self._input_to_process(options.input_file, options.input_dir)
         output_fpaths = self._get_output_fpaths(input_files, options.output_dir,
                                                 options.output_file, options.prefix,
@@ -108,7 +112,7 @@ class OptionsParser:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"
             empty_fpath = os.path.splitext(options.output_file)[0] + "_empty.csv"
             meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
-            analysis_dir_fnames = handler.parse_dir(options.analysis_dir, options.alter_sample_id)
+            analysis_dir_fnames = parse_dir(options.analysis_dir, options.alter_sample_id)
             csv_dict, missing_samples_txt = handler.find_missing(meta_dict, analysis_dir_fnames, options.restore_dir)
             empty_files_dict, csv_dict = handler.remove_empty_files(csv_dict)
             utils.write_out_csv(csv_dict, options.assay, options.platform, options.output_file, options.alter_sample_id)
@@ -191,6 +195,18 @@ class OptionsParser:
     def annotate_delly(self, options):
         """Annotate Delly SV VCF with gene/locus_tag from a tabix BED."""
         AnnotateDelly().run(options.vcf, options.bed, options.output)
+
+    def check_backup(self, options):
+        """Cross-check MongoDB samples against the backup storage tree."""
+        CheckBackup(options).run()
+
+    def rerun_chewbbaca(self, options):
+        """Re-run chewBBACA AlleleCall on a check-backup _masked_assemblies.csv."""
+        RerunChewbbaca(options).run()
+
+    def compare_distances(self, options):
+        """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
+        CompareDistances(options).run()
 
     def parse_options(self, options):
         """Options parser"""

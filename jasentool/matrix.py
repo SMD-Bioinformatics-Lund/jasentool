@@ -8,6 +8,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from jasentool.database import Database
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Matrix:
     """Class to validate old pipeline (cgviz) with new pipeline (jasen)"""
@@ -38,32 +41,46 @@ class Matrix:
             jasen_cgmlst_alleles = list(jasen_cgmlst[0]["result"]["alleles"].values())
         return jasen_cgmlst_alleles
 
-    def compare_cgmlst_alleles(self, row_cgmlst_alleles, col_cgmlst_alleles):
-        """Parse through cgmlst alleles of old and new pipeline and compare results"""
+    @staticmethod
+    def _parse_allele(call):
+        """Return the integer allele, or None if missing.
+
+        Mirrors cgmlst-dists: chewBBACA inferred alleles `INF-<n>` count as allele
+        `<n>`; every other non-integer (`-`, `LNF`, `NIPH`, `PLOT3`, `PLOT5`,
+        `ASM`, ...) is treated as missing.
+        """
+        value = call[4:] if isinstance(call, str) and call.startswith("INF-") else call
+        try:
+            return abs(int(value))
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def compare_cgmlst_alleles(row_cgmlst_alleles, col_cgmlst_alleles):
+        """Count loci where both samples have a valid allele and the alleles differ."""
         mismatch_count = 0
-        null_values = ["-", "EXC", "INF", "LNF", "PLNF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "PAMA", "ASM", "ALM"]
         for idx, row_allele in enumerate(row_cgmlst_alleles):
-            col_allele = col_cgmlst_alleles[idx]
-            if row_allele in null_values or col_allele in null_values:
+            row = Matrix._parse_allele(row_allele)
+            col = Matrix._parse_allele(col_cgmlst_alleles[idx])
+            if row is None or col is None:
                 continue
-            try:
-                if int(row_allele) != int(col_allele):
-                    mismatch_count += 1
-            except ValueError:
-                print(f"One following alleles are not in integer format: {row_allele} (row) or {col_allele} (column)")
+            if row != col:
+                mismatch_count += 1
         return mismatch_count
 
-    def generate_matrix(self, sample_ids, get_cgmlst_data):
+    @staticmethod
+    def generate_matrix(sample_ids, get_cgmlst_data):
         """Generate pairwise matrix by comparing cgmlst alleles"""
         matrix_df = pd.DataFrame(index=sample_ids, columns=sample_ids)
         id_allele_dict = {sample_id: get_cgmlst_data(sample_id) for sample_id in sample_ids}
-        print(f"The sample id - alleles dict is approximately {sys.getsizeof(id_allele_dict)} bytes in size")
+        logger.debug("The sample id - alleles dict is approximately %d bytes in size",
+                     sys.getsizeof(id_allele_dict))
         for row_sample in sample_ids:
             row_sample_cgmlst = id_allele_dict[row_sample]
             for col_sample in sample_ids:
                 col_sample_cgmlst = id_allele_dict[col_sample]
                 if row_sample_cgmlst and col_sample_cgmlst:
-                    matrix_df.loc[row_sample, col_sample] = self.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
+                    matrix_df.loc[row_sample, col_sample] = Matrix.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
         return matrix_df
 
     def plot_heatmap(self, distance_df, output_plot_fpath):

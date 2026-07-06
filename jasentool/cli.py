@@ -16,12 +16,15 @@ def _parser():
     return OptionsParser(__version__)
 
 
+def _init_logging(verbose=False):
+    """Configure logging to stdout. Subcommands call this as their first body line."""
+    setup_logging(level=logging.DEBUG if verbose else logging.INFO)
+
+
 @click.group()
 @click.version_option(__version__)
-@click.option('-v', '--verbose', is_flag=True, default=False, help='Enable debug logging')
-def cli(verbose):
+def cli():
     """Multipurpose tool for the JASEN pipeline and Bonsai."""
-    setup_logging(level=logging.DEBUG if verbose else logging.INFO)
 
 
 @cli.command('find')
@@ -38,6 +41,7 @@ def cli(verbose):
 def find_cmd(query, db_name, db_collection, output_file, output_dir,
              combined_output, address, prefix):
     """Find sample from given MongoDB."""
+    _init_logging()
     if not output_file and not output_dir:
         raise click.UsageError("One of --output-file or --output-dir is required.")
     if output_file and output_dir:
@@ -69,6 +73,7 @@ def find_cmd(query, db_name, db_collection, output_file, output_dir,
 def validate_pipelines_cmd(input_file, input_dir, output_file, output_dir, db_name,
                            db_collection, combined_output, generate_matrix, address, prefix):
     """Compare results from new pipeline to old results."""
+    _init_logging()
     if not input_file and not input_dir:
         raise click.UsageError("One of --input-file or --input-dir is required.")
     if input_file and input_dir:
@@ -109,6 +114,7 @@ def identify_missing_cmd(output_file, db_name, db_collection, analysis_dir, rest
                          restore_file, missing_log, assay, platform, sample_sheet,
                          alter_sample_id, input_file):
     """Find missing sample data from old runs."""
+    _init_logging()
     options = types.SimpleNamespace(
         output_file=output_file, db_name=db_name, db_collection=db_collection,
         analysis_dir=analysis_dir, restore_dir=restore_dir, restore_file=restore_file,
@@ -127,6 +133,7 @@ def identify_missing_cmd(output_file, db_name, db_collection, analysis_dir, rest
 @click.option('-a', '--accession', default=None, help='Accession number')
 def transform_file_format_cmd(input_file, output_file, out_format, accession):
     """Transform file format from cgmlst.org target file to bed file."""
+    _init_logging()
     options = types.SimpleNamespace(
         input_file=list(input_file), output_file=output_file,
         out_format=out_format, accession=accession,
@@ -135,6 +142,7 @@ def transform_file_format_cmd(input_file, output_file, out_format, accession):
 
 
 @cli.command('reformat-csv')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='Enable debug logging')
 @click.option('--csv-file', required=True, help='Path to bjorn CSV file')
 @click.option('-o', '--output-file', required=True, help='Path to fixed output CSV file')
 @click.option('--sh-file', default=None, help='Path to bjorn SH file')
@@ -147,9 +155,10 @@ def transform_file_format_cmd(input_file, output_file, out_format, accession):
               help='Automatically start')
 @click.option('--alter-sample-id', is_flag=True, default=False,
               help='Alter sample ID to be LIMS ID + sequencing run')
-def reformat_csv_cmd(csv_file, output_file, sh_file, remote_dir, remote_hostname,
+def reformat_csv_cmd(verbose, csv_file, output_file, sh_file, remote_dir, remote_hostname,
                      remote, auto_start, alter_sample_id):
     """Reformat bjorn microbiology CSV file."""
+    _init_logging(verbose)
     options = types.SimpleNamespace(
         csv_file=csv_file, output_file=output_file, sh_file=sh_file,
         remote_dir=remote_dir, remote_hostname=remote_hostname,
@@ -164,6 +173,7 @@ def reformat_csv_cmd(csv_file, output_file, sh_file, remote_dir, remote_hostname
               help='Save all intermediary DBs created for TBProfiler DB convergence')
 def converge_catalogues_cmd(output_dir, save_dbs):
     """Converge TB mutation catalogues."""
+    _init_logging()
     options = types.SimpleNamespace(output_dir=output_dir, save_dbs=save_dbs)
     _parser().converge_catalogues(options)
 
@@ -176,6 +186,7 @@ def converge_catalogues_cmd(output_dir, save_dbs):
 @click.option('--cpus', default=2, type=int, help='Number of CPUs')
 def post_align_qc_cmd(sample_id, bam_file, output_file, bed_file, cpus):
     """Run QC on BWA alignment."""
+    _init_logging()
     options = types.SimpleNamespace(
         sample_id=sample_id, bam=bam_file,
         output_file=output_file, bed=bed_file, cpus=cpus,
@@ -190,6 +201,7 @@ def post_align_qc_cmd(sample_id, bam_file, output_file, bed_file, cpus):
 @click.option('--sample-id', default=None, help='Sample ID')
 def count_reads_cmd(fastq1, fastq2, output_file, sample_id):
     """Count reads in FASTQ file(s)."""
+    _init_logging()
     input_files = [fastq1] if fastq2 is None else [fastq1, fastq2]
     options = types.SimpleNamespace(
         input_file=input_files, output_file=output_file, sample_id=sample_id,
@@ -207,6 +219,7 @@ def count_reads_cmd(fastq1, fastq2, output_file, sample_id):
               help='Clear output directory before download')
 def download_ncbi_cmd(accession, output_dir, bwa_index, fai_index, clean):
     """Download genome FASTA and GFF from NCBI Datasets v2 API."""
+    _init_logging()
     options = types.SimpleNamespace(
         accession=list(accession), output_dir=output_dir,
         bwa_index=bwa_index, fai_index=fai_index, clean=clean,
@@ -220,6 +233,7 @@ def download_ncbi_cmd(accession, output_dir, bwa_index, fai_index, clean):
 @click.option('-o', '--output-file', required=True, help='Path to output YAML file')
 def concatenate_files_cmd(input_files, output_file):
     """Concatenate multiple YAML files (e.g. versions.yml) into one."""
+    _init_logging()
     options = types.SimpleNamespace(input_files=list(input_files), output_file=output_file)
     _parser().concatenate_files(options)
 
@@ -279,6 +293,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
                     vcf, versions, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
+    _init_logging()
     options = types.SimpleNamespace(
         amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca,
         emmtyper=emmtyper, gambitcore=gambitcore, groups=groups,
@@ -311,11 +326,13 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
 @click.option('-o', '--output', required=True, help='Output path stem (no extension)')
 def minority_report_cmd(mpileup, blacklist, output):
     """Compute minority base frequency distribution from a samtools mpileup file."""
+    _init_logging()
     options = types.SimpleNamespace(mpileup=mpileup, blacklist=blacklist, output=output)
     _parser().minority_report(options)
 
 
 @cli.command('create-blacklist')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='Enable debug logging')
 @click.option('-i', '--input-file', default=None,
               help='Text file containing BAM file paths (one per line)')
 @click.option('--input-dir', default=None,
@@ -332,9 +349,10 @@ def minority_report_cmd(mpileup, blacklist, output):
               help='Minimum minority frequency to count a position')
 @click.option('--min-count', default=5, show_default=True, type=int,
               help='Minimum number of samples a position must appear in to enter the blacklist')
-def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
+def create_blacklist_cmd(verbose, input_file, input_dir, output_dir, output_file,
                          bed_file, samtools, sample_pattern, min_freq, min_count):
     """Create a minority variant blacklist from a set of BAM files."""
+    _init_logging(verbose)
     if not input_file and not input_dir:
         raise click.UsageError("One of --input-file or --input-dir is required.")
     if input_file and input_dir:
@@ -348,6 +366,97 @@ def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
     _parser().create_blacklist(options)
 
 
+@cli.command('check-backup')
+@click.option('--profile', required=True,
+              help='JASEN profile name, e.g. staphylococcus_aureus')
+@click.option('--backup-dir', required=True,
+              type=click.Path(exists=True, file_okay=False),
+              help='Root of the backup storage tree')
+@click.option('--db-name', required=True,
+              help='Bonsai MongoDB database name')
+@click.option('--db-collection', required=True,
+              help='Bonsai MongoDB collection name')
+@click.option('--db-collection-groups', default='sample_group', show_default=True,
+              help='Bonsai MongoDB collection holding sample_group docs')
+@click.option('--address', '--uri', default='mongodb://localhost:27017/',
+              help='Bonsai MongoDB address')
+@click.option('--check-orphans', is_flag=True, default=False,
+              help='After scanning, also list files in the backup tree that do '
+                   'not match any expected <sample_id><mask><file_ext>')
+@click.option('-o', '--output-file', required=True,
+              help='Path to summary CSV; per-file missing CSV uses the same stem')
+def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_groups,
+                     address, check_orphans, output_file):
+    """Cross-check Bonsai samples against the backup storage tree."""
+    _init_logging()
+    options = types.SimpleNamespace(
+        profile=profile, backup_dir=backup_dir, db_name=db_name,
+        db_collection=db_collection, db_collection_groups=db_collection_groups,
+        address=address,
+        check_orphans=check_orphans, output_file=output_file,
+    )
+    _parser().check_backup(options)
+
+
+@cli.command('rerun-chewbbaca')
+@click.option('--masked-assemblies', required=True, type=click.Path(),
+              help='Path to _masked_assemblies.csv from `check-backup`')
+@click.option('--schema-dir', required=True, type=click.Path(),
+              help='chewBBACA schema directory (passed as --schema-directory)')
+@click.option('--output-dir', required=True, type=click.Path(),
+              help='Output directory; chewBBACA results land in <output-dir>/output_dir/, '
+                   'batch list in <output-dir>/batch_input.list')
+@click.option('--training-file', default=None, type=click.Path(),
+              help='Optional chewBBACA training file (--ptf)')
+@click.option('--cpus', default=4, show_default=True, type=int,
+              help='chewBBACA --cpu value')
+@click.option('--chewie-bin', default='chewie', show_default=True,
+              help='Path or name of the chewie executable')
+@click.option('--singularity-image', default=None, type=click.Path(),
+              help='If set, wrap chewie invocation as `singularity exec <image> chewie ...`')
+@click.option('--singularity-bind', default=None,
+              help='Comma-separated bind list passed to `singularity exec --bind` '
+                   '(e.g. "/media/isilon,/data,/scratch"). Only used with --singularity-image.')
+@click.option('--profile-filter', default=None,
+              help='If set, include only rows whose `profile` column matches this value')
+def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file,
+                        cpus, chewie_bin, singularity_image, singularity_bind,
+                        profile_filter):
+    """Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV."""
+    _init_logging()
+    options = types.SimpleNamespace(
+        masked_assemblies=masked_assemblies, schema_dir=schema_dir,
+        output_dir=output_dir, training_file=training_file,
+        cpus=cpus, chewie_bin=chewie_bin, singularity_image=singularity_image,
+        singularity_bind=singularity_bind, profile_filter=profile_filter,
+    )
+    _parser().rerun_chewbbaca(options)
+
+
+@cli.command('compare-distances')
+@click.option('-i', '--input', 'input_files', required=True, nargs=2,
+              type=click.Path(exists=True, dir_okay=False),
+              help='Two chewBBACA cgMLST allele-call TSVs (sample_id in column 1, loci '
+                   'calls after); same sample names in both')
+@click.option('-o', '--output-dir', required=True, type=click.Path(),
+              help='Output directory for the two distance matrices and their difference')
+@click.option('--mlst', default=None, type=click.Path(exists=True, dir_okay=False),
+              help='Optional sample_name,mlst_st CSV/TSV; enables the missing-loci-vs-ST plot')
+@click.option('--cgmlst-dists-bin', default='cgmlst-dists', show_default=True,
+              help='Path or name of the cgmlst-dists executable (Python fallback if absent)')
+@click.option('-v', '--verbose', is_flag=True, default=False,
+              help='Verbose logging and write the underlying plot point tables (*_points.tsv) '
+                   'so individual points can be checked by hand')
+def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin, verbose):
+    """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
+    _init_logging(verbose)
+    options = types.SimpleNamespace(
+        file1=input_files[0], file2=input_files[1], output_dir=output_dir,
+        mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin, verbose=verbose,
+    )
+    _parser().compare_distances(options)
+
+
 @cli.command('annotate-delly')
 @click.option('-v', '--vcf', required=True, type=click.Path(exists=True, path_type=Path),
               help='Delly VCF/BCF to annotate')
@@ -357,6 +466,7 @@ def create_blacklist_cmd(input_file, input_dir, output_dir, output_file,
               help='Output annotated VCF path')
 def annotate_delly_cmd(vcf, bed, output):
     """Annotate Delly structural variants with gene and locus_tag from a BED file."""
+    _init_logging()
     options = types.SimpleNamespace(vcf=vcf, bed=bed, output=output)
     _parser().annotate_delly(options)
 
@@ -384,6 +494,7 @@ def annotate_delly_cmd(vcf, bed, output):
 def download_bigsdb_cmd(url, site, key_name, output_dir, token_dir, db, setup,
                         download_scheme, force, cron, method, output_file):
     """Download cgMLST scheme alleles from PubMLST or BIGSdb Pasteur via OAuth1."""
+    _init_logging()
     options = types.SimpleNamespace(
         url=url, site=site, key_name=key_name, output_dir=output_dir,
         token_dir=token_dir, db=db, setup=setup, download_scheme=download_scheme,

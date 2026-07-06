@@ -9,13 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+ - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree per JASEN profile. Emits a per-sample summary, a per-missing-file detail CSV, and a per-output stats CSV.
+ - `--check-orphans` flag on `check-backup` — reverse check that lists backup files which don't match any expected sample × output.
+ - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
+ - `<stem>_review.csv` from `check-backup` — flags Bonsai samples where `sample_name == sample_id` and detects duplicates by `sample_id` or `sample_name`.
+ - `<stem>_masked_assemblies.csv` from `check-backup` — lists backed-up masked FASTA assemblies per Bonsai sample (filtered to `sample_name != sample_id`), the exact input JASEN's chewBBACA step originally consumed.
+ - `rerun-chewbbaca` subcommand — consumes `<stem>_masked_assemblies.csv`, writes a batch-input list, runs `chewie AlleleCall` in one batch. Useful after a chewBBACA schema or version update.
+ - `<stem>_group_orphans.csv` from `check-backup` — flags `sample_id`s referenced in `sample_group.included_samples` that don't exist in the `sample` collection. New `--db-collection-groups` option (default `sample_group`) selects the group collection.
  - `--versions` arg to `create-yaml` to enrich `analysis_result` entries with `software_version` from a concatenated versions YAML
  - `concatenated_versions.yml` fixture with versions for all supported tools
 
 ### Fixed
 
+ - `--address`/`--uri` now actually overrides the MongoDB URI for `find` and `validate-pipelines` (previously accepted but ignored).
+ - Capped `pymongo<4` so jasentool can talk to older MongoDB servers (≥ 2.6).
+
 ### Changed
 
+ - Log records now go to stdout instead of stderr — redirect with `> log.txt` to persist.
  - Removed `--postalnqc` arg from `create-yaml`; replaced by `--samtools-stats` and `--samtools-bedcov`
  - Restructured `create-yaml` output to updated manifest format: analysis tools grouped under `analysis_result` list, `sourmash_signature` and `ska_index` moved to `index_artifacts`
  - Output YAML key order now matches the manifest spec (`sample_id`, `sample_name`, `lims_id`, `groups`, …, `igv_annotations`, `analysis_result`, `index_artifacts`)

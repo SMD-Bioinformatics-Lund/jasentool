@@ -548,3 +548,307 @@ def test_download_ncbi(tmp_path):
     gff   = tmp_path / "GCF_000012045.1.gff"
     assert fasta.exists() and fasta.stat().st_size > 0
     assert gff.exists()   and gff.stat().st_size > 0
+
+
+# ── compare-distances ───────────────────────────────────────────────────────────
+
+def _write_tsv(path, rows):
+    path.write_text("\n".join("\t".join(map(str, row)) for row in rows) + "\n")
+
+
+def test_compare_distances(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 2, 3],
+        ["s2", 1, 2, 4],
+        ["s3", 5, 2, 3],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 2, 3],
+        ["s2", 1, 2, 3],
+        ["s3", 5, 2, 3],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    m1 = pd.read_csv(out / "file1_distance_matrix.tsv", sep="\t", index_col=0)
+    m2 = pd.read_csv(out / "file2_distance_matrix.tsv", sep="\t", index_col=0)
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+
+    # distance = number of mismatching loci
+    assert m1.loc["s2", "s3"] == 2
+    assert m1.loc["s1", "s2"] == 1
+    assert m1.loc["s1", "s1"] == 0
+    assert m2.loc["s1", "s2"] == 0
+    # diff = matrix1 - matrix2
+    assert diff.loc["s2", "s3"] == 1
+    assert diff.loc["s1", "s3"] == 0
+
+    # identical sample sets -> missing-samples report is header-only
+    missing = (out / "file1_vs_file2_missing_samples.tsv").read_text().splitlines()
+    assert missing == ["sample_id\tpresent_in\tmissing_from"]
+
+
+def test_compare_distances_excludes_missing_samples(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # s3 is only in file1; comparison should still run over the shared s1/s2.
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+        ["s3", 9, 9],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 4],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+    assert list(diff.index) == ["s1", "s2"]  # s3 excluded
+    assert "s3" not in diff.columns
+
+    rows = [r.split("\t") for r in
+            (out / "file1_vs_file2_missing_samples.tsv").read_text().splitlines()]
+    assert rows[0] == ["sample_id", "present_in", "missing_from"]
+    assert ["s3", "file1.tsv", "file2.tsv"] in rows[1:]
+
+
+def test_compare_distances_drops_st_and_handles_old_header(tmp_path):
+    import pandas as pd
+
+    old = tmp_path / "old.tsv"   # older chewBBACA: #Name, ST, loci...
+    new = tmp_path / "new.tsv"   # newer chewBBACA: FILE, loci...
+    # s1/s2 share both loci but have different ST; if ST were NOT dropped it would
+    # show up as a mismatch (distance 1) instead of 0.
+    _write_tsv(old, [
+        ["#Name", "ST", "loc1", "loc2"],
+        ["s1", 10, 1, 2],
+        ["s2", 20, 1, 2],
+    ])
+    _write_tsv(new, [
+        ["FILE", "loc1", "loc2"],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(old), str(new), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    m_old = pd.read_csv(out / "old_distance_matrix.tsv", sep="\t", index_col=0)
+    m_new = pd.read_csv(out / "new_distance_matrix.tsv", sep="\t", index_col=0)
+    # ST dropped -> s1 vs s2 identical across loci -> distance 0
+    assert m_old.loc["s1", "s2"] == 0
+    # cross-format comparison still works positionally
+    assert m_new.loc["s1", "s2"] == 1
+
+
+def test_compare_distances_dash_control(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # file1: loc3 is an error code (LNF) in s2 -> missing (broader than just "-").
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 3, 5],
+        ["s2", 1, 4, "LNF"],
+    ])
+    # file2: no missing data, so loc3 is comparable there.
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3"],
+        ["s1", 1, 3, 5],
+        ["s2", 1, 4, 5],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    diff = pd.read_csv(out / "file1_vs_file2_diff_matrix.tsv", sep="\t", index_col=0)
+    abs_diff = pd.read_csv(out / "file1_vs_file2_abs_diff_matrix.tsv", sep="\t", index_col=0)
+    dash_change = pd.read_csv(out / "file1_vs_file2_dash_change_matrix.tsv", sep="\t", index_col=0)
+    unexplained = pd.read_csv(out / "file1_vs_file2_unexplained_matrix.tsv", sep="\t", index_col=0)
+
+    # both files have 1 mismatch (loc2) -> diff 0; loc3 comparable only in file2
+    # (LNF counts as missing -> proves the broader definition, not just "-")
+    assert diff.loc["s1", "s2"] == 0
+    assert abs_diff.loc["s1", "s2"] == 0
+    assert dash_change.loc["s1", "s2"] == 1   # symmetric
+    assert dash_change.loc["s2", "s1"] == 1
+    # |diff| (0) <= dash_change (1) -> fully attributable to missing data
+    assert unexplained.loc["s1", "s2"] == 0
+
+
+def test_compare_distances_missing_loci_per_sample(tmp_path):
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # missing = non-integer except INF-<n> (which counts as allele <n>)
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2", "loc3", "loc4"],
+        ["s1", 1, "-", "LNF", "INF-5"],   # missing: loc2, loc3 (INF-5 is NOT missing) = 2
+        ["s2", 1, 4, 5, 6],               # 0 missing
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2", "loc3", "loc4"],
+        ["s1", 1, 2, "PLOT3", 5],         # missing: loc3 = 1
+        ["s2", 1, 4, 5, 6],               # 0 missing
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    rows = [r.split("\t") for r in
+            (out / "file1_vs_file2_missing_loci_per_sample.tsv").read_text().splitlines()]
+    assert rows[0] == ["sample_id", "n_missing_file1", "n_missing_file2", "delta"]
+    body = {r[0]: r[1:] for r in rows[1:]}
+    assert body["s1"] == ["2", "1", "1"]   # 2 missing in file1, 1 in file2, delta 1
+    assert body["s2"] == ["0", "0", "0"]
+
+
+def test_compare_distances_matrices_are_sorted(tmp_path):
+    import pandas as pd
+
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # rows out of order; output matrices should be sorted by sample id
+    _write_tsv(f1, [
+        ["FILE", "loc1", "loc2"],
+        ["s3", 1, 2],
+        ["s1", 1, 2],
+        ["s2", 1, 3],
+    ])
+    _write_tsv(f2, [
+        ["FILE", "loc1", "loc2"],
+        ["s2", 1, 2],
+        ["s3", 1, 2],
+        ["s1", 1, 2],
+    ])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+
+    for name in ("file1_distance_matrix.tsv", "file2_distance_matrix.tsv",
+                 "file1_vs_file2_diff_matrix.tsv"):
+        m = pd.read_csv(out / name, sep="\t", index_col=0)
+        assert list(m.index) == ["s1", "s2", "s3"]
+        assert list(m.columns) == ["s1", "s2", "s3"]
+
+
+def test_compare_distances_errors_without_header(tmp_path):
+    f1 = tmp_path / "file1.tsv"
+    f2 = tmp_path / "file2.tsv"
+    # No header row (first cell is a sample id, not FILE/#Name) -> error.
+    _write_tsv(f1, [["s1", 1, 2], ["s2", 1, 3]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3]])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code != 0
+
+
+def test_compare_distances_uses_cgmlst_dists(monkeypatch, tmp_path):
+    import pandas as pd
+
+    # Fake cgmlst-dists output; values differ from what the alleles imply (all
+    # identical -> Python fallback would be 0), proving the cgmlst-dists path was used.
+    matrix_text = "cgmlst-dists\ts1\ts2\ts3\ns1\t0\t5\t7\ns2\t5\t0\t9\ns3\t7\t9\t0\n"
+
+    class FakeProc:
+        stdout = matrix_text
+        stderr = ""
+        returncode = 0
+
+    calls = []
+
+    def fake_run(cmd, *a, **k):
+        calls.append(cmd)
+        return FakeProc()
+
+    monkeypatch.setattr("jasentool.compare_distances.subprocess.run", fake_run)
+
+    rows = [["FILE", "loc1", "loc2"], ["s1", 1, 1], ["s2", 1, 1], ["s3", 1, 1]]
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, rows)
+    _write_tsv(f2, rows)
+    out = tmp_path / "out"
+    result = runner.invoke(cli, ["compare-distances", "-i", str(f1), str(f2), "-o", str(out)])
+    assert result.exit_code == 0, result.output
+
+    m1 = pd.read_csv(out / "file1_distance_matrix.tsv", sep="\t", index_col=0)
+    assert m1.loc["s1", "s2"] == 5
+    assert m1.loc["s2", "s3"] == 9
+    assert (out / "file1_clean.tsv").exists()   # preprocessed input fed to cgmlst-dists
+    # distance cap raised so large distances aren't clamped to the 999 default
+    assert ["-x", "2000"] == calls[0][1:3]
+
+
+def test_compare_distances_plots(tmp_path):
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    st = tmp_path / "st.csv"
+    st.write_text("sample_name,mlst_st\ns1,1\ns2,1\ns3,22\n")
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out), "--mlst", str(st),
+    ])
+    assert result.exit_code == 0, result.output
+    assert (out / "file1_vs_file2_distance_scatter.png").exists()
+    assert (out / "file1_vs_file2_bland_altman.png").exists()
+    assert (out / "file1_vs_file2_missing_vs_st.png").exists()
+
+
+def test_compare_distances_verbose_points(tmp_path):
+    import pandas as pd
+
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    st = tmp_path / "st.csv"
+    st.write_text("sample_name,mlst_st\ns1,1\ns2,1\ns3,22\n")
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out), "--mlst", str(st), "-v",
+    ])
+    assert result.exit_code == 0, result.output
+
+    pts = pd.read_csv(out / "file1_vs_file2_distance_points.tsv", sep="\t")
+    assert len(pts) == 3   # 3 shared samples -> 3 upper-triangle pairs
+    row = pts[(pts.sample_a == "s1") & (pts.sample_b == "s2")].iloc[0]
+    assert row["file1_distance"] == 1 and row["file2_distance"] == 1 and row["diff"] == 0
+    assert (out / "file1_vs_file2_missing_vs_st_points.tsv").exists()
+
+
+def test_compare_distances_help():
+    result = runner.invoke(cli, ["compare-distances", "--help"])
+    assert result.exit_code == 0
+
+
+def test_compare_distances_missing_args():
+    result = runner.invoke(cli, ["compare-distances"])
+    assert result.exit_code != 0

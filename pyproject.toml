@@ -22,7 +22,7 @@ dependencies = [
     "requests",
     "tqdm",
     "pandas",
-    "pymongo~=4.16",
+    "pymongo>=3.12,<4",
     "openpyxl",
     "biopython",
     "matplotlib",
@@ -58,6 +58,9 @@ test = [
 [tool.setuptools]
 packages = ["jasentool"]
 include-package-data = true
+
+[tool.setuptools.package-data]
+jasentool = ["data/dbs/*.csv"]
 
 [tool.setuptools.data-files]
 "notebooks" = ["notebooks/*.ipynb"]
