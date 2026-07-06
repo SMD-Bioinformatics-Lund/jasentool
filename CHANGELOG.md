@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [1.2.0]
+
+### Added
+
  - `check-backup` subcommand — cross-checks Bonsai samples against the on-disk backup storage tree per JASEN profile. Emits a per-sample summary, a per-missing-file detail CSV, and a per-output stats CSV.
  - `--check-orphans` flag on `check-backup` — reverse check that lists backup files which don't match any expected sample × output.
  - `-v`/`--verbose` flag on `reformat-csv` and `create-blacklist`.
