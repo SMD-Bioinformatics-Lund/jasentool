@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - `<stem>_masked_assemblies.csv` from `check-backup` — lists backed-up masked FASTA assemblies per Bonsai sample (filtered to `sample_name != sample_id`), the exact input JASEN's chewBBACA step originally consumed.
  - `rerun-chewbbaca` subcommand — consumes `<stem>_masked_assemblies.csv`, writes a batch-input list, runs `chewie AlleleCall` in one batch. Useful after a chewBBACA schema or version update.
  - `<stem>_group_orphans.csv` from `check-backup` — flags `sample_id`s referenced in `sample_group.included_samples` that don't exist in the `sample` collection. New `--db-collection-groups` option (default `sample_group`) selects the group collection.
+ - `--versions` arg to `create-yaml` to enrich `analysis_result` entries with `software_version` from a concatenated versions YAML
+ - `concatenated_versions.yml` fixture with versions for all supported tools
 
 ### Fixed
 
@@ -25,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
  - Log records now go to stdout instead of stderr — redirect with `> log.txt` to persist.
+ - Removed `--postalnqc` arg from `create-yaml`; replaced by `--samtools-stats` and `--samtools-bedcov`
+ - Restructured `create-yaml` output to updated manifest format: analysis tools grouped under `analysis_result` list, `sourmash_signature` and `ska_index` moved to `index_artifacts`
+ - Output YAML key order now matches the manifest spec (`sample_id`, `sample_name`, `lims_id`, `groups`, …, `igv_annotations`, `analysis_result`, `index_artifacts`)
 
 ## [1.1.0]
 
@@ -32,9 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - `minority-report` subcommand — computes minority base frequency distribution from a pre-computed `samtools mpileup` file (`.mpileup` or `.mpileup.gz`), with optional blacklist filtering
  - `create-blacklist` subcommand — runs mpileup and minority base distribution across a set of BAM files, then aggregates per-position frequencies to produce a minority variant blacklist TSV
- - `--plasmidfinder` flag in `create-yaml` — emits PlasmidFinder result path under the `plasmidfinder` key
- - `--plasmidfinder-genome-hits` flag in `create-yaml` — emits the path to the PlasmidFinder `Hit_in_genome_seq.fsa` under the `plasmidfinder_genome_hits` key
- - `--plasmidfinder-plasmid-seqs` flag in `create-yaml` — emits the path to the PlasmidFinder `Plasmid_seqs.fsa` under the `plasmidfinder_plasmid_seqs` key
+ - `--plasmidfinder`, `--plasmidfinder-genome-hits`, `--plasmidfinder-plasmid-seqs` flags in `create-yaml` — emit PlasmidFinder result + the `Hit_in_genome_seq.fsa` and `Plasmid_seqs.fsa` paths
  - `--shigatyper` flag in `create-yaml` — emits ShigaTyper result path under the `shigatyper` key (#47)
  - `--samtools-stats` and `--samtools-bedcov` flags in `create-yaml` — mutually exclusive with `--postalnqc`
 

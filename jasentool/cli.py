@@ -254,12 +254,11 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--mykrobe', type=click.Path(), default=None)
 @click.option('--nanoplot', type=click.Path(), default=None)
 @click.option('--nextflow-run-info', type=click.Path(), default=None)
-@click.option('--postalnqc', type=click.Path(), default=None)
-@click.option('--samtools-bedcov', type=click.Path(), default=None)
-@click.option('--samtools-stats', type=click.Path(), default=None)
 @click.option('--plasmidfinder', type=click.Path(), default=None)
 @click.option('--plasmidfinder-genome-hits', type=click.Path(), default=None)
 @click.option('--plasmidfinder-plasmid-seqs', type=click.Path(), default=None)
+@click.option('--samtools-bedcov', type=click.Path(), default=None)
+@click.option('--samtools-stats', type=click.Path(), default=None)
 @click.option('--quast', type=click.Path(), default=None)
 @click.option('--ref-genome-annotation', type=click.Path(), default=None)
 @click.option('--ref-genome-sequence', type=click.Path(), default=None)
@@ -279,27 +278,22 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--tbdb-bed', type=click.Path(), default=None)
 @click.option('--tbprofiler', type=click.Path(), default=None)
 @click.option('--vcf', type=click.Path(), default=None)
+@click.option('--versions', type=click.Path(), default=None)
 @click.option('--virulencefinder', type=click.Path(), default=None)
 @click.option('-o', '--output', required=True, type=click.Path())
 def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
                     mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
                     plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
-                    postalnqc, quast,
+                    quast,
                     ref_genome_annotation, ref_genome_sequence, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
                     shigatyper, ska_index, software_info, sourmash_signature,
                     spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
-                    vcf, virulencefinder, output):
+                    vcf, versions, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     _init_logging()
-    if postalnqc and (samtools_bedcov or samtools_stats):
-        raise click.UsageError(
-            "--postalnqc cannot be combined with --samtools-bedcov or "
-            "--samtools-stats; use either --postalnqc or the samtools-* "
-            "options, not both."
-        )
     options = types.SimpleNamespace(
         amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca,
         emmtyper=emmtyper, gambitcore=gambitcore, groups=groups,
@@ -309,7 +303,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         plasmidfinder=plasmidfinder,
         plasmidfinder_genome_hits=plasmidfinder_genome_hits,
         plasmidfinder_plasmid_seqs=plasmidfinder_plasmid_seqs,
-        postalnqc=postalnqc, quast=quast,
+        quast=quast,
         ref_genome_annotation=ref_genome_annotation,
         ref_genome_sequence=ref_genome_sequence, resfinder=resfinder,
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
@@ -318,8 +312,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         shigatyper=shigatyper, ska_index=ska_index, software_info=software_info,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
-        tbprofiler=tbprofiler, vcf=vcf, virulencefinder=virulencefinder,
-        output=output,
+        tbprofiler=tbprofiler, vcf=vcf, versions=versions,
+        virulencefinder=virulencefinder, output=output,
     )
     _parser().create_yaml(options)
 
