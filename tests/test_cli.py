@@ -2,6 +2,7 @@
 import json
 import shutil
 import subprocess
+from pathlib import Path
 
 import yaml
 
@@ -493,6 +494,68 @@ def test_create_yaml_missing_required_args():
     assert result.exit_code != 0
 
 
+# ── format-cdm ─────────────────────────────────────────────────────────────────
+
+def _write_cdm_manifest(tmp_path, fixtures_dir):
+    for name in (
+        "samtools_stats.txt",
+        "samtools_bedcov.txt",
+        "quast.tsv",
+        "gambitcore.tsv",
+        "chewbbaca.out",
+        "analysis_meta.json",
+    ):
+        shutil.copy(fixtures_dir / name, tmp_path / name)
+
+    manifest = tmp_path / "manifest.yml"
+    manifest.write_text(
+        """
+sample_id: saureus_test_1
+sample_name: saureus_test_1
+lims_id: lims1
+nextflow_run_info: ./analysis_meta.json
+analysis_result:
+  - software: samtools
+    subcommand: stats
+    software_version: "1.17"
+    uri: ./samtools_stats.txt
+  - software: samtools
+    subcommand: bedcov
+    software_version: "1.17"
+    uri: ./samtools_bedcov.txt
+  - software: quast
+    software_version: "5.0"
+    uri: ./quast.tsv
+  - software: gambitcore
+    software_version: "1.0"
+    uri: ./gambitcore.tsv
+  - software: chewbbaca
+    software_version: "3.0"
+    uri: ./chewbbaca.out
+""",
+        encoding="utf-8",
+    )
+    return manifest
+
+
+def test_format_cdm(tmp_path):
+    fixtures_dir = Path(__file__).parent / "fixtures" / "cdm"
+    manifest = _write_cdm_manifest(tmp_path, fixtures_dir)
+    out = tmp_path / "cdm_input.json"
+
+    result = runner.invoke(cli, ["format-cdm", str(manifest), "-o", str(out)])
+
+    assert result.exit_code == 0, result.output
+    records = json.loads(out.read_text())
+    ids = {r["id"] for r in records}
+    assert ids == {"postalignqc", "quast", "gambitcore", "chewbbaca_missing_loci"}
+
+
+def test_format_cdm_missing_manifest():
+    result = runner.invoke(cli, ["format-cdm", "does_not_exist.yml"])
+    assert result.exit_code != 0
+
+
 # ── annotate-delly ─────────────────────────────────────────────────────────────
 
 def test_annotate_delly(delly_bcf_path, delly_bed_path, tmp_path):
@@ -821,6 +884,38 @@ def test_compare_distances_plots(tmp_path):
     assert (out / "file1_vs_file2_distance_scatter.png").exists()
     assert (out / "file1_vs_file2_bland_altman.png").exists()
     assert (out / "file1_vs_file2_missing_vs_st.png").exists()
+
+
+def test_compare_distances_bland_altman_zoom(tmp_path):
+    """--max-mean-distance/--min-mean-distance write an extra zoomed Bland-Altman
+    alongside the full-range one."""
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+        "--min-mean-distance", "0", "--max-mean-distance", "100",
+    ])
+    assert result.exit_code == 0, result.output
+    # full-range plot still written
+    assert (out / "file1_vs_file2_bland_altman.png").exists()
+    # extra zoomed plot written alongside it, named by its mean-distance window
+    assert (out / "file1_vs_file2_bland_altman_mean_0-100.png").exists()
+
+
+def test_compare_distances_no_zoom_by_default(tmp_path):
+    """Without the bounds flags, no zoomed Bland-Altman is produced."""
+    f1, f2 = tmp_path / "file1.tsv", tmp_path / "file2.tsv"
+    _write_tsv(f1, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 3], ["s3", 4, 5]])
+    _write_tsv(f2, [["FILE", "loc1", "loc2"], ["s1", 1, 2], ["s2", 1, 4], ["s3", 6, 5]])
+    out = tmp_path / "out"
+    result = runner.invoke(cli, [
+        "compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    zoomed = list(out.glob("*_bland_altman_mean_*.png"))
+    assert zoomed == []
 
 
 def test_compare_distances_verbose_points(tmp_path):

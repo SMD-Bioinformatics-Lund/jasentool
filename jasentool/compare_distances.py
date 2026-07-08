@@ -303,21 +303,54 @@ class CompareDistances:
 
         mean, diff = (d1 + d2) / 2, d1 - d2
         md, sd = diff.mean(), diff.std()
+        ba_path = os.path.join(
+            self.options.output_dir, f"{stem1}_vs_{stem2}_bland_altman.png")
+        self._bland_altman(mean, diff, md, sd, stem1, stem2, ba_path)
+        logger.info("Wrote %s", ba_path)
+
+        # Optional zoomed Bland-Altman restricted to a clinically relevant
+        # mean-distance window, written alongside the full-range plot. The
+        # reference lines (bias, ±1.96 SD) stay computed over all pairs so the
+        # zoom is a pure view onto the same statistics.
+        lo = getattr(self.options, "min_mean_distance", None)
+        hi = getattr(self.options, "max_mean_distance", None)
+        if lo is not None or hi is not None:
+            lo_eff = float(lo) if lo is not None else 0.0
+            hi_eff = float(hi) if hi is not None else float(mean.max())
+            zoom_path = os.path.join(
+                self.options.output_dir,
+                f"{stem1}_vs_{stem2}_bland_altman_mean_{lo_eff:g}-{hi_eff:g}.png")
+            self._bland_altman(mean, diff, md, sd, stem1, stem2, zoom_path,
+                               xlim=(lo_eff, hi_eff))
+            logger.info("Wrote %s", zoom_path)
+
+    def _bland_altman(self, mean, diff, md, sd, stem1, stem2, path, xlim=None):
+        """Draw a Bland-Altman plot; xlim optionally restricts the mean-distance axis."""
+        loa_hi, loa_lo = md + 1.96 * sd, md - 1.96 * sd
         plt.figure(figsize=(8, 6))
         plt.scatter(mean, diff, s=8, alpha=0.3)
         plt.axhline(md, color="red", lw=1, label=f"mean {md:.2f}")
-        plt.axhline(md + 1.96 * sd, color="grey", ls="--", lw=1, label="±1.96 SD")
-        plt.axhline(md - 1.96 * sd, color="grey", ls="--", lw=1)
+        plt.axhline(loa_hi, color="grey", ls="--", lw=1, label="±1.96 SD")
+        plt.axhline(loa_lo, color="grey", ls="--", lw=1)
         plt.xlabel("Mean distance")
         plt.ylabel(f"Difference ({stem1} - {stem2})")
-        plt.title("Bland-Altman of pairwise distances")
+        title = "Bland-Altman of pairwise distances"
+        if xlim is not None:
+            lo, hi = xlim
+            plt.xlim(lo, hi)
+            title += f" (mean {lo:g}-{hi:g})"
+            # Rescale y to the points inside the window plus the agreement lines,
+            # so the zoom isn't vertically squished by out-of-window outliers.
+            in_win = (mean >= lo) & (mean <= hi)
+            ys = np.concatenate([diff[in_win], [md, loa_hi, loa_lo]])
+            if ys.size:
+                pad = max((float(ys.max()) - float(ys.min())) * 0.05, 1.0)
+                plt.ylim(float(ys.min()) - pad, float(ys.max()) + pad)
+        plt.title(title)
         plt.legend()
-        ba_path = os.path.join(
-            self.options.output_dir, f"{stem1}_vs_{stem2}_bland_altman.png")
         plt.tight_layout()
-        plt.savefig(ba_path, dpi=300)
+        plt.savefig(path, dpi=300)
         plt.close()
-        logger.info("Wrote %s", ba_path)
 
     def _missing_vs_st_plot(self, calls1, calls2, stem1, stem2):
         """Per-sample missing-loci ('-') counts grouped by MLST ST, for both files."""
