@@ -20,6 +20,7 @@ from jasentool.ncbi import NCBI
 from jasentool.bigsdb import BIGSdb
 from jasentool.concatenate import Concatenate
 from jasentool.create_yaml import CreateYaml
+from jasentool.format_cdm import FormatCdm
 from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
@@ -178,6 +179,10 @@ class OptionsParser:
     def create_yaml(self, options):
         """Create YAML input file for Bonsai upload"""
         CreateYaml().run(options)
+
+    def format_cdm(self, options):
+        """Build a CDM input file from a JASEN sample manifest"""
+        FormatCdm().run(options)
 
     def minority_report(self, options):
         """Compute minority base distribution from a pre-computed mpileup file."""

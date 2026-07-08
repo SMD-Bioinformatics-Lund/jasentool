@@ -318,6 +318,16 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
     _parser().create_yaml(options)
 
 
+@cli.command('format-cdm')
+@click.argument('manifest', type=click.Path(exists=True, dir_okay=False))
+@click.option('-o', '--output-file', default=None, help='Path to output file')
+def format_cdm_cmd(manifest, output_file):
+    """Build a CDM input file from a JASEN sample manifest (e.g. created by create-yaml)."""
+    _init_logging()
+    options = types.SimpleNamespace(manifest=manifest, output_file=output_file)
+    _parser().format_cdm(options)
+
+
 @cli.command('minority-report')
 @click.option('--mpileup', required=True, type=click.Path(exists=True),
               help='Input mpileup file (.mpileup or .mpileup.gz)')
@@ -444,15 +454,24 @@ def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file
               help='Optional sample_name,mlst_st CSV/TSV; enables the missing-loci-vs-ST plot')
 @click.option('--cgmlst-dists-bin', default='cgmlst-dists', show_default=True,
               help='Path or name of the cgmlst-dists executable (Python fallback if absent)')
+@click.option('--min-mean-distance', default=None, type=float,
+              help='Lower bound on the Bland-Altman mean-distance (x) axis for an extra '
+                   'zoomed plot written alongside the full-range one')
+@click.option('--max-mean-distance', default=None, type=float,
+              help='Upper bound on the Bland-Altman mean-distance (x) axis for an extra '
+                   'zoomed plot (e.g. 50 or 100, the clinically relevant band)')
 @click.option('-v', '--verbose', is_flag=True, default=False,
               help='Verbose logging and write the underlying plot point tables (*_points.tsv) '
                    'so individual points can be checked by hand')
-def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin, verbose):
+def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin,
+                          min_mean_distance, max_mean_distance, verbose):
     """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
     _init_logging(verbose)
     options = types.SimpleNamespace(
         file1=input_files[0], file2=input_files[1], output_dir=output_dir,
-        mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin, verbose=verbose,
+        mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin,
+        min_mean_distance=min_mean_distance, max_mean_distance=max_mean_distance,
+        verbose=verbose,
     )
     _parser().compare_distances(options)
 
