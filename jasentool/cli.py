@@ -408,6 +408,44 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
     _parser().check_backup(options)
 
 
+@cli.command('rebuild-manifests')
+@click.option('--profile', required=True,
+              help='JASEN profile name, e.g. staphylococcus_aureus')
+@click.option('--backup-dir', required=True,
+              type=click.Path(exists=True, file_okay=False),
+              help='Root of the backup storage tree')
+@click.option('--db-name', default=None,
+              help='Bonsai MongoDB database name (required unless --no-bonsai)')
+@click.option('--db-collection', default=None,
+              help='Bonsai MongoDB collection name (required unless --no-bonsai)')
+@click.option('--db-collection-groups', default='sample_group', show_default=True,
+              help='Bonsai MongoDB collection holding sample_group docs')
+@click.option('--address', '--uri', default='mongodb://localhost:27017/',
+              help='Bonsai MongoDB address')
+@click.option('--no-bonsai', is_flag=True, default=False,
+              help='Discover samples by scanning the backup tree instead of querying Bonsai. '
+                   'sample_name falls back to sample_id; lims_id and groups are left unset.')
+@click.option('--sample-id', default=None,
+              help='If set, only rebuild the manifest for this sample_id (e.g. to test on one '
+                   'sample before a full run)')
+@click.option('-o', '--output-dir', required=True, type=click.Path(),
+              help='Directory to write <sample_id>_bonsai.yaml and <sample_id>_versions.yml')
+def rebuild_manifests_cmd(profile, backup_dir, db_name, db_collection, db_collection_groups,
+                          address, no_bonsai, sample_id, output_dir):
+    """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
+    _init_logging()
+    if not no_bonsai and not (db_name and db_collection):
+        raise click.UsageError(
+            "--db-name and --db-collection are required unless --no-bonsai is set"
+        )
+    options = types.SimpleNamespace(
+        profile=profile, backup_dir=backup_dir, db_name=db_name,
+        db_collection=db_collection, db_collection_groups=db_collection_groups,
+        address=address, no_bonsai=no_bonsai, sample_id=sample_id, output_dir=output_dir,
+    )
+    _parser().rebuild_manifests(options)
+
+
 @cli.command('rerun-chewbbaca')
 @click.option('--masked-assemblies', required=True, type=click.Path(),
               help='Path to _masked_assemblies.csv from `check-backup`')

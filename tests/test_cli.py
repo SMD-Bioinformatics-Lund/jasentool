@@ -123,7 +123,7 @@ def test_transform_cgmlst_csv_bed_columns(cgmlst_csv, tmp_path):
 @pytest.mark.parametrize("subcommand", [
     "find", "validate-pipelines", "identify-missing",
     "reformat-csv", "converge-catalogues", "post-align-qc",
-    "concatenate-files", "create-yaml",
+    "concatenate-files", "create-yaml", "rebuild-manifests",
 ])
 def test_help_exits_zero(subcommand):
     result = runner.invoke(cli, [subcommand, "--help"])
@@ -141,10 +141,42 @@ def test_help_exits_zero(subcommand):
     ("reformat-csv", []),
     ("concatenate-files", []),
     ("create-yaml", []),
+    ("rebuild-manifests", []),
 ])
 def test_missing_required_args(subcommand, args):
     result = runner.invoke(cli, [subcommand] + args)
     assert result.exit_code != 0
+
+
+# ── rebuild-manifests arg validation ──────────────────────────────────────────
+
+def test_rebuild_manifests_requires_db_without_no_bonsai(tmp_path):
+    """Omitting --db-name/--db-collection is an error unless --no-bonsai is set."""
+    backup = tmp_path / "backup"
+    backup.mkdir()
+    result = runner.invoke(cli, [
+        "rebuild-manifests",
+        "--profile", "staphylococcus_aureus",
+        "--backup-dir", str(backup),
+        "-o", str(tmp_path / "out"),
+    ])
+    assert result.exit_code != 0
+    assert "--no-bonsai" in result.output
+
+
+def test_rebuild_manifests_no_bonsai_allows_missing_db(tmp_path):
+    """--no-bonsai makes the DB args unnecessary; an empty tree just finds no samples."""
+    backup = tmp_path / "backup"
+    backup.mkdir()
+    result = runner.invoke(cli, [
+        "rebuild-manifests",
+        "--profile", "staphylococcus_aureus",
+        "--backup-dir", str(backup),
+        "--no-bonsai",
+        "-o", str(tmp_path / "out"),
+    ])
+    assert result.exit_code == 0, result.output
+    assert "No samples found to rebuild" in result.output
 
 
 # ── concatenate-files ──────────────────────────────────────────────────────────
