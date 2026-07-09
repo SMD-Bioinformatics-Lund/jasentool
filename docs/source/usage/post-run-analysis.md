@@ -118,6 +118,63 @@ jasentool check-backup \
   -o backup_status.csv
 ```
 
+## rebuild-manifests
+
+Regenerates `create-yaml` manifests (`<sample_id>_bonsai.yaml`) straight from the on-disk backup storage tree. Useful after a `create-yaml` output-format change, since backed-up manifests are otherwise stuck in whatever format they were originally written in.
+
+Two ways to decide which samples to rebuild:
+
+- **Bonsai-driven (default)** — queries the Bonsai MongoDB for every sample whose `pipeline.analysis_profile` contains the profile, exactly like `check-backup`. This pulls each sample's `sample_name`, `lims_id`, and (via a reverse lookup of `sample_group.included_samples`) its `groups` straight from Bonsai.
+- **Tree-driven (`--no-bonsai`)** — skips Bonsai entirely and discovers samples by scanning the backup tree: every filename under the profile's output dirs that ends in a declared `<mask><file_ext>` suffix contributes its stripped prefix as a `sample_id` (union across all outputs, so a sample is found as long as at least one of its files is present). Stripping a known suffix recovers the `sample_id` correctly even when it contains underscores; wildcard-mask outputs and per-process `_versions.yml` files are ignored. No MongoDB connection is made, so `--db-name`/`--db-collection` aren't needed. The Bonsai-only metadata is unavailable: `sample_name` falls back to `sample_id`, and `lims_id`/`groups` are left unset.
+
+Both modes then use the same per-profile output declarations as `check-backup` (`jasentool/config.py`) to locate each sample's analysis-result files, plus a `software_name` → `create-yaml` field mapping (also in `jasentool/config.py`, `CREATE_YAML_FIELD_MAP`) to know which CLI flag each file feeds. Outputs with no corresponding `create-yaml` field (e.g. `resfinder_meta`, `mask_polymorph`, `format_jasen`, `save_analysis_metadata`) are skipped. There's no wired-up dedicated CLI flag for `post_align_qc` in `create-yaml` either, so that output is skipped too. Where a profile has more than one possible IGV `vcf` source (TB's `tbprofiler_vcf`/`snippy_vcf`, vs. non-TB's `freebayes`), the first one found in `CREATE_YAML_VCF_PRIORITY` order wins.
+
+JASEN writes one `_versions.yml` per process invocation, scattered across each software's own output directory (`<backup-dir>/<species>/<dirname>/<sample_id>_<process_path>_versions.yml`). For each sample, every matching file across every output directory is merged (same merge semantics as `concatenate-files`) into `<output-dir>/<sample_id>_versions.yml`, which is then passed to `create-yaml --versions` so `software_version` gets embedded in the rebuilt manifest.
+
+```
+jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
+                            -o <OUTPUT_DIR>
+                            (--db-name <DB> --db-collection <COLLECTION> | --no-bonsai)
+                            [--address <URI>] [--db-collection-groups <COLLECTION>]
+                            [--sample-id <ID>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--profile` | Yes | — | JASEN profile name, e.g. `staphylococcus_aureus` |
+| `--backup-dir` | Yes | — | Root of the backup storage tree |
+| `-o`/`--output-dir` | Yes | — | Directory to write `<sample_id>_bonsai.yaml` and `<sample_id>_versions.yml` |
+| `--no-bonsai` | No | False | Discover samples by scanning the backup tree instead of querying Bonsai. `sample_name` falls back to `sample_id`; `lims_id` and `groups` are left unset |
+| `--db-name` | Unless `--no-bonsai` | — | Bonsai MongoDB database name |
+| `--db-collection` | Unless `--no-bonsai` | — | Bonsai MongoDB collection name (samples) |
+| `--db-collection-groups` | No | `sample_group` | Bonsai MongoDB collection holding `sample_group` docs (used to resolve each sample's `groups`) |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
+| `--sample-id` | No | — | If set, only rebuild the manifest for this one sample — useful for testing before a full run. Works in both modes |
+
+**Outputs** (per sample, in `--output-dir`)
+
+- **`<sample_id>_versions.yml`** — merged per-process versions file, omitted if no `_versions.yml` files were found for the sample (a warning is logged instead).
+- **`<sample_id>_bonsai.yaml`** — the rebuilt manifest, written even if some (or all) analysis-result files were missing; missing fields are simply left out of the manifest, mirroring what `create-yaml` already does for absent inputs.
+
+**Examples**
+
+```bash
+# Bonsai-driven
+jasentool rebuild-manifests \
+  --profile staphylococcus_aureus \
+  --backup-dir /backup/jasen \
+  --db-name bonsai --db-collection samples \
+  --address mongodb://bonsai.host:27017/ \
+  -o rebuilt_manifests/
+
+# Tree-driven, no MongoDB needed
+jasentool rebuild-manifests \
+  --profile staphylococcus_aureus \
+  --backup-dir /backup/jasen \
+  --no-bonsai \
+  -o rebuilt_manifests/
+```
+
 ## compare-distances
 
 Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Useful for quantifying how sample-to-sample distances shift between two chewBBACA runs — e.g. before vs after re-running chewBBACA on masked assemblies (see `rerun-chewbbaca`) or after a schema/version change.

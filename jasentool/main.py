@@ -25,6 +25,7 @@ from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
 from jasentool.check_backup import CheckBackup
+from jasentool.rebuild_manifests import RebuildManifests
 from jasentool.rerun_chewbbaca import RerunChewbbaca
 from jasentool.compare_distances import CompareDistances
 from jasentool.log import get_logger
@@ -204,6 +205,10 @@ class OptionsParser:
     def check_backup(self, options):
         """Cross-check MongoDB samples against the backup storage tree."""
         CheckBackup(options).run()
+
+    def rebuild_manifests(self, options):
+        """Rebuild Bonsai manifest YAMLs from the backup storage tree."""
+        RebuildManifests(options).run()
 
     def rerun_chewbbaca(self, options):
         """Re-run chewBBACA AlleleCall on a check-backup _masked_assemblies.csv."""
