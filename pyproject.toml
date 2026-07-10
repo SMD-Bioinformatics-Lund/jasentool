@@ -57,8 +57,10 @@ test = [
 ]
 
 [tool.setuptools]
-packages = ["jasentool"]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["jasentool*"]
 
 [tool.setuptools.package-data]
 jasentool = ["data/dbs/*.csv"]
