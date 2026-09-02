@@ -121,12 +121,8 @@ _POST_ALIGN_QC = [
 ]
 
 
-# Maps an output's `software_name` (above) to the `jasentool create-yaml` CLI
-# field it feeds, for use by `rebuild-manifests` when reconstructing a manifest
-# from the backup tree. Outputs with no entry here don't correspond to any
-# create-yaml field (e.g. `resfinder_meta`, `mask_polymorph`, `format_jasen`,
-# `save_analysis_metadata`, the `*_meta`/table/novel side-files) and are
-# skipped rather than guessed at.
+# Maps an output's software_name to the create-yaml field it feeds, for
+# rebuild-manifests. Outputs with no entry here are skipped.
 CREATE_YAML_FIELD_MAP = {
     "quast": "quast",
     "sourmash": "sourmash_signature",
@@ -148,8 +144,7 @@ CREATE_YAML_FIELD_MAP = {
     "emmtyper": "emmtyper",
 }
 
-# create-yaml's IGV "vcf" track has a single slot but three possible sources
-# depending on profile/platform; prefer whichever is found first for a sample.
+# create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
 
 

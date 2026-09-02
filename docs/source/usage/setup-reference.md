@@ -118,7 +118,7 @@ jasentool transform-file-format -i <FILE> [...] -o <FILE>
 
 The input TSV is the locus table for your organism's cgMLST scheme on [cgMLST.org](https://www.cgmlst.org). To download it:
 
-1. Navigate to your organism's schema page, e.g. `https://www.cgmlst.org/ncs/schema/<SCHEMA_NAME>/locus/` (the schema name differs per organism — for *S. aureus* it is `Saureus4059`).
+1. Navigate to your organism's schema page, e.g. `https://www.cgmlst.org/ncs/schema/<SCHEMA_NAME>/locus/` (the schema name differs per organism; for *S. aureus* it is `Saureus4059`).
 2. Click the **Download table as CSV** button.
 
 The downloaded file has a `.csv` extension but is tab-separated. Pass it directly to `--input-file`.
@@ -136,7 +136,7 @@ jasentool transform-file-format \
 
 ### Option A: Download a pre-built database
 
-Pre-built databases are ready to use with no build step — just download and extract.
+Pre-built databases need no build step. Download and extract.
 
 Full index listing: `https://benlangmead.github.io/aws-indexes/k2`
 
