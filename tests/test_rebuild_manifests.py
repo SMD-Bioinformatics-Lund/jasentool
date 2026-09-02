@@ -115,10 +115,10 @@ def test_malformed_versions_file_is_skipped_not_fatal(tmp_path, backup_dir, monk
         backup_dir, species, "quast", f"{sample_id}_ASSEMBLY_quast_versions.yml",
         "ASSEMBLY:quast:\n quast:\n  version: 5.2.0\n",
     )
-    # Mimic a real broken file: a colon-bearing scalar that isn't a valid mapping key.
+    # Broken beyond the colon-less-junk salvage: tab indentation is never valid YAML.
     _touch(
         backup_dir, species, "resfinder", f"{sample_id}_SCREENING:resfinder_versions.yml",
-        "SCREENING:resfinder:\n resfinder:\n  version: 4.7.2\n bad line without colon\n  oops\n",
+        "SCREENING:resfinder:\n\tresfinder:\n\t\tversion: 4.7.2\n",
     )
 
     fake = FakeMongo(
@@ -174,6 +174,37 @@ def test_versions_file_with_end_versions_sentinel_is_salvaged(tmp_path, backup_d
     manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
     results = {e["software"]: e for e in manifest["analysis_result"]}
     assert results["resfinder"]["software_version"] == "4.6.0"
+
+
+def test_versions_file_with_stray_bare_version_line_is_salvaged(tmp_path, backup_dir, monkeypatch):
+    """A duplicated bare version value on its own line is dropped so the version is captured."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "spatyper", f"{sample_id}_spatyper.tsv")
+    _touch(
+        backup_dir, species, "spatyper",
+        f"{sample_id}_CALL_BACTERIAL_GENERAL:CALL_TYPING:spatyper_versions.yml",
+        "CALL_BACTERIAL_GENERAL:CALL_TYPING:spatyper:\n"
+        " spatyper:\n"
+        "  version: 0.2.1\n"
+        "0.2.1\n"
+        "  container: /fs1/resources/containers/spatyper.sif\n",
+    )
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "wgs", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    out_dir = tmp_path / "out"
+    versions = yaml.safe_load((out_dir / f"{sample_id}_versions.yml").read_text())
+    assert versions["CALL_BACTERIAL_GENERAL:CALL_TYPING:spatyper"]["spatyper"]["version"] == "0.2.1"
+    manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["spatyper"]["software_version"] == "0.2.1"
 
 
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):
