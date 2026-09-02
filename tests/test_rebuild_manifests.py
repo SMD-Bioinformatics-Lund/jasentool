@@ -281,7 +281,7 @@ def test_run_metadata_populates_nextflow_run_info_and_lims_id(tmp_path, backup_d
     species = "saureus"
     sample_id = "MT220001"
     _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
-    meta_path = _touch(
+    _touch(
         backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json",
         json.dumps({
             "sample_name": "MT220001",
@@ -303,7 +303,10 @@ def test_run_metadata_populates_nextflow_run_info_and_lims_id(tmp_path, backup_d
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["lims_id"] == "CMD1111A222"
     assert manifest["sample_name"] == "MT220001"
-    assert manifest["nextflow_run_info"] == str(meta_path)
+    # nextflow_run_info points at the copy written into the output dir
+    out_meta = tmp_path / "out" / f"{sample_id}_analysis_meta.json"
+    assert manifest["nextflow_run_info"].endswith(f"{sample_id}_analysis_meta.json")
+    assert out_meta.exists()
 
 
 def test_bonsai_lims_id_wins_over_metadata(tmp_path, backup_dir, monkeypatch):
@@ -330,6 +333,29 @@ def test_bonsai_lims_id_wins_over_metadata(tmp_path, backup_dir, monkeypatch):
     assert manifest["sample_name"] == "Bonsai Name"
     # nextflow_run_info still comes from the metadata file (no Bonsai equivalent)
     assert manifest["nextflow_run_info"].endswith(f"{sample_id}_analysis_meta.json")
+
+
+def test_diagnostic_release_life_cycle_translated_to_production(tmp_path, backup_dir, monkeypatch):
+    """`diagnostic` is translated to `production` in the output copy; the backup original is untouched."""
+    species = "saureus"
+    sample_id = "MT220001"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _touch(
+        backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json",
+        json.dumps({"lims_id": "L1", "release_life_cycle": "diagnostic"}),
+    )
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+
+    out_meta = json.loads((tmp_path / "out" / f"{sample_id}_analysis_meta.json").read_text())
+    assert out_meta["release_life_cycle"] == "production"
+    orig = json.loads(
+        (backup_dir / species / "analysis_metadata" / f"{sample_id}_analysis_meta.json").read_text()
+    )
+    assert orig["release_life_cycle"] == "diagnostic"
 
 
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):
