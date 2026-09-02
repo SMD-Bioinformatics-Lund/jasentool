@@ -34,19 +34,19 @@ _OPTIONAL_FIELDS = [field for field, _, _ in _ANALYSIS_TOOLS] + [
 # exist on the options namespace or it raises AttributeError.
 _REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "software_info"]
 
-# Bash heredoc terminator JASEN uses to write versions.yml (`cat <<-END_VERSIONS`).
-# The `<<-` form strips leading tabs only, so a space-indented closing delimiter
-# isn't recognised and the literal sentinel leaks into the file, breaking YAML.
-_HEREDOC_SENTINEL = "END_VERSIONS"
-
-
 def _load_versions_file(path):
-    """Load one `_versions.yml`, tolerating a leaked `END_VERSIONS` heredoc terminator.
+    """Load one `_versions.yml`, tolerating pipeline-injected junk lines.
 
-    Drops any line that is exactly the sentinel (never valid versions.yml content)
-    before parsing. Returns the parsed object, or None if the file is unreadable,
-    still unparseable after cleaning, or empty -- each case logged and skipped so
-    one bad file never aborts the whole rebuild.
+    JASEN's per-process versions files sometimes carry lines that aren't valid
+    YAML for this format: a leaked `END_VERSIONS` heredoc terminator (the `<<-`
+    heredoc strips leading tabs only, so a space-indented closing delimiter isn't
+    recognised and the literal sentinel is written into the file), or a stray
+    duplicate of a bare version value on its own line. Every legitimate line in
+    these files is a `key:`/`key: value` mapping entry and so contains a colon,
+    so any non-blank colon-less line is injected junk and is dropped before
+    parsing. Returns the parsed object, or None if the file is unreadable, still
+    unparseable after cleaning, or empty -- each logged and skipped so one bad
+    file never aborts the whole rebuild.
     """
     try:
         with open(path, "r", encoding="utf-8") as fin:
@@ -55,7 +55,7 @@ def _load_versions_file(path):
         logger.warning("Skipping unreadable versions file %s: %s", path, exc)
         return None
     cleaned = "\n".join(
-        line for line in text.splitlines() if line.strip() != _HEREDOC_SENTINEL
+        line for line in text.splitlines() if not line.strip() or ":" in line
     )
     try:
         return yaml.safe_load(cleaned)
