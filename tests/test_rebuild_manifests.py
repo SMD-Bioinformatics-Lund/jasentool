@@ -34,11 +34,12 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
-                  sample_id=None, no_bonsai=False):
+                  sample_id=None, no_bonsai=False, versions_fallback=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
+        versions_fallback=versions_fallback,
     )
 
 
@@ -205,6 +206,73 @@ def test_versions_file_with_stray_bare_version_line_is_salvaged(tmp_path, backup
     manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
     results = {e["software"]: e for e in manifest["analysis_result"]}
     assert results["spatyper"]["software_version"] == "0.2.1"
+
+
+def test_versions_fallback_fills_missing_and_db_only(tmp_path, backup_dir, monkeypatch):
+    """Fallback fills a tool with no versions.yml and one whose file only has a _db version."""
+    species = "saureus"
+    sample_id = "sample1"
+    # chewbbaca: output present, no versions.yml at all
+    _touch(backup_dir, species, "chewbbaca", f"{sample_id}_chewbbaca.tsv")
+    # virulencefinder: output present, versions.yml has only the _db block
+    _touch(backup_dir, species, "virulencefinder", f"{sample_id}_virulencefinder.json")
+    _touch(
+        backup_dir, species, "virulencefinder",
+        f"{sample_id}_CALL_BACTERIAL_GENERAL:CALL_SCREENING:virulencefinder_versions.yml",
+        "CALL_BACTERIAL_GENERAL:CALL_SCREENING:virulencefinder:\n"
+        " virulencefinder_db:\n"
+        "  version: 2.0.1\n"
+        "END_VERSIONS\n",
+    )
+    # quast: real tree version -- must win over any fallback value
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _touch(
+        backup_dir, species, "quast", f"{sample_id}_ASSEMBLY_quast_versions.yml",
+        "ASSEMBLY:quast:\n quast:\n  version: 5.2.0\n",
+    )
+
+    fallback = tmp_path / "versions_fallback.yml"
+    fallback.write_text("chewbbaca: '3.3.2'\nvirulencefinder: '2.0.4'\nquast: '9.9.9'\n")
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "wgs", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    options = _make_options(tmp_path, backup_dir, versions_fallback=str(fallback))
+    RebuildManifests(options).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["chewbbaca"]["software_version"] == "3.3.2"      # filled (no file)
+    assert results["virulencefinder"]["software_version"] == "2.0.4"  # filled (_db only)
+    assert results["quast"]["software_version"] == "5.2.0"          # tree wins over fallback 9.9.9
+
+
+def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, monkeypatch):
+    """A fallback entry for a tool the sample has no output for is not injected."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "chewbbaca", f"{sample_id}_chewbbaca.tsv")
+
+    fallback = tmp_path / "versions_fallback.yml"
+    # spades isn't a create-yaml analysis tool and the sample has no spades output
+    fallback.write_text("chewbbaca: '3.3.2'\nspades: '3.15.5'\n")
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "wgs", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    options = _make_options(tmp_path, backup_dir, versions_fallback=str(fallback))
+    RebuildManifests(options).run()
+
+    versions = yaml.safe_load((tmp_path / "out" / f"{sample_id}_versions.yml").read_text())
+    fallback_block = versions["jasentool_version_fallback"]
+    assert "chewbbaca" in fallback_block
+    assert "spades" not in fallback_block
 
 
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):

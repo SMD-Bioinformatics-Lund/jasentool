@@ -1,0 +1,42 @@
+# Fallback software versions for `jasentool rebuild-manifests --versions-fallback`.
+#
+# Used only to fill a tool's version when the backup tree has no (or an
+# incomplete) per-process `_versions.yml` for it -- the tree always wins.
+# Keys are the software name as it appears INSIDE a versions.yml (which is what
+# create-yaml looks up), not the container image name: e.g. `amrfinderplus`
+# (image is ncbi-amrfinderplus), `bracken` (for kraken/bracken), `tb-profiler`.
+# Values are quoted so YAML keeps them as exact strings.
+amrfinderplus: '3.11.11'
+blast: '2.14.0'
+bracken: '2.8'
+bwakit: '0.7.17.dev1'
+chewbbaca: '3.3.2'
+emmtyper: '0.2.0'
+fastqc: '0.12.1'
+flye: '2.9.3'
+freebayes: '1.3.6'
+hostile: '2.0.0'
+htslib: '1.21'
+kraken2: '2.1.2'
+medaka: '2.0.1'
+minimap2: '2.28'
+mlst: '2.23.0'
+mykrobe: '0.12.2'
+nanoplot: '1.43.0'
+perl-json: '4.10'
+prodigal: '2.6.3'
+quast: '5.2.0'
+resfinder: '4.7.2'
+samtools: '1.17'
+sccmec: '1.2.0'
+seqtk: '1.4'
+serotypefinder: '2.0.2'
+shigapass: '1.5.0'
+ska2: '0.3.10'
+skesa: '2.5.1'
+snippy: '4.6.0'
+sourmash: '4.8.2'
+spades: '3.15.5'
+spatyper: '0.3.3'
+tb-profiler: '6.3.0'
+virulencefinder: '2.0.4'
