@@ -9,6 +9,7 @@ writes one per process invocation) into a single versions file the way
 """
 
 import glob
+import json
 import os
 import types
 
@@ -23,43 +24,28 @@ from jasentool.log import get_logger
 
 logger = get_logger(__name__)
 
-# Attributes CreateYaml.run() only ever reads via getattr(..., None) -- safe
-# to leave unset for anything the backup tree doesn't provide.
+# create-yaml reads these via getattr(); _REQUIRED_FIELDS it accesses directly,
+# so those must exist on the options namespace even when unset.
 _OPTIONAL_FIELDS = [field for field, _, _ in _ANALYSIS_TOOLS] + [
     "sourmash_signature", "ska_index",
     "nextflow_run_info", "ref_genome_sequence", "ref_genome_annotation",
 ]
-
-# Attributes CreateYaml.run() accesses directly (`options.x`) -- must always
-# exist on the options namespace or it raises AttributeError.
 _REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "software_info"]
 
-# Maps a create-yaml analysis-result field to the software name a version is
-# looked up under (create_yaml applies _VERSION_KEY_MAP, e.g. amrfinder ->
-# amrfinderplus, tbprofiler -> tb-profiler). Used to decide which fallback
-# versions are relevant to a sample's resolved outputs.
 _FIELD_TO_VERSION_KEY = {
     field: _VERSION_KEY_MAP.get(software, software)
     for field, software, _ in _ANALYSIS_TOOLS
 }
-
-# Synthetic process key under which fallback versions are injected into a merged
-# versions.yml so create_yaml picks them up like any other process block.
 _FALLBACK_PROCESS_KEY = "jasentool_version_fallback"
+_RUN_METADATA_SOFTWARE = "save_analysis_metadata"
+
 
 def _load_versions_file(path):
-    """Load one `_versions.yml`, tolerating pipeline-injected junk lines.
+    """Load one `_versions.yml`, dropping junk lines (a leaked `END_VERSIONS`
+    terminator or a stray bare version) that would otherwise break YAML parsing.
 
-    JASEN's per-process versions files sometimes carry lines that aren't valid
-    YAML for this format: a leaked `END_VERSIONS` heredoc terminator (the `<<-`
-    heredoc strips leading tabs only, so a space-indented closing delimiter isn't
-    recognised and the literal sentinel is written into the file), or a stray
-    duplicate of a bare version value on its own line. Every legitimate line in
-    these files is a `key:`/`key: value` mapping entry and so contains a colon,
-    so any non-blank colon-less line is injected junk and is dropped before
-    parsing. Returns the parsed object, or None if the file is unreadable, still
-    unparseable after cleaning, or empty -- each logged and skipped so one bad
-    file never aborts the whole rebuild.
+    Returns the parsed object, or None if the file is unreadable, empty, or still
+    unparseable (logged and skipped so one bad file can't abort the run).
     """
     try:
         with open(path, "r", encoding="utf-8") as fin:
@@ -113,16 +99,12 @@ class RebuildManifests:
         return samples
 
     def _discover_samples_from_tree(self, outputs, species):
-        """Discover sample_ids straight from the backup tree, without consulting Bonsai.
+        """Discover sample_ids by scanning the backup tree (used with `--no-bonsai`).
 
-        Used when `--no-bonsai` is set. Every filename under the profile's declared
-        output dirs whose name ends in a known `<mask><file_ext>` suffix contributes
-        its stripped prefix as a sample_id (union across all outputs, so a sample is
-        found as long as at least one of its files is present). Stripping a known
-        suffix is safe even for sample_ids that contain underscores. Wildcard-mask
-        outputs are skipped (their prefix can't be recovered unambiguously) and
-        per-process `_versions.yml` files are ignored. Bonsai-only metadata isn't
-        available here: `sample_name` falls back to `sample_id`, `lims_id` is unset.
+        A filename ending in a declared `<mask><file_ext>` suffix contributes its
+        stripped prefix as a sample_id, unioned across all outputs. Wildcard-mask
+        outputs and `_versions.yml` files are skipped. sample_name/lims_id are left
+        unset here; the run metadata JSON supplies them later if present.
         """
         sample_ids = set()
         for output in outputs:
@@ -148,7 +130,7 @@ class RebuildManifests:
                     self.options.sample_id, self.backup_dir, self.profile,
                 )
         return [
-            {"sample_id": sid, "sample_name": sid, "lims_id": None}
+            {"sample_id": sid, "sample_name": None, "lims_id": None}
             for sid in sorted(sample_ids)
         ]
 
@@ -177,15 +159,28 @@ class RebuildManifests:
                 return matches[0]
         return None
 
-    def _merge_versions(self, species, sample_id, needed_keys):
-        """Merge this sample's per-process `_versions.yml` files; return the merged path or None.
+    def _resolve_run_metadata(self, outputs, species, sample_id):
+        """Return (path, parsed_dict) for the sample's analysis_meta.json, or (None, {})."""
+        for output in outputs:
+            if output["software_name"] != _RUN_METADATA_SOFTWARE:
+                continue
+            path = self._resolve_output_path(output, species, sample_id)
+            if not path:
+                return None, {}
+            try:
+                with open(path, "r", encoding="utf-8") as fin:
+                    return path, json.load(fin)
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.warning("%s: could not read run metadata %s: %s", sample_id, path, exc)
+                return None, {}
+        return None, {}
 
-        Each file is loaded defensively: the `_versions.yml` files are JASEN
-        pipeline outputs we don't control, so a single malformed one is logged
-        and skipped rather than aborting the whole rebuild. Any `needed_keys`
-        (software the sample has an output file for) still missing a version
-        after the merge is filled from the `--versions-fallback` map, if present.
-        Returns None if nothing -- tree or fallback -- yielded a version.
+    def _merge_versions(self, species, sample_id, needed_keys):
+        """Merge the sample's per-process `_versions.yml` files into one file.
+
+        Any `needed_keys` still missing after the merge are filled from the
+        `--versions-fallback` map. Returns the written path, or None if neither
+        the tree nor the fallback produced a version.
         """
         pattern = os.path.join(self.backup_dir, species, "*", f"{sample_id}_*_versions.yml")
         version_files = sorted(glob.glob(pattern))
@@ -255,6 +250,7 @@ class RebuildManifests:
             for field in fields if field in _FIELD_TO_VERSION_KEY
         }
         versions_path = self._merge_versions(species, sample_id, needed_keys)
+        metadata_path, metadata = self._resolve_run_metadata(outputs, species, sample_id)
 
         create_yaml_options = types.SimpleNamespace(**{field: None for field in _OPTIONAL_FIELDS})
         for field in _REQUIRED_FIELDS:
@@ -264,14 +260,17 @@ class RebuildManifests:
             setattr(create_yaml_options, field, path)
 
         create_yaml_options.sample_id = sample_id
-        create_yaml_options.sample_name = doc.get("sample_name", "")
-        create_yaml_options.lims_id = doc.get("lims_id")
+        create_yaml_options.sample_name = (
+            doc.get("sample_name") or metadata.get("sample_name") or sample_id
+        )
+        create_yaml_options.lims_id = doc.get("lims_id") or metadata.get("lims_id")
+        create_yaml_options.nextflow_run_info = metadata_path
         create_yaml_options.groups = groups_by_sample.get(sample_id, [])
         create_yaml_options.versions = versions_path
         create_yaml_options.output = os.path.join(self.output_dir, f"{sample_id}_bonsai.yaml")
 
         CreateYaml().run(create_yaml_options)
-        return bool(fields), versions_path is not None
+        return bool(fields), versions_path is not None, metadata_path is not None
 
     def run(self):
         """Entry point: resolve profile, fetch samples, rebuild each manifest."""
@@ -297,6 +296,7 @@ class RebuildManifests:
         n_written = 0
         n_no_fields = 0
         n_no_versions = 0
+        n_no_metadata = 0
         progress = tqdm(
             samples, total=len(samples),
             desc=f"rebuild-manifests [{self.profile}]", unit="sample",
@@ -306,16 +306,26 @@ class RebuildManifests:
             if not sample_id:
                 logger.warning("Skipping doc with no sample_id: %s", doc)
                 continue
-            has_fields, has_versions = self._build_sample_yaml(doc, outputs, species, groups_by_sample)
+            has_fields, has_versions, has_metadata = self._build_sample_yaml(
+                doc, outputs, species, groups_by_sample,
+            )
             n_written += 1
             if not has_fields:
                 logger.warning("%s: no analysis-result files found under %s", sample_id, self.backup_dir)
                 n_no_fields += 1
             if not has_versions:
                 n_no_versions += 1
+            if not has_metadata:
+                logger.warning(
+                    "%s: no analysis_meta.json found; manifest will lack nextflow_run_info "
+                    "and lims_id (bonsai-prp requires both)", sample_id,
+                )
+                n_no_metadata += 1
 
         logger.info("%d manifests written to %s", n_written, self.output_dir)
         if n_no_fields:
             logger.warning("%d samples had no analysis-result files found", n_no_fields)
         if n_no_versions:
             logger.warning("%d samples had no per-process _versions.yml files found", n_no_versions)
+        if n_no_metadata:
+            logger.warning("%d samples had no analysis_meta.json (missing run info + lims_id)", n_no_metadata)

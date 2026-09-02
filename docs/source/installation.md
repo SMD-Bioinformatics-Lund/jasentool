@@ -7,8 +7,8 @@
 
 ## Which path to use
 
-- **Modern Linux / macOS** (glibc >= 2.28, i.e. Ubuntu >= 18.04, RHEL/CentOS >= 8, Debian >= 10): plain `pip install jasentool` works — current pandas / numpy ship binary wheels for these platforms.
-- **Older Linux** (glibc < 2.28): pip will not find matching binary wheels for current pandas / numpy on Python 3.12 and will fall back to source builds that require GCC >= 9.3. Use the **conda from-source** path below instead — conda-forge ships its own compatible binaries.
+- **Modern Linux / macOS** (glibc >= 2.28: Ubuntu >= 18.04, RHEL/CentOS >= 8, Debian >= 10): `pip install jasentool` works, since current pandas and numpy ship binary wheels for these platforms.
+- **Older Linux** (glibc < 2.28): pip can't find matching wheels for current pandas and numpy on Python 3.12, so it falls back to source builds that need GCC 9.3 or newer. Use the **conda from-source** path below instead; conda-forge ships compatible binaries.
 
 ## pip
 
@@ -51,7 +51,7 @@ conda env create -f environment.yml
 conda activate jasentool
 ```
 
-`environment.yml` installs every binary-heavy dependency (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge and then performs an editable (`-e .`) pip install of jasentool itself.
+`environment.yml` pulls the heavy dependencies (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge, then installs jasentool itself in editable mode (`-e .`).
 
 ## Verify installation
 

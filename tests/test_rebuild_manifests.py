@@ -1,4 +1,5 @@
 """Tests for jasentool.rebuild_manifests (rebuild-manifests subcommand)."""
+import json
 import logging
 import types
 
@@ -273,6 +274,62 @@ def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, mo
     fallback_block = versions["jasentool_version_fallback"]
     assert "chewbbaca" in fallback_block
     assert "spades" not in fallback_block
+
+
+def test_run_metadata_populates_nextflow_run_info_and_lims_id(tmp_path, backup_dir, monkeypatch):
+    """analysis_meta.json supplies nextflow_run_info + lims_id (+ sample_name in no-bonsai)."""
+    species = "saureus"
+    sample_id = "MT220001"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    meta_path = _touch(
+        backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json",
+        json.dumps({
+            "sample_name": "MT220001",
+            "lims_id": "CMD1111A222",
+            "sequencing_run": "22MT0001",
+            "pipeline": "main.nf",
+            "version": "1.1.2",
+        }),
+    )
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[],
+    )
+    _patch_database(monkeypatch, fake)
+
+    # no-bonsai so name/lims_id come purely from the metadata JSON
+    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["lims_id"] == "CMD1111A222"
+    assert manifest["sample_name"] == "MT220001"
+    assert manifest["nextflow_run_info"] == str(meta_path)
+
+
+def test_bonsai_lims_id_wins_over_metadata(tmp_path, backup_dir, monkeypatch):
+    """Bonsai's lims_id/sample_name are authoritative; metadata only fills gaps."""
+    species = "saureus"
+    sample_id = "MT220001"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _touch(
+        backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json",
+        json.dumps({"sample_name": "meta_name", "lims_id": "META_LIMS"}),
+    )
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus",
+                         sample_name="Bonsai Name", lims_id="BONSAI_LIMS")],
+        groups=[],
+    )
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["lims_id"] == "BONSAI_LIMS"
+    assert manifest["sample_name"] == "Bonsai Name"
+    # nextflow_run_info still comes from the metadata file (no Bonsai equivalent)
+    assert manifest["nextflow_run_info"].endswith(f"{sample_id}_analysis_meta.json")
 
 
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):

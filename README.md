@@ -12,7 +12,7 @@ pip install jasentool
 
 ### Older Linux distributions (recommended: conda)
 
-On hosts with **glibc < 2.28** (Ubuntu < 18.04, RHEL/CentOS < 8, Debian < 10) pip will not find binary wheels for current pandas / numpy on Python 3.12 and will fall back to source builds that require GCC ≥ 9.3. Use conda instead — conda-forge ships its own compatible binaries:
+On hosts with **glibc < 2.28** (Ubuntu < 18.04, RHEL/CentOS < 8, Debian < 10), pip can't find binary wheels for current pandas and numpy on Python 3.12, so it falls back to source builds that need GCC 9.3 or newer. Use conda instead; conda-forge ships compatible binaries:
 
 ```
 git clone https://github.com/SMD-Bioinformatics-Lund/jasentool.git
@@ -21,9 +21,9 @@ conda env create -f environment.yml
 conda activate jasentool
 ```
 
-`environment.yml` installs every binary-heavy dependency (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge and then performs an editable pip install of jasentool itself.
+`environment.yml` pulls the heavy dependencies (pandas, numpy, matplotlib, biopython, pysam, cyvcf2, openpyxl) from conda-forge, then installs jasentool itself in editable mode.
 
-`compare-distances` uses [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists) (from bioconda) to compute distance matrices; it's included in `environment.yml`. It is **not** a Python/pip dependency, so a plain `pip install jasentool` won't provide it — install it via conda (or build it yourself). If it isn't found, `compare-distances` falls back to a slower in-Python distance calculation.
+`compare-distances` uses [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists) (from bioconda) to build its distance matrices, and `environment.yml` includes it. It isn't a pip dependency, so `pip install jasentool` won't bring it in; get it through conda or build it yourself. Without it, `compare-distances` falls back to a slower pure-Python calculation.
 
 ## Usage
 
