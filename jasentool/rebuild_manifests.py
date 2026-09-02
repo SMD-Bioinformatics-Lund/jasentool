@@ -12,10 +12,10 @@ import glob
 import os
 import types
 
+import yaml
 from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
-from jasentool.concatenate import Concatenate
 from jasentool.config import CREATE_YAML_FIELD_MAP, CREATE_YAML_VCF_PRIORITY, get_profile
 from jasentool.create_yaml import _ANALYSIS_TOOLS, CreateYaml
 from jasentool.database import Database
@@ -33,6 +33,35 @@ _OPTIONAL_FIELDS = [field for field, _, _ in _ANALYSIS_TOOLS] + [
 # Attributes CreateYaml.run() accesses directly (`options.x`) -- must always
 # exist on the options namespace or it raises AttributeError.
 _REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "software_info"]
+
+# Bash heredoc terminator JASEN uses to write versions.yml (`cat <<-END_VERSIONS`).
+# The `<<-` form strips leading tabs only, so a space-indented closing delimiter
+# isn't recognised and the literal sentinel leaks into the file, breaking YAML.
+_HEREDOC_SENTINEL = "END_VERSIONS"
+
+
+def _load_versions_file(path):
+    """Load one `_versions.yml`, tolerating a leaked `END_VERSIONS` heredoc terminator.
+
+    Drops any line that is exactly the sentinel (never valid versions.yml content)
+    before parsing. Returns the parsed object, or None if the file is unreadable,
+    still unparseable after cleaning, or empty -- each case logged and skipped so
+    one bad file never aborts the whole rebuild.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as fin:
+            text = fin.read()
+    except OSError as exc:
+        logger.warning("Skipping unreadable versions file %s: %s", path, exc)
+        return None
+    cleaned = "\n".join(
+        line for line in text.splitlines() if line.strip() != _HEREDOC_SENTINEL
+    )
+    try:
+        return yaml.safe_load(cleaned)
+    except yaml.YAMLError as exc:
+        logger.warning("Skipping unparseable versions file %s: %s", path, exc)
+        return None
 
 
 class RebuildManifests:
@@ -124,13 +153,27 @@ class RebuildManifests:
         return None
 
     def _merge_versions(self, species, sample_id):
-        """Concatenate this sample's per-process `_versions.yml` files; return the merged path or None."""
+        """Merge this sample's per-process `_versions.yml` files; return the merged path or None.
+
+        Each file is loaded defensively: the `_versions.yml` files are JASEN
+        pipeline outputs we don't control, so a single malformed one is logged
+        and skipped rather than aborting the whole rebuild. Returns None if no
+        version file was found or none parsed successfully.
+        """
         pattern = os.path.join(self.backup_dir, species, "*", f"{sample_id}_*_versions.yml")
         version_files = sorted(glob.glob(pattern))
         if not version_files:
             return None
+        merged = {}
+        for version_file in version_files:
+            data = _load_versions_file(version_file)
+            if data:
+                merged.update(data)
+        if not merged:
+            return None
         dest = os.path.join(self.output_dir, f"{sample_id}_versions.yml")
-        Concatenate.run(version_files, dest)
+        with open(dest, "w", encoding="utf-8") as fout:
+            yaml.dump(merged, fout, default_flow_style=False)
         return dest
 
     def _resolve_fields(self, outputs, species, sample_id):

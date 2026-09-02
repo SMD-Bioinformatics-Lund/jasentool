@@ -106,6 +106,76 @@ def test_writes_manifest_and_merged_versions(tmp_path, backup_dir, monkeypatch):
     assert versions["TYPING:chewbbaca"]["chewbbaca"]["version"] == "3.5.2"
 
 
+def test_malformed_versions_file_is_skipped_not_fatal(tmp_path, backup_dir, monkeypatch, caplog):
+    """A single unparseable _versions.yml is warned about and skipped; the good ones still merge."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _touch(
+        backup_dir, species, "quast", f"{sample_id}_ASSEMBLY_quast_versions.yml",
+        "ASSEMBLY:quast:\n quast:\n  version: 5.2.0\n",
+    )
+    # Mimic a real broken file: a colon-bearing scalar that isn't a valid mapping key.
+    _touch(
+        backup_dir, species, "resfinder", f"{sample_id}_SCREENING:resfinder_versions.yml",
+        "SCREENING:resfinder:\n resfinder:\n  version: 4.7.2\n bad line without colon\n  oops\n",
+    )
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "wgs", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    with caplog.at_level(logging.WARNING):
+        RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    out_dir = tmp_path / "out"
+    # the run completed and the good version file still made it into the merge
+    versions = yaml.safe_load((out_dir / f"{sample_id}_versions.yml").read_text())
+    assert versions["ASSEMBLY:quast"]["quast"]["version"] == "5.2.0"
+    assert "resfinder" not in versions
+    assert "Skipping unparseable versions file" in caplog.text
+    manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["quast"]["software_version"] == "5.2.0"
+
+
+def test_versions_file_with_end_versions_sentinel_is_salvaged(tmp_path, backup_dir, monkeypatch):
+    """A leaked `END_VERSIONS` heredoc terminator is stripped so the version is still captured."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder.json")
+    # Real JASEN shape: space-indented body plus a leaked END_VERSIONS delimiter line.
+    _touch(
+        backup_dir, species, "resfinder",
+        f"{sample_id}_CALL_BACTERIAL_GENERAL:CALL_SCREENING:resfinder_versions.yml",
+        "    CALL_BACTERIAL_GENERAL:CALL_SCREENING:resfinder:\n"
+        "     resfinder:\n"
+        "      version: 4.6.0\n"
+        "      container: /fs1/resources/containers/resfinder.sif\n"
+        "     resfinder_db:\n"
+        "      version:\n"
+        "      container: /fs1/resources/containers/resfinder.sif\n"
+        "    END_VERSIONS\n",
+    )
+
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "wgs", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    out_dir = tmp_path / "out"
+    versions = yaml.safe_load((out_dir / f"{sample_id}_versions.yml").read_text())
+    assert versions["CALL_BACTERIAL_GENERAL:CALL_SCREENING:resfinder"]["resfinder"]["version"] == "4.6.0"
+    manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["resfinder"]["software_version"] == "4.6.0"
+
+
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):
     """resfinder_meta/mask_polymorph/format_jasen/save_analysis_metadata must not appear."""
     species = "saureus"
