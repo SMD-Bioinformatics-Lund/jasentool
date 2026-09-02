@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
 from jasentool.config import CREATE_YAML_FIELD_MAP, CREATE_YAML_VCF_PRIORITY, get_profile
-from jasentool.create_yaml import _ANALYSIS_TOOLS, CreateYaml
+from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, CreateYaml
 from jasentool.database import Database
 from jasentool.log import get_logger
 
@@ -33,6 +33,19 @@ _OPTIONAL_FIELDS = [field for field, _, _ in _ANALYSIS_TOOLS] + [
 # Attributes CreateYaml.run() accesses directly (`options.x`) -- must always
 # exist on the options namespace or it raises AttributeError.
 _REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "software_info"]
+
+# Maps a create-yaml analysis-result field to the software name a version is
+# looked up under (create_yaml applies _VERSION_KEY_MAP, e.g. amrfinder ->
+# amrfinderplus, tbprofiler -> tb-profiler). Used to decide which fallback
+# versions are relevant to a sample's resolved outputs.
+_FIELD_TO_VERSION_KEY = {
+    field: _VERSION_KEY_MAP.get(software, software)
+    for field, software, _ in _ANALYSIS_TOOLS
+}
+
+# Synthetic process key under which fallback versions are injected into a merged
+# versions.yml so create_yaml picks them up like any other process block.
+_FALLBACK_PROCESS_KEY = "jasentool_version_fallback"
 
 def _load_versions_file(path):
     """Load one `_versions.yml`, tolerating pipeline-injected junk lines.
@@ -72,6 +85,18 @@ class RebuildManifests:
         self.profile = options.profile
         self.backup_dir = options.backup_dir
         self.output_dir = options.output_dir
+        self.versions_fallback = self._load_versions_fallback(
+            getattr(options, "versions_fallback", None)
+        )
+
+    @staticmethod
+    def _load_versions_fallback(path):
+        """Load the flat `software: version` fallback file into a dict, or {} if none given."""
+        if not path:
+            return {}
+        with open(path, "r", encoding="utf-8") as fin:
+            data = yaml.safe_load(fin) or {}
+        return {str(key): str(version) for key, version in data.items()}
 
     def _fetch_bonsai_samples(self):
         query = {"pipeline.analysis_profile": self.profile}
@@ -152,29 +177,54 @@ class RebuildManifests:
                 return matches[0]
         return None
 
-    def _merge_versions(self, species, sample_id):
+    def _merge_versions(self, species, sample_id, needed_keys):
         """Merge this sample's per-process `_versions.yml` files; return the merged path or None.
 
         Each file is loaded defensively: the `_versions.yml` files are JASEN
         pipeline outputs we don't control, so a single malformed one is logged
-        and skipped rather than aborting the whole rebuild. Returns None if no
-        version file was found or none parsed successfully.
+        and skipped rather than aborting the whole rebuild. Any `needed_keys`
+        (software the sample has an output file for) still missing a version
+        after the merge is filled from the `--versions-fallback` map, if present.
+        Returns None if nothing -- tree or fallback -- yielded a version.
         """
         pattern = os.path.join(self.backup_dir, species, "*", f"{sample_id}_*_versions.yml")
         version_files = sorted(glob.glob(pattern))
-        if not version_files:
-            return None
         merged = {}
-        for version_file in version_files:
+        for version_file in sorted(version_files):
             data = _load_versions_file(version_file)
             if data:
                 merged.update(data)
+        self._apply_versions_fallback(merged, sample_id, needed_keys)
         if not merged:
             return None
         dest = os.path.join(self.output_dir, f"{sample_id}_versions.yml")
         with open(dest, "w", encoding="utf-8") as fout:
             yaml.dump(merged, fout, default_flow_style=False)
         return dest
+
+    def _apply_versions_fallback(self, merged, sample_id, needed_keys):
+        """Fill any `needed_keys` absent from `merged` (tree) from the fallback map, in place."""
+        if not self.versions_fallback:
+            return
+        present = {
+            software
+            for process_data in merged.values() if isinstance(process_data, dict)
+            for software in process_data
+        }
+        filled = {
+            key: self.versions_fallback[key]
+            for key in needed_keys
+            if key not in present and key in self.versions_fallback
+        }
+        if not filled:
+            return
+        merged[_FALLBACK_PROCESS_KEY] = {
+            software: {"version": version} for software, version in filled.items()
+        }
+        logger.info(
+            "%s: filled %d version(s) from fallback: %s", sample_id, len(filled),
+            ", ".join(f"{k}={v}" for k, v in sorted(filled.items())),
+        )
 
     def _resolve_fields(self, outputs, species, sample_id):
         """Return {create-yaml field: path} for every output found in the backup tree."""
@@ -200,7 +250,11 @@ class RebuildManifests:
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):
         sample_id = doc["sample_id"]
         fields = self._resolve_fields(outputs, species, sample_id)
-        versions_path = self._merge_versions(species, sample_id)
+        needed_keys = {
+            _FIELD_TO_VERSION_KEY[field]
+            for field in fields if field in _FIELD_TO_VERSION_KEY
+        }
+        versions_path = self._merge_versions(species, sample_id, needed_keys)
 
         create_yaml_options = types.SimpleNamespace(**{field: None for field in _OPTIONAL_FIELDS})
         for field in _REQUIRED_FIELDS:
