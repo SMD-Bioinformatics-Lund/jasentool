@@ -352,10 +352,11 @@ class BIGSdb:
             sys.stderr.write(msg + "\n")
             sys.stderr.write("Invalid session token, requesting new one...\n")
             (token, secret) = self._get_new_session_token()
-            self._get_route(url, token, secret, output_file=output_file)
+            return self._get_route(url, token, secret, output_file=output_file)
         else:
             sys.stderr.write(f"Error: {resp.text}\n")
             sys.exit(1)
+        return (token, secret)
 
     def _download_scheme_alleles(self, scheme_url, token, secret, output_dir):
         with urllib.request.urlopen(scheme_url) as response:
@@ -372,5 +373,7 @@ class BIGSdb:
             locus = os.path.basename(locus_url)
             out_file = os.path.join(output_dir, f"{locus}.fasta")
             if self.force or not os.path.isfile(out_file):
-                self._get_route(f"{locus_url}/alleles_fasta", token, secret, output_file=out_file)
+                (token, secret) = self._get_route(
+                    f"{locus_url}/alleles_fasta", token, secret, output_file=out_file
+                )
                 logger.info("Downloaded locus: %s", locus)
