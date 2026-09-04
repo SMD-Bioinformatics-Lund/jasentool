@@ -62,9 +62,15 @@ class BIGSdb:
         self._check_required_args()
         self._check_dir(self.token_dir)
         if self.setup:
-            (access_token, access_secret) = self._get_new_access_token()
-            if not access_token or not access_secret:
-                raise PermissionError("Cannot get new access token.")
+            (access_token, access_secret) = self._retrieve_token("access")
+            if access_token and access_secret:
+                logger.info(
+                    "Access token already set up for %s, skipping.", self.key_name
+                )
+            else:
+                (access_token, access_secret) = self._get_new_access_token()
+                if not access_token or not access_secret:
+                    raise PermissionError("Cannot get new access token.")
         (token, secret) = self._retrieve_token("session")
         if not token or not secret:
             (token, secret) = self._get_new_session_token()
@@ -142,7 +148,9 @@ class BIGSdb:
             access_token=access_token,
             access_token_secret=access_secret,
         )
-        resp = session_request.get(url, headers={"User-Agent": "BIGSdb downloader"})
+        resp = session_request.get(
+            url, params={}, headers={"User-Agent": "BIGSdb downloader"}
+        )
         if resp.status_code == 200:
             token = resp.json()["oauth_token"]
             secret = resp.json()["oauth_token_secret"]
@@ -352,7 +360,15 @@ class BIGSdb:
     def _download_scheme_alleles(self, scheme_url, token, secret, output_dir):
         with urllib.request.urlopen(scheme_url) as response:
             data = json.loads(response.read())
-        for locus_url in data.get("loci", []):
+        if not isinstance(data, dict) or "loci" not in data:
+            logger.error(
+                "%s is not a scheme route. --download-scheme requires a scheme URL, "
+                "e.g. https://bigsdb.pasteur.fr/api/db/pubmlst_klebsiella_seqdef/schemes/18",
+                scheme_url,
+            )
+            sys.exit(1)
+        os.makedirs(output_dir, exist_ok=True)
+        for locus_url in data["loci"]:
             locus = os.path.basename(locus_url)
             out_file = os.path.join(output_dir, f"{locus}.fasta")
             if self.force or not os.path.isfile(out_file):
