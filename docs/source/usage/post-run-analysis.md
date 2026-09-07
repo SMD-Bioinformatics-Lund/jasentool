@@ -191,6 +191,38 @@ jasentool rebuild-manifests \
   -o rebuilt_manifests/
 ```
 
+## rerun-chewbbaca
+
+Re-run chewBBACA `AlleleCall` in one batch on the masked assemblies listed in a `<stem>_masked_assemblies.csv` from `check-backup`. Useful after a chewBBACA schema or version update; compare the old and new allele calls with `compare-distances`.
+
+```
+jasentool rerun-chewbbaca --masked-assemblies <CSV> --schema-dir <DIR> --output-dir <DIR>
+                          [--training-file <FILE>] [--cpus <N>] [--chewie-bin <PATH>]
+                          [--singularity-image <IMAGE>] [--singularity-bind <DIRS>]
+                          [--profile-filter <PROFILE>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--masked-assemblies` | Yes | — | `_masked_assemblies.csv` from `check-backup` |
+| `--schema-dir` | Yes | — | chewBBACA schema directory (passed as `--schema-directory`) |
+| `--output-dir` | Yes | — | Output directory; results land in `<output-dir>/output_dir/`, batch list in `<output-dir>/batch_input.list` |
+| `--training-file` | No | None | Optional chewBBACA training file (`--ptf`) |
+| `--cpus` | No | 4 | chewBBACA `--cpu` value |
+| `--chewie-bin` | No | `chewie` | Path or name of the chewie executable |
+| `--singularity-image` | No | None | If set, run as `singularity exec <image> chewie ...` |
+| `--singularity-bind` | No | None | Comma-separated bind list for `singularity exec --bind` (only with `--singularity-image`) |
+| `--profile-filter` | No | None | Only include rows whose `profile` column matches this value |
+
+**Example**
+
+```bash
+jasentool rerun-chewbbaca \
+  --masked-assemblies backup_check_masked_assemblies.csv \
+  --schema-dir /path/to/schema \
+  --output-dir chewbbaca_rerun/
+```
+
 ## compare-distances
 
 Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Use it to measure how sample-to-sample distances shift between two chewBBACA runs, for example before and after re-running chewBBACA on masked assemblies (see `rerun-chewbbaca`), or after a schema or version change.
@@ -212,6 +244,7 @@ Samples present in only one of the two files are written to a missing-samples re
 ```
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
                             [--mlst <SAMPLE_ST.csv>] [--cgmlst-dists-bin <PATH>]
+                            [--min-mean-distance <N>] [--max-mean-distance <N>]
 ```
 
 | Argument | Required | Default | Description |
@@ -220,6 +253,7 @@ jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
 | `-o`/`--output-dir` | Yes | — | Output directory for the matrices, plots and reports (created if missing) |
 | `--mlst` | No | — | `sample_name,mlst_st` CSV/TSV; enables the missing-loci-vs-ST plot |
 | `--cgmlst-dists-bin` | No | `cgmlst-dists` | Path/name of the cgmlst-dists executable (Python fallback if absent) |
+| `--min-mean-distance`/`--max-mean-distance` | No | — | If either is set, write an extra Bland–Altman plot zoomed to this mean-distance window (e.g. 0–100) |
 | `-v`/`--verbose` | No | off | Verbose logging and write the plots' underlying point tables (`*_points.tsv`) for manual checking |
 
 > `cgmlst-dists` is a separate bioconda tool, not a Python dependency. Install it through the conda `environment.yml` (or however you prefer) to use it; without it, the Python fallback runs.
@@ -239,6 +273,7 @@ Every matrix has its rows and columns sorted by sample id, so the two distance m
 - **`<stem1>_clean.tsv`** / **`<stem2>_clean.tsv`** — each input sorted by sample id with the `ST` column dropped; these are what `cgmlst-dists` is run on.
 - **`<stem1>_vs_<stem2>_distance_scatter.png`** — scatter of every shared sample-pair's distance in file 1 (x) vs file 2 (y), with a `y=x` identity line.
 - **`<stem1>_vs_<stem2>_bland_altman.png`** — Bland–Altman of the pairwise distances: mean of the two distances (x) vs their difference (y), with the mean difference and ±1.96·SD limits.
+- **`<stem1>_vs_<stem2>_bland_altman_mean_<lo>-<hi>.png`** — *only with `--min-mean-distance`/`--max-mean-distance`*. The same Bland–Altman zoomed to the given mean-distance window; the bias and ±1.96·SD lines stay computed over all pairs.
 - **`<stem1>_vs_<stem2>_missing_vs_st.png`** — *only with `--mlst`*. Per-sample missing-loci counts grouped by MLST ST, with one box+points per ST for each file, to spot STs carrying more missing data.
 - **`<stem1>_vs_<stem2>_distance_points.tsv`** — *only with `-v`*. One row per sample pair behind the scatter/Bland–Altman: `sample_a, sample_b, <stem1>_distance, <stem2>_distance, mean, diff`.
 - **`<stem1>_vs_<stem2>_missing_vs_st_points.tsv`** — *only with `-v` and `--mlst`*. The points behind the ST plot: `sample, ST, version, n_missing`.
