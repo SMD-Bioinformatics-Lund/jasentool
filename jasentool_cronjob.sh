@@ -25,5 +25,5 @@ NEW_SAUREUS_CSV=$(find $SEARCH_PATH -type f -mmin -60 2>/dev/null)
 if [[ -n "$NEW_SAUREUS_CSV" ]]; then
 echo "New file detected: $NEW_SAUREUS_CSV" >> ${CRONDIR}/saureus_cronjob.log
 SEQUENCING_RUN=$(head -2 $NEW_SAUREUS_CSV | tail -1 | cut -d',' -f7 | cut -d'/' -f5)
-conda run -n jasentool jasentool reformat-csv --csv_file $NEW_SAUREUS_CSV --sh_file "${NEW_SAUREUS_CSV%.csv}.sh" -o ${SEQUENCING_RUN}_jasen_cron.csv --remote_dir /fs1/ryan/jasen/bjorn/ --remote --auto_start --alter_sample_id
+conda run -n jasentool jasentool reformat-csv --csv-file $NEW_SAUREUS_CSV --sh-file "${NEW_SAUREUS_CSV%.csv}.sh" -o ${SEQUENCING_RUN}_jasen_cron.csv --remote-dir /fs1/ryan/jasen/bjorn/ --remote --auto-start --alter-sample-id  >> ${CRONDIR}/saureus_cronjob.log
 fi

@@ -11,10 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `format-cdm` subcommand — builds a CDM input file from a JASEN sample manifest (as produced by `create-yaml`). Ports `postalignqc`/`quast`/`gambitcore`/`chewbbaca` parsing and CDM record formatting from bonsai-prp as a self-contained `jasentool.cdm` module, with no dependency on bonsai-libs or bonsai-prp.
 - `compare-distances` gained `--min-mean-distance`/`--max-mean-distance` flags that write an extra Bland-Altman plot (`*_bland_altman_mean_<lo>-<hi>.png`) zoomed to a clinically relevant mean-distance window, alongside the full-range plot. The bias and ±1.96 SD reference lines stay computed over all pairs; the zoom rescales the y-axis to the visible points.
+- `rebuild-manifests` subcommand — rebuilds Bonsai manifest YAMLs (and their merged versions.yml) from the backup tree, with `versions_fallback.yml` filling in versions for missing or malformed `_versions.yml` files.
 
 ### Fixed
 
+- `download-bigsdb` session-token refresh no longer crashes with newer `requests` versions, and a refreshed token is reused across locus downloads instead of being requested per locus.
+- `download-bigsdb --download-scheme` now errors clearly when `--url` is not a scheme route.
+- `jasentool_cronjob.sh` now uses the current `reformat-csv` option names (`--csv-file`, `--sh-file`, `--remote-dir`, `--auto-start`, `--alter-sample-id`).
+
 ### Changed
+
+- `download-bigsdb --setup` skips the interactive OAuth setup if an access token is already saved.
 
 ## [1.2.0]
 
