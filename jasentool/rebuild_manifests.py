@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
 from jasentool.config import CREATE_YAML_FIELD_MAP, CREATE_YAML_VCF_PRIORITY, get_profile
-from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, CreateYaml
+from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, _accession_from_fasta, CreateYaml
 from jasentool.database import Database
 from jasentool.log import get_logger
 
@@ -74,6 +74,9 @@ class RebuildManifests:
         self.profile = options.profile
         self.backup_dir = options.backup_dir
         self.output_dir = options.output_dir
+        self.reference_genome_id = getattr(options, "reference_genome_id", None)
+        if not self.reference_genome_id and getattr(options, "ref_genome_sequence", None):
+            self.reference_genome_id = _accession_from_fasta(options.ref_genome_sequence)
         self.versions_fallback = self._load_versions_fallback(
             getattr(options, "versions_fallback", None)
         )
@@ -280,6 +283,7 @@ class RebuildManifests:
             doc.get("sample_name") or metadata.get("sample_name") or sample_id
         )
         create_yaml_options.lims_id = doc.get("lims_id") or metadata.get("lims_id")
+        create_yaml_options.reference_genome_id = self.reference_genome_id
         create_yaml_options.nextflow_run_info = metadata_path
         create_yaml_options.groups = groups_by_sample.get(sample_id, [])
         create_yaml_options.versions = versions_path

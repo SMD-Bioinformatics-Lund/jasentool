@@ -1,8 +1,29 @@
 """Module for creating YAML input files for Bonsai upload"""
+import gzip
 import yaml
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
+
+
+def _accession_from_fasta(path):
+    """Return a FASTA's first sequence accession (first header token), or None.
+
+    The BAM/VCF the pipeline produces are aligned against this FASTA, so its
+    first contig accession is the reference_genome_id IGV needs.
+    """
+    try:
+        opener = gzip.open if str(path).endswith(".gz") else open
+        with opener(path, "rt", encoding="utf-8") as fin:
+            first_line = fin.readline()
+    except OSError as exc:
+        logger.warning("Could not read reference FASTA %s for accession: %s", path, exc)
+        return None
+    if not first_line.startswith(">"):
+        logger.warning("Reference FASTA %s has no header line; cannot derive accession", path)
+        return None
+    tokens = first_line[1:].split()
+    return tokens[0] if tokens else None
 
 _ANALYSIS_TOOLS = [
     ("amrfinder", "amrfinder", None),
@@ -68,6 +89,12 @@ class CreateYaml:
         prp_input["groups"] = list(options.groups)
         if options.software_info:
             prp_input["software_info"] = list(options.software_info)
+
+        reference_genome_id = getattr(options, "reference_genome_id", None)
+        if not reference_genome_id and getattr(options, "ref_genome_sequence", None):
+            reference_genome_id = _accession_from_fasta(options.ref_genome_sequence)
+        if reference_genome_id:
+            prp_input["reference_genome_id"] = reference_genome_id
 
         for field in ["nextflow_run_info", "ref_genome_sequence", "ref_genome_annotation"]:
             value = getattr(options, field, None)

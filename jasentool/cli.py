@@ -262,6 +262,8 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--quast', type=click.Path(), default=None)
 @click.option('--ref-genome-annotation', type=click.Path(), default=None)
 @click.option('--ref-genome-sequence', type=click.Path(), default=None)
+@click.option('--reference-genome-id', default=None,
+              help='Reference genome identifier (e.g. RefSeq accession) to record in the manifest')
 @click.option('--resfinder', type=click.Path(), default=None)
 @click.option('--sample-id', required=True)
 @click.option('--sample-name', required=True)
@@ -286,7 +288,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
                     plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
                     quast,
-                    ref_genome_annotation, ref_genome_sequence, resfinder,
+                    ref_genome_annotation, ref_genome_sequence,
+                    reference_genome_id, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
                     shigatyper, ska_index, software_info, sourmash_signature,
@@ -305,7 +308,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         plasmidfinder_plasmid_seqs=plasmidfinder_plasmid_seqs,
         quast=quast,
         ref_genome_annotation=ref_genome_annotation,
-        ref_genome_sequence=ref_genome_sequence, resfinder=resfinder,
+        ref_genome_sequence=ref_genome_sequence,
+        reference_genome_id=reference_genome_id, resfinder=resfinder,
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
         samtools_bedcov=samtools_bedcov, samtools_stats=samtools_stats,
         sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
@@ -432,10 +436,17 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='Flat YAML `software: version` map used to fill a version when the backup '
                    'tree has none (or only a _db version) for a tool. The tree always wins; '
                    'keys are the versions.yml software name (e.g. amrfinderplus, tb-profiler).')
+@click.option('--reference-genome-id', default=None,
+              help='Reference genome id (chromosome accession) to stamp on every manifest. '
+                   'If omitted, derived from --ref-genome-sequence.')
+@click.option('--ref-genome-sequence', type=click.Path(exists=True, dir_okay=False), default=None,
+              help='Reference FASTA whose first contig accession is used as reference_genome_id '
+                   'when --reference-genome-id is not given.')
 @click.option('-o', '--output-dir', required=True, type=click.Path(),
               help='Directory to write <sample_id>_bonsai.yaml and <sample_id>_versions.yml')
 def rebuild_manifests_cmd(profile, backup_dir, db_name, db_collection, db_collection_groups,
-                          address, no_bonsai, sample_id, versions_fallback, output_dir):
+                          address, no_bonsai, sample_id, versions_fallback,
+                          reference_genome_id, ref_genome_sequence, output_dir):
     """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
     _init_logging()
     if not no_bonsai and not (db_name and db_collection):
@@ -446,7 +457,8 @@ def rebuild_manifests_cmd(profile, backup_dir, db_name, db_collection, db_collec
         profile=profile, backup_dir=backup_dir, db_name=db_name,
         db_collection=db_collection, db_collection_groups=db_collection_groups,
         address=address, no_bonsai=no_bonsai, sample_id=sample_id,
-        versions_fallback=versions_fallback, output_dir=output_dir,
+        versions_fallback=versions_fallback, reference_genome_id=reference_genome_id,
+        ref_genome_sequence=ref_genome_sequence, output_dir=output_dir,
     )
     _parser().rebuild_manifests(options)
 

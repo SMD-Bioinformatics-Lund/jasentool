@@ -35,12 +35,14 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
-                  sample_id=None, no_bonsai=False, versions_fallback=None):
+                  sample_id=None, no_bonsai=False, versions_fallback=None,
+                  reference_genome_id=None, ref_genome_sequence=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
-        versions_fallback=versions_fallback,
+        versions_fallback=versions_fallback, reference_genome_id=reference_genome_id,
+        ref_genome_sequence=ref_genome_sequence,
     )
 
 
@@ -333,6 +335,57 @@ def test_bonsai_lims_id_wins_over_metadata(tmp_path, backup_dir, monkeypatch):
     assert manifest["sample_name"] == "Bonsai Name"
     # nextflow_run_info still comes from the metadata file (no Bonsai equivalent)
     assert manifest["nextflow_run_info"].endswith(f"{sample_id}_analysis_meta.json")
+
+
+def test_reference_genome_id_from_flag(tmp_path, backup_dir, monkeypatch):
+    """rebuild-manifests stamps an explicit --reference-genome-id onto the manifest."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
+    _patch_database(monkeypatch, fake)
+
+    options = _make_options(tmp_path, backup_dir, no_bonsai=True,
+                            reference_genome_id="NC_002951.2")
+    RebuildManifests(options).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["reference_genome_id"] == "NC_002951.2"
+
+
+def test_reference_genome_id_derived_from_fasta(tmp_path, backup_dir, monkeypatch):
+    """rebuild-manifests derives reference_genome_id from --ref-genome-sequence when no flag."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    fasta = tmp_path / "ref.fasta"
+    fasta.write_text(">NC_002951.2 Staphylococcus aureus COL chromosome\nACGT\n")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
+    _patch_database(monkeypatch, fake)
+
+    options = _make_options(tmp_path, backup_dir, no_bonsai=True,
+                            ref_genome_sequence=str(fasta))
+    RebuildManifests(options).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["reference_genome_id"] == "NC_002951.2"
+
+
+def test_reference_genome_id_omitted_when_not_provided(tmp_path, backup_dir, monkeypatch):
+    """With neither flag nor FASTA, the manifest simply has no reference_genome_id."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert "reference_genome_id" not in manifest
 
 
 def test_diagnostic_release_life_cycle_translated_to_production(tmp_path, backup_dir, monkeypatch):
