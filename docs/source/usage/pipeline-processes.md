@@ -85,6 +85,7 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | `--quast` | QUAST output |
 | `--ref-genome-annotation` | Reference genome annotation |
 | `--ref-genome-sequence` | Reference genome FASTA |
+| `--reference-genome-id` | Reference genome identifier (chromosome accession) recorded in the manifest. If omitted, it's read from the first contig header of `--ref-genome-sequence` |
 | `--resfinder` | ResFinder output |
 | `--samtools` | Samtools stats output |
 | `--samtools-bedcov` | Samtools bedcov output (mutually exclusive with `--postalnqc`) |
