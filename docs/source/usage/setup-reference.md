@@ -42,7 +42,7 @@ jasentool download-bigsdb \
   --key-name mykey
 ```
 
-Follow the printed URL to authorise access in your browser, then paste the verifier code when prompted. Tokens are stored in `--token-dir` (default `./.bigsdb_tokens`).
+Follow the printed URL to authorise access in your browser, then paste the verifier code when prompted. Tokens are stored in `--token-dir` (default `./.bigsdb_tokens`). If an access token is already saved for the key name, setup is skipped.
 
 ### Download scheme alleles
 

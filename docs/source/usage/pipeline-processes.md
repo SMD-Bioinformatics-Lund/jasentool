@@ -129,6 +129,25 @@ jasentool create-yaml \
   -o input.yml
 ```
 
+## format-cdm
+
+Build a CDM input file (JSON) from a JASEN sample manifest, e.g. one created by `create-yaml`. Parses the manifest's QC results (postalignqc, quast, gambitcore, chewbbaca) and formats them as CDM records.
+
+```
+jasentool format-cdm <MANIFEST> [-o <FILE>]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MANIFEST` | Yes | — | Path to the sample manifest YAML |
+| `-o`/`--output-file` | No | stdout | Path to the output JSON file |
+
+**Example**
+
+```bash
+jasentool format-cdm input.yml -o cdm_input.json
+```
+
 ## annotate-delly
 
 Annotate a Delly structural-variant VCF/BCF with `gene` and `locus_tag` INFO fields derived
