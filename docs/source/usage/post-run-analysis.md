@@ -133,7 +133,7 @@ Either way, the analysis-result files are located with the same per-profile outp
 
 The copy is also where `release_life_cycle` values bonsai-prp doesn't accept are normalized: `diagnostic` is rewritten to `production`. The original file in the backup tree is left as it is.
 
-**Reference genome.** The manifest's `reference_genome_id` isn't a per-sample output, and it has to match the contig names in the BAM/VCF so IGV lines up — that's the **chromosome accession** JASEN aligns the species against (e.g. `NC_002951.2` for *S. aureus*), not the assembly accession. Supply it per run: pass `--reference-genome-id` explicitly, or pass `--ref-genome-sequence` (the reference FASTA) and rebuild-manifests takes its first contig accession from the header. With neither, `reference_genome_id` is left off the manifest. `create-yaml` takes the same two options and resolves them the same way, so the live pipeline gets it automatically from the reference FASTA it already stages.
+**Reference genome.** The manifest's `reference_genome_accession` is the **assembly** accession of the reference the sample was aligned against (e.g. `GCF_000012045.1` for *S. aureus*). It must match a reference genome registered in Bonsai, which stores the corresponding chromosome/plasmid accessions (e.g. `NC_002951.2`) itself and uses them to build IGV loci — so the manifest no longer needs to carry a contig accession. Supply it per run with `--reference-genome-accession`; with no flag the field is left off the manifest and the sample simply has no genome browser. `create-yaml` takes the same option.
 
 JASEN writes one `_versions.yml` per process, spread across each tool's own output directory (`<backup-dir>/<species>/<dirname>/<sample_id>_<process_path>_versions.yml`). For each sample, every matching file is merged into `<output-dir>/<sample_id>_versions.yml` and passed to `create-yaml --versions`, so `software_version` ends up in the rebuilt manifest. These files are read defensively, since they're pipeline outputs that sometimes contain junk (a leaked `END_VERSIONS` heredoc terminator, or a stray bare version line). Any non-blank line without a colon is dropped before parsing, and a file that still won't parse is logged and skipped rather than aborting the run.
 
@@ -153,7 +153,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
                             (--db-name <DB> --db-collection <COLLECTION> | --no-bonsai)
                             [--address <URI>] [--db-collection-groups <COLLECTION>]
                             [--sample-id <ID>] [--versions-fallback <FILE>]
-                            [--reference-genome-id <ACC> | --ref-genome-sequence <FASTA>]
+                            [--reference-genome-accession <ACC>]
 ```
 
 | Argument | Required | Default | Description |
@@ -168,8 +168,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
 | `--sample-id` | No | — | Rebuild only this one sample. Handy for a test run before doing everything. Works in both modes |
 | `--versions-fallback` | No | — | Flat `software: version` YAML used to fill a version the backup tree lacks for a tool (the tree always wins) |
-| `--reference-genome-id` | No | — | Chromosome accession stamped on every manifest as `reference_genome_id` |
-| `--ref-genome-sequence` | No | — | Reference FASTA to derive `reference_genome_id` from (first contig header) when `--reference-genome-id` isn't given |
+| `--reference-genome-accession` | No | — | Assembly accession stamped on every manifest as `reference_genome_accession` |
 
 **Outputs** (per sample, in `--output-dir`)
 
