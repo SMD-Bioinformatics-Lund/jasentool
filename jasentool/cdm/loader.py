@@ -197,7 +197,7 @@ def parse_base_results_from_manifest(manifest: SampleManifest) -> ParsedSampleRe
         lims_id=manifest.lims_id,
         groups=manifest.groups,
         metadata=metadata,
-        reference_genome_id=manifest.reference_genome_id,
+        reference_genome_accession=manifest.reference_genome_accession,
         annotation_tracks=annotations,
         pipeline=to_internal_run_info(
             run_info=raw_run_info, analysis_results=manifest.analysis_result

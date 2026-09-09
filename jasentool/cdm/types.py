@@ -158,7 +158,7 @@ class ParsedSampleResults(BaseModel):
     pipeline: PipelineRun
 
     # reference info
-    reference_genome_id: str | None = None
+    reference_genome_accession: str | None = None
     annotation_tracks: list[IgvAnnotationTrack] = Field(..., default_factory=list)
 
     # analysis results and artifacts

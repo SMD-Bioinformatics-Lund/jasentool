@@ -322,58 +322,22 @@ def test_create_yaml_minimal(tmp_path):
     assert data["analysis_result"] == []
 
 
-def test_create_yaml_reference_genome_id(tmp_path):
+def test_create_yaml_reference_genome_accession(tmp_path):
     out = tmp_path / "input.yml"
     result = runner.invoke(cli, [
         "create-yaml",
         "--sample-id", "SAMP002",
         "--sample-name", "Sample 002",
         "--groups", "group1",
-        "--reference-genome-id", "GCF_000012045.1",
+        "--reference-genome-accession", "GCF_000012045.1",
         "-o", str(out),
     ])
     assert result.exit_code == 0, result.output
     data = yaml.safe_load(out.read_text())
-    assert data["reference_genome_id"] == "GCF_000012045.1"
+    assert data["reference_genome_accession"] == "GCF_000012045.1"
 
 
-def test_create_yaml_reference_genome_id_derived_from_fasta(tmp_path):
-    fasta = tmp_path / "GCF_000012045.1.fasta"
-    fasta.write_text(">NC_002951.2 Staphylococcus aureus subsp. aureus COL chromosome\nACGT\n")
-    out = tmp_path / "input.yml"
-    result = runner.invoke(cli, [
-        "create-yaml",
-        "--sample-id", "SAMP002",
-        "--sample-name", "Sample 002",
-        "--groups", "group1",
-        "--ref-genome-sequence", str(fasta),
-        "-o", str(out),
-    ])
-    assert result.exit_code == 0, result.output
-    data = yaml.safe_load(out.read_text())
-    # derived from the FASTA header when --reference-genome-id isn't given
-    assert data["reference_genome_id"] == "NC_002951.2"
-
-
-def test_create_yaml_reference_genome_id_flag_beats_fasta(tmp_path):
-    fasta = tmp_path / "ref.fasta"
-    fasta.write_text(">NC_002951.2 chromosome\nACGT\n")
-    out = tmp_path / "input.yml"
-    result = runner.invoke(cli, [
-        "create-yaml",
-        "--sample-id", "SAMP002",
-        "--sample-name", "Sample 002",
-        "--groups", "group1",
-        "--ref-genome-sequence", str(fasta),
-        "--reference-genome-id", "EXPLICIT_ID",
-        "-o", str(out),
-    ])
-    assert result.exit_code == 0, result.output
-    data = yaml.safe_load(out.read_text())
-    assert data["reference_genome_id"] == "EXPLICIT_ID"
-
-
-def test_create_yaml_no_reference_genome_id_omitted(tmp_path):
+def test_create_yaml_no_reference_genome_accession_omitted(tmp_path):
     out = tmp_path / "input.yml"
     result = runner.invoke(cli, [
         "create-yaml",
@@ -384,7 +348,7 @@ def test_create_yaml_no_reference_genome_id_omitted(tmp_path):
     ])
     assert result.exit_code == 0, result.output
     data = yaml.safe_load(out.read_text())
-    assert "reference_genome_id" not in data
+    assert "reference_genome_accession" not in data
 
 
 def test_create_yaml_analysis_result(tmp_path):

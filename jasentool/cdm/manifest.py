@@ -116,7 +116,7 @@ class SampleManifest(AllowExtraModelMixin):
     metadata: list[MetaEntry] = Field(default_factory=list)
 
     # Reference genome
-    reference_genome_id: str | None = None
+    reference_genome_accession: str | None = None
     igv_annotations: list[IgvAnnotation] = Field(default_factory=list)
 
     nextflow_run_info: RelOrAbsPath
