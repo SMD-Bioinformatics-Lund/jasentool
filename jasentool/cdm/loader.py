@@ -238,11 +238,13 @@ def parse_manifest_for_analysis(manifest: SampleManifest) -> ParsedSampleResults
         except (UnsupportedSoftwareError, UnsupportedVersionError):
             continue
 
-        # Pass bedcov path if available (used by samtools.stats for coverage metrics)
+        # Auxiliary inputs for samtools.stats: coverage gives the reference
+        # length and mean depth, bedcov the restricted (core loci) coverage.
         kwargs: dict[str, str] = {}
-        bedcov_path = available.get((res.software, "bedcov"))
-        if bedcov_path is not None:
-            kwargs["bedcov_path"] = bedcov_path
+        for subcommand, kwarg in (("coverage", "coverage_path"), ("bedcov", "bedcov_path")):
+            aux_path = available.get((res.software, subcommand))
+            if aux_path is not None:
+                kwargs[kwarg] = aux_path
 
         ev = run_parser(
             software=res.software,
