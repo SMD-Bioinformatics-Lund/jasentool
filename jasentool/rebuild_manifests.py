@@ -20,6 +20,7 @@ from jasentool.check_backup import _as_list, _glob_matches
 from jasentool.config import (
     CREATE_YAML_FIELD_MAP,
     CREATE_YAML_SOFTWARE_INFO,
+    CREATE_YAML_SUPERSEDED,
     CREATE_YAML_VCF_PRIORITY,
     get_profile,
 )
@@ -272,6 +273,12 @@ class RebuildManifests:
             if candidate in vcf_candidates:
                 fields["vcf"] = vcf_candidates[candidate]
                 break
+        for old_field, preferred in CREATE_YAML_SUPERSEDED.items():
+            if old_field in fields and preferred in fields:
+                logger.debug(
+                    "%s: ignoring %s, superseded by %s", sample_id, old_field, preferred
+                )
+                del fields[old_field]
         return fields, software_info
 
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):

@@ -120,6 +120,7 @@ _POST_ALIGN_QC = [
     _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt"),
     _out("samtools_stats", "samtools_stats", "", ".stats"),
     _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv"),
+    _out("post_align_qc", "postalignqc", "_qc", ".json", required=False),
 ]
 
 
@@ -147,7 +148,12 @@ CREATE_YAML_FIELD_MAP = {
     "samtools_coverage": "samtools",
     "samtools_stats": "samtools_stats",
     "samtools_bedcov": "samtools_bedcov",
+    "post_align_qc": "postalignqc",
 }
+
+# Older runs wrote a single postalignqc JSON; newer ones write samtools stats.
+# When a sample has both, keep only samtools.
+CREATE_YAML_SUPERSEDED = {"postalignqc": "samtools_stats"}
 
 # Outputs passed to create-yaml as --software-info, which takes a list.
 CREATE_YAML_SOFTWARE_INFO = [
