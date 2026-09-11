@@ -438,6 +438,44 @@ def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, mo
     assert entries[("samtools", "coverage")].endswith("_mapcoverage.txt")
 
 
+def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monkeypatch):
+    """Older runs only wrote postalignqc/<sample_id>_qc.json."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "postalignqc", f"{sample_id}_qc.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
+    assert ("postalignqc", None) in entries
+
+
+def test_samtools_supersedes_legacy_postalignqc(tmp_path, backup_dir, monkeypatch):
+    """When a sample has both, only the samtools outputs are kept."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "postalignqc", f"{sample_id}_qc.json")
+    _touch(backup_dir, species, "coverage", f"{sample_id}_bwa_mapcoverage.txt")
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+    _touch(backup_dir, species, "samtools_bedcov", f"{sample_id}.bedcov.tsv")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    softwares = {e["software"] for e in manifest["analysis_result"]}
+    assert "postalignqc" not in softwares
+    assert "samtools" in softwares
+
+
 def test_database_meta_files_go_to_software_info(tmp_path, backup_dir, monkeypatch):
     """*_meta.json outputs carry database versions and feed create-yaml's --software-info."""
     species = "saureus"

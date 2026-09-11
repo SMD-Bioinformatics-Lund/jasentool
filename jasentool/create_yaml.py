@@ -17,6 +17,7 @@ _ANALYSIS_TOOLS = [
     ("mykrobe", "mykrobe", None),
     ("nanoplot", "nanoplot", None),
     ("plasmidfinder", "plasmidfinder", None),
+    ("postalignqc", "postalignqc", None),
     ("plasmidfinder_genome_hits", "plasmidfinder", "genome_hits"),
     ("plasmidfinder_plasmid_seqs", "plasmidfinder", "plasmid_seqs"),
     ("quast", "quast", None),

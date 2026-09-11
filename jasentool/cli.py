@@ -257,6 +257,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--plasmidfinder', type=click.Path(), default=None)
 @click.option('--plasmidfinder-genome-hits', type=click.Path(), default=None)
 @click.option('--plasmidfinder-plasmid-seqs', type=click.Path(), default=None)
+@click.option('--postalignqc', type=click.Path(), default=None)
 @click.option('--samtools-bedcov', type=click.Path(), default=None)
 @click.option('--samtools-stats', type=click.Path(), default=None)
 @click.option('--quast', type=click.Path(), default=None)
@@ -288,7 +289,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
                     mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
                     plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
-                    quast,
+                    postalignqc, quast,
                     ref_genome_annotation, ref_genome_sequence,
                     reference_genome_accession, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
@@ -307,6 +308,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         plasmidfinder=plasmidfinder,
         plasmidfinder_genome_hits=plasmidfinder_genome_hits,
         plasmidfinder_plasmid_seqs=plasmidfinder_plasmid_seqs,
+        postalignqc=postalignqc,
         quast=quast,
         ref_genome_annotation=ref_genome_annotation,
         ref_genome_sequence=ref_genome_sequence,
