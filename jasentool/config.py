@@ -115,9 +115,11 @@ _STREP_OUTPUTS = [
     _out("emmtyper", "emmtyper", "_emmtyper", ".tsv"),
 ]
 
-# post_align_qc runs for non-Streptococcus profiles only.
+# Alignment QC outputs; run for non-Streptococcus profiles only.
 _POST_ALIGN_QC = [
-    _out("post_align_qc", "postalignqc", "_qc", ".json"),
+    _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt"),
+    _out("samtools_stats", "samtools_stats", "", ".stats"),
+    _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv"),
 ]
 
 
@@ -142,7 +144,17 @@ CREATE_YAML_FIELD_MAP = {
     "serotypefinder_json": "serotypefinder",
     "shigatyper": "shigatyper",
     "emmtyper": "emmtyper",
+    "samtools_coverage": "samtools",
+    "samtools_stats": "samtools_stats",
+    "samtools_bedcov": "samtools_bedcov",
 }
+
+# Outputs passed to create-yaml as --software-info, which takes a list.
+CREATE_YAML_SOFTWARE_INFO = [
+    "resfinder_meta",
+    "virulencefinder_meta",
+    "serotypefinder_meta",
+]
 
 # create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
