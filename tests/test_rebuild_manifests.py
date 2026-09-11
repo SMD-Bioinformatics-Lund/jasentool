@@ -393,7 +393,7 @@ def test_diagnostic_release_life_cycle_translated_to_production(tmp_path, backup
 
 
 def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypatch):
-    """resfinder_meta/mask_polymorph/format_jasen/save_analysis_metadata must not appear."""
+    """mask_polymorph/format_jasen/save_analysis_metadata must not appear as results."""
     species = "saureus"
     sample_id = "sample1"
     _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
@@ -410,6 +410,53 @@ def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypat
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     software_names = {e["software"] for e in manifest["analysis_result"]}
     assert software_names == {"quast"}
+
+
+def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, monkeypatch):
+    """samtools coverage/stats/bedcov replace the retired postalignqc output."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "coverage", f"{sample_id}_bwa_mapcoverage.txt")
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+    _touch(backup_dir, species, "samtools_bedcov", f"{sample_id}.bedcov.tsv")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {
+        (e["software"], e.get("subcommand")): e["uri"] for e in manifest["analysis_result"]
+    }
+    assert ("samtools", "coverage") in entries
+    assert ("samtools", "stats") in entries
+    assert ("samtools", "bedcov") in entries
+    assert entries[("samtools", "stats")].endswith(f"{sample_id}.stats")
+    assert entries[("samtools", "bedcov")].endswith(f"{sample_id}.bedcov.tsv")
+    assert entries[("samtools", "coverage")].endswith("_mapcoverage.txt")
+
+
+def test_database_meta_files_go_to_software_info(tmp_path, backup_dir, monkeypatch):
+    """*_meta.json outputs carry database versions and feed create-yaml's --software-info."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder_meta.json")
+    _touch(backup_dir, species, "virulencefinder", f"{sample_id}_virulencefinder_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    info = manifest["software_info"]
+    assert any(path.endswith(f"{sample_id}_resfinder_meta.json") for path in info)
+    assert any(path.endswith(f"{sample_id}_virulencefinder_meta.json") for path in info)
+    assert {e["software"] for e in manifest["analysis_result"]} == {"quast"}
 
 
 # ── --sample-id filtering ──────────────────────────────────────────────────────

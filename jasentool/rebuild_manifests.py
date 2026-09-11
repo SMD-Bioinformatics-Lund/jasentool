@@ -17,7 +17,12 @@ import yaml
 from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
-from jasentool.config import CREATE_YAML_FIELD_MAP, CREATE_YAML_VCF_PRIORITY, get_profile
+from jasentool.config import (
+    CREATE_YAML_FIELD_MAP,
+    CREATE_YAML_SOFTWARE_INFO,
+    CREATE_YAML_VCF_PRIORITY,
+    get_profile,
+)
 from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, CreateYaml
 from jasentool.database import Database
 from jasentool.log import get_logger
@@ -241,17 +246,25 @@ class RebuildManifests:
         )
 
     def _resolve_fields(self, outputs, species, sample_id):
-        """Return {create-yaml field: path} for every output found in the backup tree."""
+        """Return ({create-yaml field: path}, [software-info path, ...]) for the backup tree."""
         fields = {}
+        software_info = []
         vcf_candidates = {}
         for output in outputs:
             software_name = output["software_name"]
-            if software_name not in CREATE_YAML_FIELD_MAP and software_name not in CREATE_YAML_VCF_PRIORITY:
+            known = (
+                software_name in CREATE_YAML_FIELD_MAP
+                or software_name in CREATE_YAML_VCF_PRIORITY
+                or software_name in CREATE_YAML_SOFTWARE_INFO
+            )
+            if not known:
                 continue
             path = self._resolve_output_path(output, species, sample_id)
             if not path:
                 continue
-            if software_name in CREATE_YAML_VCF_PRIORITY:
+            if software_name in CREATE_YAML_SOFTWARE_INFO:
+                software_info.append(path)
+            elif software_name in CREATE_YAML_VCF_PRIORITY:
                 vcf_candidates[software_name] = path
             else:
                 fields[CREATE_YAML_FIELD_MAP[software_name]] = path
@@ -259,11 +272,11 @@ class RebuildManifests:
             if candidate in vcf_candidates:
                 fields["vcf"] = vcf_candidates[candidate]
                 break
-        return fields
+        return fields, software_info
 
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):
         sample_id = doc["sample_id"]
-        fields = self._resolve_fields(outputs, species, sample_id)
+        fields, software_info = self._resolve_fields(outputs, species, sample_id)
         needed_keys = {
             _FIELD_TO_VERSION_KEY[field]
             for field in fields if field in _FIELD_TO_VERSION_KEY
@@ -274,7 +287,7 @@ class RebuildManifests:
         create_yaml_options = types.SimpleNamespace(**{field: None for field in _OPTIONAL_FIELDS})
         for field in _REQUIRED_FIELDS:
             setattr(create_yaml_options, field, None)
-        create_yaml_options.software_info = []
+        create_yaml_options.software_info = software_info
         for field, path in fields.items():
             setattr(create_yaml_options, field, path)
 
