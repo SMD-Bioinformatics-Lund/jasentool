@@ -96,7 +96,7 @@ def test_writes_manifest_and_merged_versions(tmp_path, backup_dir, monkeypatch):
     assert manifest["sample_id"] == sample_id
     assert manifest["sample_name"] == "Sample One"
     assert manifest["lims_id"] == "LIMS1"
-    assert manifest["groups"] == ["wgs"]
+    assert manifest["groups"] == ["saureus", "wgs"]
 
     results = {e["software"]: e for e in manifest["analysis_result"]}
     assert results["quast"]["uri"] == str(quast_path)
@@ -618,10 +618,10 @@ def test_groups_reverse_lookup_multiple_groups(tmp_path, backup_dir, monkeypatch
     RebuildManifests(_make_options(tmp_path, backup_dir)).run()
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    assert sorted(manifest["groups"]) == ["outbreak_2026", "wgs"]
+    assert manifest["groups"] == ["saureus", "wgs", "outbreak_2026"]
 
 
-def test_sample_in_no_groups_gets_empty_list(tmp_path, backup_dir, monkeypatch):
+def test_sample_in_no_groups_gets_profile_group(tmp_path, backup_dir, monkeypatch):
     sample_id = "sample1"
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
     _patch_database(monkeypatch, fake)
@@ -629,7 +629,58 @@ def test_sample_in_no_groups_gets_empty_list(tmp_path, backup_dir, monkeypatch):
     RebuildManifests(_make_options(tmp_path, backup_dir)).run()
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    assert manifest["groups"] == []
+    assert manifest["groups"] == ["saureus"]
+
+
+@pytest.mark.parametrize("profile, species, group", [
+    ("staphylococcus_aureus", "saureus", "saureus"),
+    ("escherichia_coli", "ecoli", "ecoli"),
+    ("mycobacterium_tuberculosis", "mtuberculosis", "mtuberculosis"),
+    ("streptococcus_pyogenes", "spyogenes", "spyogenes"),
+    ("streptococcus", "streptococcus", "streptococcus"),
+])
+def test_profile_converted_to_group_without_bonsai(tmp_path, backup_dir, monkeypatch,
+                                                   profile, species, group):
+    sample_id = "sample1"
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+    _forbid_database(monkeypatch)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, profile=profile, no_bonsai=True)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["groups"] == [group]
+
+
+def test_duplicate_profile_group_from_bonsai_not_repeated(tmp_path, backup_dir, monkeypatch):
+    sample_id = "sample1"
+    fake = FakeMongo(
+        samples=[_sample(sample_id, "staphylococcus_aureus")],
+        groups=[{"name": "saureus", "included_samples": [sample_id]}],
+    )
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["groups"] == ["saureus"]
+
+
+def test_bracken_output_resolved_from_kraken_dir(tmp_path, backup_dir, monkeypatch):
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.out")
+    _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.report")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {e["software"]: e["uri"] for e in manifest["analysis_result"]}
+    assert set(entries) == {"bracken"}
+    assert entries["bracken"].endswith(f"{sample_id}_bracken.out")
 
 
 # ── --no-bonsai: discover samples from the tree, no Mongo ────────────────────────
@@ -661,7 +712,7 @@ def test_no_bonsai_discovers_samples_from_tree(tmp_path, backup_dir, monkeypatch
         assert manifest["sample_id"] == sid
         assert manifest["sample_name"] == sid       # falls back to sample_id
         assert "lims_id" not in manifest            # unset -> omitted
-        assert manifest["groups"] == []             # no Bonsai group lookup
+        assert manifest["groups"] == ["saureus"]    # from the profile, no Bonsai lookup
         results = {e["software"]: e for e in manifest["analysis_result"]}
         assert results["quast"]["software_version"] == "5.2.0"
         assert (out_dir / f"{sid}_versions.yml").exists()

@@ -305,7 +305,9 @@ class RebuildManifests:
         create_yaml_options.lims_id = doc.get("lims_id") or metadata.get("lims_id")
         create_yaml_options.reference_genome_accession = self.reference_genome_accession
         create_yaml_options.nextflow_run_info = metadata_path
-        create_yaml_options.groups = groups_by_sample.get(sample_id, [])
+        create_yaml_options.groups = [species] + [
+            group for group in groups_by_sample.get(sample_id, []) if group != species
+        ]
         create_yaml_options.versions = versions_path
         create_yaml_options.output = os.path.join(self.output_dir, f"{sample_id}_bonsai.yaml")
 

@@ -37,6 +37,7 @@ _COMMON_OUTPUTS = [
     _out("format_cdm", "cdm_input", "_qc_result", ".json"),
     _out("export_to_cdm", "qc", "", ".cdmpy"),
     _out("save_analysis_metadata", "analysis_metadata", "_analysis_meta", ".json"),
+    _out("bracken", "kraken", "_bracken", ".out", required=False),
     # Optional / feature- and platform-gated entries — uncomment if/when needed.
     # The wildcard-mask entries (fastqc_*) trigger a full directory listing per
     # sample, which dominates runtime on NFS-backed backup trees; reinstate them
@@ -130,6 +131,7 @@ CREATE_YAML_FIELD_MAP = {
     "quast": "quast",
     "sourmash": "sourmash_signature",
     "gambitcore": "gambitcore",
+    "bracken": "kraken",
     "ska": "ska_index",
     "amrfinderplus": "amrfinder",
     "resfinder_json": "resfinder",

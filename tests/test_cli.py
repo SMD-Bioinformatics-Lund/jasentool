@@ -482,7 +482,7 @@ def test_create_yaml_all_args(tmp_path):
     assert results[("gambitcore", None)]["uri"] == "gambitcore.json"
     assert results[("kleborate", None)]["uri"] == "kleborate.tsv"
     assert results[("kleborate", "hamronization")]["uri"] == "kleborate_hamronization.tsv"
-    assert results[("kraken", None)]["uri"] == "kraken.out"
+    assert results[("bracken", None)]["uri"] == "kraken.out"
     assert results[("mlst", None)]["uri"] == "mlst.json"
     assert results[("mykrobe", None)]["uri"] == "mykrobe.json"
     assert results[("nanoplot", None)]["uri"] == "nanoplot.txt"
