@@ -12,7 +12,7 @@ _ANALYSIS_TOOLS = [
     ("gambitcore", "gambitcore", None),
     ("kleborate", "kleborate", None),
     ("kleborate_hamronization", "kleborate", "hamronization"),
-    ("kraken", "kraken", None),
+    ("kraken", "bracken", None),
     ("mlst", "mlst", None),
     ("mykrobe", "mykrobe", None),
     ("nanoplot", "nanoplot", None),
@@ -36,7 +36,6 @@ _ANALYSIS_TOOLS = [
 
 _VERSION_KEY_MAP = {
     "amrfinder":   "amrfinderplus",
-    "kraken":      "bracken",
     "sccmectyper": "sccmec",
     "tbprofiler":  "tb-profiler",
 }

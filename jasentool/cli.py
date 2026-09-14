@@ -431,7 +431,7 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='Bonsai MongoDB address')
 @click.option('--no-bonsai', is_flag=True, default=False,
               help='Discover samples by scanning the backup tree instead of querying Bonsai. '
-                   'sample_name falls back to sample_id; lims_id and groups are left unset.')
+                   'sample_name falls back to sample_id; lims_id is left unset.')
 @click.option('--sample-id', default=None,
               help='If set, only rebuild the manifest for this sample_id (e.g. to test on one '
                    'sample before a full run)')
