@@ -137,22 +137,23 @@ The copy is also where `release_life_cycle` values bonsai-prp doesn't accept are
 
 JASEN writes one `_versions.yml` per process, spread across each tool's own output directory (`<backup-dir>/<species>/<dirname>/<sample_id>_<process_path>_versions.yml`). For each sample, every matching file is merged into `<output-dir>/<sample_id>_versions.yml` and passed to `create-yaml --versions`, so `software_version` ends up in the rebuilt manifest. These files are read defensively, since they're pipeline outputs that sometimes contain junk (a leaked `END_VERSIONS` heredoc terminator, or a stray bare version line). Any non-blank line without a colon is dropped before parsing, and a file that still won't parse is logged and skipped rather than aborting the run.
 
-**Filling missing versions (`--versions-fallback`).** Some tools have no usable version in the tree: either no `_versions.yml` was written (chewbbaca, for example), or the file records only a database version (`virulencefinder_db`) and not the tool version. Pass `--versions-fallback <file>`, a flat `software: version` YAML, to fill those gaps:
+**Filling missing versions (`--jasen-version`).** Some tools have no usable version in the tree: either no `_versions.yml` was written (chewbbaca, for example), or the file records only a database version (`virulencefinder_db`) and not the tool version. Pass `--jasen-version <RELEASE>`, the JASEN release the samples were run with, to fill those gaps. `VERSIONS_FALLBACK` in `jasentool/config.py` maps each release from `1.0.0` to `1.3.0` to the tool versions of the containers that release pinned (abridged):
 
-```yaml
-chewbbaca: '3.3.2'
-virulencefinder: '2.0.4'
-amrfinderplus: '3.11.11'
+```python
+VERSIONS_FALLBACK = {
+    "1.1.0": {"amrfinderplus": "3.11.11", "chewbbaca": "3.3.2"},
+    "1.3.0": {"amrfinderplus": "4.2.7", "chewbbaca": "3.5.3"},
+}
 ```
 
-The tree always wins: a fallback value is used only when a tool the sample has an output file for has no version from the tree. Keys are the software name as it appears *inside* a versions.yml (what `create-yaml` looks up), not the container image name, so `amrfinderplus` rather than `ncbi-amrfinderplus`, `bracken` for kraken/bracken, and `tb-profiler`. Only versions relevant to the sample's outputs are applied; other entries in the file are ignored. Each fill is logged (`<sample_id>: filled N version(s) from fallback: ...`). A ready-made file for the current pipeline release ships at `versions_fallback.yml` in the repo root.
+The tree always wins: a fallback value is used only when a tool the sample has an output file for has no version from the tree. Keys are the software name as it appears *inside* a versions.yml (what `create-yaml` looks up), not the container image name, so `amrfinderplus` rather than `ncbi-amrfinderplus`, `bracken` for kraken/bracken, and `tb-profiler`. Only versions relevant to the sample's outputs are applied; other entries in the release's map are ignored. Each fill is logged (`<sample_id>: filled N version(s) from fallback: ...`). Without `--jasen-version`, nothing is filled. To support a new release, add its container versions to `VERSIONS_FALLBACK`.
 
 ```
 jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
                             -o <OUTPUT_DIR>
                             (--db-name <DB> --db-collection <COLLECTION> | --no-bonsai)
                             [--address <URI>] [--db-collection-groups <COLLECTION>]
-                            [--sample-id <ID>] [--versions-fallback <FILE>]
+                            [--sample-id <ID>] [--jasen-version <RELEASE>]
                             [--reference-genome-accession <ACC>]
 ```
 
@@ -167,12 +168,12 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
 | `--db-collection-groups` | No | `sample_group` | Bonsai MongoDB collection holding `sample_group` docs (used to resolve each sample's `groups`) |
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
 | `--sample-id` | No | — | Rebuild only this one sample. Handy for a test run before doing everything. Works in both modes |
-| `--versions-fallback` | No | — | Flat `software: version` YAML used to fill a version the backup tree lacks for a tool (the tree always wins) |
+| `--jasen-version` | No | — | JASEN release (`1.0.0`–`1.3.0`) the samples were run with; fills a version the backup tree lacks for a tool from that release's containers (the tree always wins) |
 | `--reference-genome-accession` | No | — | Assembly accession stamped on every manifest as `reference_genome_accession` |
 
 **Outputs** (per sample, in `--output-dir`)
 
-- **`<sample_id>_versions.yml`** — the merged per-process versions file, including any `--versions-fallback` fills. Omitted only when neither the tree nor the fallback produced a version for the sample.
+- **`<sample_id>_versions.yml`** — the merged per-process versions file, including any `--jasen-version` fallback fills. Omitted only when neither the tree nor the fallback produced a version for the sample.
 - **`<sample_id>_analysis_meta.json`** — a copy of the run metadata with `release_life_cycle` normalized, referenced by the manifest's `nextflow_run_info`. Written only when the backup tree has a metadata file for the sample.
 - **`<sample_id>_bonsai.yaml`** — the rebuilt manifest. Written even when some or all analysis-result files are missing; the absent fields are just left out, the same way `create-yaml` handles missing inputs.
 
