@@ -723,6 +723,42 @@ def test_tb_falls_back_to_snippy_vcf_when_tbprofiler_vcf_missing(tmp_path, backu
     assert variants["uri"] == str(snippy_vcf)
 
 
+def test_bwa_bam_and_bai_resolved(tmp_path, backup_dir, monkeypatch):
+    species = "saureus"
+    sample_id = "sample1"
+    bam = _touch(backup_dir, species, "bam", f"{sample_id}_bwa.bam")
+    bai = _touch(backup_dir, species, "bam", f"{sample_id}_bwa.bam.bai")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
+    assert track["uri"] == str(bam)
+    assert track["index_uri"] == str(bai)
+
+
+def test_bwa_bam_and_bai_taken_from_symlink_dir(tmp_path, backup_dir, monkeypatch):
+    species = "saureus"
+    sample_id = "sample1"
+    symlink_dir = tmp_path / "access"
+    for root in (backup_dir, symlink_dir):
+        _touch(root, species, "bam", f"{sample_id}_bwa.bam")
+        _touch(root, species, "bam", f"{sample_id}_bwa.bam.bai")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
+    assert track["uri"] == str(symlink_dir / species / "bam" / f"{sample_id}_bwa.bam")
+    assert track["index_uri"] == str(symlink_dir / species / "bam" / f"{sample_id}_bwa.bam.bai")
+
+
 def test_tb_bam_and_bai_resolved(tmp_path, backup_dir, monkeypatch):
     species = "mtuberculosis"
     sample_id = "sample1"

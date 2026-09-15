@@ -78,7 +78,8 @@ _NON_TB_OUTPUTS = [
     # _out("flye", "fasta", "_flye", ".fasta", required=False),
     # _out("medaka", "fasta", "_medaka", ".fasta", required=False),
     # Non-TB alignment / variant ancillaries (gated by platform / use_masking)
-    # _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
+    _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
+    _out("samtools_index_ref", "bam", "_bwa.bam", ".bai", required=False),
     # _out("clair3_ref", "vcf", "_clair3", ".vcf.gz", required=False),
     _out("mask_polymorph", "mask", "_mask", ".fasta"),
 ]
@@ -142,6 +143,8 @@ CREATE_YAML_FIELD_MAP = {
     "tbprofiler_json": "tbprofiler",
     "tbprofiler_bam": "bam",
     "tbprofiler_bai": "bai",
+    "bwa_mem_ref": "bam",
+    "samtools_index_ref": "bai",
     "sccmec": "sccmec",
     "spatyper": "spatyper",
     "serotypefinder_json": "serotypefinder",
