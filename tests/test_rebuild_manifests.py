@@ -505,6 +505,29 @@ def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monk
     assert ("postalignqc", None) in entries
 
 
+@pytest.mark.parametrize("jasen_version, expected", [
+    ("1.1.0", "1.3.1"),
+    ("1.1.1", "1.3.1"),
+    ("1.1.2", "1.3.3"),
+    ("1.2.0", "1.5.0"),
+    ("1.3.0", "1.0.0"),
+])
+def test_legacy_postalignqc_version_from_fallback(tmp_path, backup_dir, monkeypatch,
+                                                  jasen_version, expected):
+    """postalignqc has no key of its own in versions.yml; its version comes from the release."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "postalignqc", f"{sample_id}_qc.json")
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version=jasen_version)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entry = next(e for e in manifest["analysis_result"] if e["software"] == "postalignqc")
+    assert entry["software_version"] == expected
+
+
 def test_samtools_supersedes_legacy_postalignqc(tmp_path, backup_dir, monkeypatch):
     """When a sample has both, only the samtools outputs are kept."""
     species = "saureus"
