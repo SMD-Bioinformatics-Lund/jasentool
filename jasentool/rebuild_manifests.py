@@ -21,6 +21,7 @@ from jasentool.config import (
     CREATE_YAML_FIELD_MAP,
     CREATE_YAML_SOFTWARE_INFO,
     CREATE_YAML_SUPERSEDED,
+    CREATE_YAML_SYMLINKED_FIELDS,
     CREATE_YAML_VCF_PRIORITY,
     VERSIONS_FALLBACK,
     get_profile,
@@ -104,6 +105,7 @@ class RebuildManifests:
         self.options = options
         self.profile = options.profile
         self.backup_dir = options.backup_dir
+        self.symlink_dir = getattr(options, "symlink_dir", None)
         self.output_dir = options.output_dir
         self.reference_genome_accession = getattr(
             options, "reference_genome_accession", None
@@ -175,16 +177,33 @@ class RebuildManifests:
                     groups_by_sample[sid].append(name)
         return groups_by_sample
 
-    def _resolve_output_path(self, output, species, sample_id):
-        """Return the first matching backup-tree path for `output`, or None."""
+    def _resolve_output_path(self, output, species, sample_id, root=None):
+        """Return the first match for `output` under `root` (default: backup tree), or None."""
         dirname = output["dirname"]
         mask = output.get("mask", "")
-        search_dir = os.path.join(self.backup_dir, species, dirname)
+        search_dir = os.path.join(root or self.backup_dir, species, dirname)
         for ext in _as_list(output["file_ext"]):
             matches = _glob_matches(search_dir, sample_id, mask, ext)
             if matches:
                 return matches[0]
         return None
+
+    def _resolve_field_path(self, output, species, sample_id):
+        """Resolve symlinked create-yaml fields from --symlink-dir, everything else from backup."""
+        software_name = output["software_name"]
+        if software_name in CREATE_YAML_VCF_PRIORITY:
+            field = "vcf"
+        else:
+            field = CREATE_YAML_FIELD_MAP.get(software_name)
+        if not self.symlink_dir or field not in CREATE_YAML_SYMLINKED_FIELDS:
+            return self._resolve_output_path(output, species, sample_id)
+        path = self._resolve_output_path(output, species, sample_id, root=self.symlink_dir)
+        if not path and self._resolve_output_path(output, species, sample_id):
+            logger.warning(
+                "%s: %s is in the backup tree but not under %s; leaving it out",
+                sample_id, software_name, self.symlink_dir,
+            )
+        return path
 
     def _resolve_run_metadata(self, outputs, species, sample_id):
         """Return (path, parsed_dict) for the sample's run metadata, or (None, {}).
@@ -276,7 +295,7 @@ class RebuildManifests:
             )
             if not known:
                 continue
-            path = self._resolve_output_path(output, species, sample_id)
+            path = self._resolve_field_path(output, species, sample_id)
             if not path:
                 continue
             if software_name in CREATE_YAML_SOFTWARE_INFO:
