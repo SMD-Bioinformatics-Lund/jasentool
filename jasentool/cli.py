@@ -422,6 +422,11 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
 @click.option('--backup-dir', required=True,
               type=click.Path(exists=True, file_okay=False),
               help='Root of the backup storage tree')
+@click.option('--symlink-dir', default=None,
+              type=click.Path(exists=True, file_okay=False),
+              help='Root of the JASEN symlink tree (params.symlink_dir). When set, the bam, bai, '
+                   'vcf, sourmash signature and ska index are taken from here instead of the '
+                   'backup tree, so their paths are ones Bonsai can read.')
 @click.option('--db-name', default=None,
               help='Bonsai MongoDB database name (required unless --no-bonsai)')
 @click.option('--db-collection', default=None,
@@ -444,8 +449,8 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
                    'every manifest. Must match a reference genome registered in Bonsai.')
 @click.option('-o', '--output-dir', required=True, type=click.Path(),
               help='Directory to write <sample_id>_bonsai.yaml and <sample_id>_versions.yml')
-def rebuild_manifests_cmd(profile, backup_dir, db_name, db_collection, db_collection_groups,
-                          address, no_bonsai, sample_id, jasen_version,
+def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collection,
+                          db_collection_groups, address, no_bonsai, sample_id, jasen_version,
                           reference_genome_accession, output_dir):
     """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
     _init_logging()
@@ -454,7 +459,7 @@ def rebuild_manifests_cmd(profile, backup_dir, db_name, db_collection, db_collec
             "--db-name and --db-collection are required unless --no-bonsai is set"
         )
     options = types.SimpleNamespace(
-        profile=profile, backup_dir=backup_dir, db_name=db_name,
+        profile=profile, backup_dir=backup_dir, symlink_dir=symlink_dir, db_name=db_name,
         db_collection=db_collection, db_collection_groups=db_collection_groups,
         address=address, no_bonsai=no_bonsai, sample_id=sample_id, jasen_version=jasen_version,
         reference_genome_accession=reference_genome_accession, output_dir=output_dir,

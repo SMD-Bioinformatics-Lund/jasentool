@@ -167,6 +167,9 @@ CREATE_YAML_SOFTWARE_INFO = [
 # create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
 
+# create-yaml fields JASEN passes from params.symlink_dir rather than params.outdir.
+CREATE_YAML_SYMLINKED_FIELDS = {"bam", "bai", "ska_index", "sourmash_signature", "vcf"}
+
 # Tool versions pinned by each JASEN release's containers, for rebuild-manifests
 # --jasen-version. Used only when the backup tree has no usable version for a tool the
 # sample has an output for. Keys are the software name inside a versions.yml (what

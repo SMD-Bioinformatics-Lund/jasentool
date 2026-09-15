@@ -36,12 +36,13 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
                   sample_id=None, no_bonsai=False, jasen_version=None,
-                  reference_genome_accession=None):
+                  reference_genome_accession=None, symlink_dir=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
         jasen_version=jasen_version, reference_genome_accession=reference_genome_accession,
+        symlink_dir=None if symlink_dir is None else str(symlink_dir),
     )
 
 
@@ -571,6 +572,72 @@ def test_database_meta_files_go_to_software_info(tmp_path, backup_dir, monkeypat
 
 
 # ── --sample-id filtering ──────────────────────────────────────────────────────
+
+def test_symlinked_fields_taken_from_symlink_dir(tmp_path, backup_dir, monkeypatch):
+    species = "saureus"
+    sample_id = "sample1"
+    symlink_dir = tmp_path / "access"
+    for root in (backup_dir, symlink_dir):
+        _touch(root, species, "sourmash", f"{sample_id}.sig")
+        _touch(root, species, "ska", f"{sample_id}_ska_index.skf")
+        _touch(root, species, "vcf", f"{sample_id}_freebayes.vcf")
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    artifacts = manifest["index_artifacts"]
+    assert artifacts["sourmash_signature"].startswith(str(symlink_dir))
+    assert artifacts["ska_index"].startswith(str(symlink_dir))
+    vcf_track = next(t for t in manifest["igv_annotations"] if t["type"] == "variant")
+    assert vcf_track["uri"].startswith(str(symlink_dir))
+    quast = next(e for e in manifest["analysis_result"] if e["software"] == "quast")
+    assert quast["uri"].startswith(str(backup_dir))
+
+
+def test_symlinked_bam_and_bai_taken_from_symlink_dir(tmp_path, backup_dir, monkeypatch):
+    species = "mtuberculosis"
+    sample_id = "sample1"
+    symlink_dir = tmp_path / "access"
+    for root in (backup_dir, symlink_dir):
+        _touch(root, species, "bam", f"{sample_id}_tbprofiler.bam")
+        _touch(root, species, "bam", f"{sample_id}_tbprofiler.bam.bai")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(
+        tmp_path, backup_dir, profile="mycobacterium_tuberculosis", symlink_dir=symlink_dir,
+    )).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    bam_track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
+    assert bam_track["uri"].startswith(str(symlink_dir))
+    assert bam_track["index_uri"].startswith(str(symlink_dir))
+
+
+def test_symlinked_field_missing_from_symlink_dir_is_left_out(tmp_path, backup_dir,
+                                                               monkeypatch, caplog):
+    """Falling back to the backup path would give Bonsai a path it cannot read."""
+    species = "saureus"
+    sample_id = "sample1"
+    symlink_dir = tmp_path / "access"
+    symlink_dir.mkdir()
+    _touch(backup_dir, species, "vcf", f"{sample_id}_freebayes.vcf")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    with caplog.at_level(logging.WARNING):
+        RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert not any(t["type"] == "variant" for t in manifest["igv_annotations"])
+    assert "not under" in caplog.text
+
 
 def test_sample_id_filters_to_one_sample(tmp_path, backup_dir, monkeypatch):
     species = "saureus"
