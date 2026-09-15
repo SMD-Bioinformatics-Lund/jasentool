@@ -210,8 +210,14 @@ _JASEN_1_1_0 = {
     **_JASEN_1_0_0,
     "gambitcore": "0.0.2",
     "minimap2": "2.28",
+    "postalignqc": "1.3.1",
     "prodigal": "2.6.3",
     "resfinder": "4.7.2",
+}
+
+_JASEN_1_1_2 = {
+    **_JASEN_1_1_0,
+    "postalignqc": "1.3.3",
 }
 
 _JASEN_1_2_0 = {
@@ -222,6 +228,7 @@ _JASEN_1_2_0 = {
     "medaka": "2.2.0",
     "minimap2": "2.30",
     "nanoplot": "1.46.2",
+    "postalignqc": "1.5.0",
     "virulencefinder": "3.2.0",
 }
 
@@ -232,13 +239,14 @@ _JASEN_1_3_0 = {
     "clair3": "2.0.0",
     "filtlong": "0.3.1",
     "kraken2": "2.17.1",
+    "postalignqc": "1.0.0",
 }
 
 VERSIONS_FALLBACK = {
     "1.0.0": _JASEN_1_0_0,
     "1.1.0": _JASEN_1_1_0,
     "1.1.1": _JASEN_1_1_0,
-    "1.1.2": _JASEN_1_1_0,
+    "1.1.2": _JASEN_1_1_2,
     "1.2.0": _JASEN_1_2_0,
     "1.3.0": _JASEN_1_3_0,
 }
