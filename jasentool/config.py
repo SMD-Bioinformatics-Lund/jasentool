@@ -167,6 +167,82 @@ CREATE_YAML_SOFTWARE_INFO = [
 # create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
 
+# Tool versions pinned by each JASEN release's containers, for rebuild-manifests
+# --jasen-version. Used only when the backup tree has no usable version for a tool the
+# sample has an output for. Keys are the software name inside a versions.yml (what
+# create-yaml looks up), not the container image name.
+_JASEN_1_0_0 = {
+    "amrfinderplus": "3.11.11",
+    "blast": "2.14.0",
+    "bracken": "2.8",
+    "bwakit": "0.7.17.dev1",
+    "chewbbaca": "3.3.2",
+    "emmtyper": "0.2.0",
+    "fastqc": "0.12.1",
+    "flye": "2.9.3",
+    "freebayes": "1.3.6",
+    "hostile": "2.0.0",
+    "htslib": "1.21",
+    "kraken2": "2.1.2",
+    "medaka": "2.0.1",
+    "mlst": "2.23.0",
+    "mykrobe": "0.12.2",
+    "nanoplot": "1.43.0",
+    "perl-json": "4.10",
+    "quast": "5.2.0",
+    "resfinder": "4.4.2",
+    "samtools": "1.17",
+    "sccmec": "1.2.0",
+    "seqtk": "1.4",
+    "serotypefinder": "2.0.2",
+    "shigapass": "1.5.0",
+    "ska2": "0.3.10",
+    "skesa": "2.5.1",
+    "snippy": "4.6.0",
+    "sourmash": "4.8.2",
+    "spades": "3.15.5",
+    "spatyper": "0.3.3",
+    "tb-profiler": "6.3.0",
+    "virulencefinder": "2.0.4",
+}
+
+_JASEN_1_1_0 = {
+    **_JASEN_1_0_0,
+    "gambitcore": "0.0.2",
+    "minimap2": "2.28",
+    "prodigal": "2.6.3",
+    "resfinder": "4.7.2",
+}
+
+_JASEN_1_2_0 = {
+    **_JASEN_1_1_0,
+    "chewbbaca": "3.4.0",
+    "flye": "2.9.6",
+    "kleborate": "3.2.4",
+    "medaka": "2.2.0",
+    "minimap2": "2.30",
+    "nanoplot": "1.46.2",
+    "virulencefinder": "3.2.0",
+}
+
+_JASEN_1_3_0 = {
+    **_JASEN_1_2_0,
+    "amrfinderplus": "4.2.7",
+    "chewbbaca": "3.5.3",
+    "clair3": "2.0.0",
+    "filtlong": "0.3.1",
+    "kraken2": "2.17.1",
+}
+
+VERSIONS_FALLBACK = {
+    "1.0.0": _JASEN_1_0_0,
+    "1.1.0": _JASEN_1_1_0,
+    "1.1.1": _JASEN_1_1_0,
+    "1.1.2": _JASEN_1_1_0,
+    "1.2.0": _JASEN_1_2_0,
+    "1.3.0": _JASEN_1_3_0,
+}
+
 
 def _build_outputs(*groups):
     out = []

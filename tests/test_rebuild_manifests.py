@@ -35,14 +35,13 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
-                  sample_id=None, no_bonsai=False, versions_fallback=None,
+                  sample_id=None, no_bonsai=False, jasen_version=None,
                   reference_genome_accession=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
-        versions_fallback=versions_fallback,
-        reference_genome_accession=reference_genome_accession,
+        jasen_version=jasen_version, reference_genome_accession=reference_genome_accession,
     )
 
 
@@ -234,8 +233,10 @@ def test_versions_fallback_fills_missing_and_db_only(tmp_path, backup_dir, monke
         "ASSEMBLY:quast:\n quast:\n  version: 5.2.0\n",
     )
 
-    fallback = tmp_path / "versions_fallback.yml"
-    fallback.write_text("chewbbaca: '3.3.2'\nvirulencefinder: '2.0.4'\nquast: '9.9.9'\n")
+    monkeypatch.setattr(
+        "jasentool.rebuild_manifests.VERSIONS_FALLBACK",
+        {"test": {"chewbbaca": "3.3.2", "virulencefinder": "2.0.4", "quast": "9.9.9"}},
+    )
 
     fake = FakeMongo(
         samples=[_sample(sample_id, "staphylococcus_aureus")],
@@ -243,7 +244,7 @@ def test_versions_fallback_fills_missing_and_db_only(tmp_path, backup_dir, monke
     )
     _patch_database(monkeypatch, fake)
 
-    options = _make_options(tmp_path, backup_dir, versions_fallback=str(fallback))
+    options = _make_options(tmp_path, backup_dir, jasen_version="test")
     RebuildManifests(options).run()
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
@@ -253,15 +254,63 @@ def test_versions_fallback_fills_missing_and_db_only(tmp_path, backup_dir, monke
     assert results["quast"]["software_version"] == "5.2.0"          # tree wins over fallback 9.9.9
 
 
-def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, monkeypatch):
-    """A fallback entry for a tool the sample has no output for is not injected."""
+@pytest.mark.parametrize("bad_version_line", ["  version: gambitcore\n", "  version:\n"])
+def test_unusable_tree_version_replaced_by_fallback(tmp_path, backup_dir, monkeypatch,
+                                                    bad_version_line):
+    """gambitcore writes its own name as the version; sed -n can write an empty one."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "gambitcore", f"{sample_id}_gambitcore.tsv")
+    _touch(
+        backup_dir, species, "gambitcore",
+        f"{sample_id}_CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:gambitcore_versions.yml",
+        "CALL_BACTERIAL_GENERAL:CALL_QUALITY_CONTROL:gambitcore:\n"
+        " gambitcore:\n"
+        f"{bad_version_line}"
+        "  container: /fs1/resources/containers/gambitcore.sif\n",
+    )
+    monkeypatch.setattr(
+        "jasentool.rebuild_manifests.VERSIONS_FALLBACK", {"test": {"gambitcore": "0.0.2"}}
+    )
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version="test")).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["gambitcore"]["software_version"] == "0.0.2"
+    versions_text = (tmp_path / "out" / f"{sample_id}_versions.yml").read_text()
+    assert "CALL_QUALITY_CONTROL:gambitcore" not in versions_text
+
+
+def test_unusable_tree_version_without_fallback_is_omitted(tmp_path, backup_dir, monkeypatch):
+    """Without --jasen-version the junk version must not reach the manifest."""
+    species = "saureus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "gambitcore", f"{sample_id}_gambitcore.tsv")
+    _touch(
+        backup_dir, species, "gambitcore", f"{sample_id}_QC:gambitcore_versions.yml",
+        "QC:gambitcore:\n gambitcore:\n  version: gambitcore\n",
+    )
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert "software_version" not in results["gambitcore"]
+
+
+@pytest.mark.parametrize("jasen_version, chewbbaca_version", [("1.1.0", "3.3.2"), ("1.3.0", "3.5.3")])
+def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, monkeypatch,
+                                                       jasen_version, chewbbaca_version):
+    """--jasen-version fills from that release, and only for tools the sample has an output for."""
     species = "saureus"
     sample_id = "sample1"
     _touch(backup_dir, species, "chewbbaca", f"{sample_id}_chewbbaca.tsv")
-
-    fallback = tmp_path / "versions_fallback.yml"
-    # spades isn't a create-yaml analysis tool and the sample has no spades output
-    fallback.write_text("chewbbaca: '3.3.2'\nspades: '3.15.5'\n")
 
     fake = FakeMongo(
         samples=[_sample(sample_id, "staphylococcus_aureus")],
@@ -269,12 +318,13 @@ def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, mo
     )
     _patch_database(monkeypatch, fake)
 
-    options = _make_options(tmp_path, backup_dir, versions_fallback=str(fallback))
+    options = _make_options(tmp_path, backup_dir, jasen_version=jasen_version)
     RebuildManifests(options).run()
 
     versions = yaml.safe_load((tmp_path / "out" / f"{sample_id}_versions.yml").read_text())
     fallback_block = versions["jasentool_version_fallback"]
-    assert "chewbbaca" in fallback_block
+    assert fallback_block["chewbbaca"] == {"version": chewbbaca_version}
+    # spades is in every release's map but isn't a create-yaml analysis tool
     assert "spades" not in fallback_block
 
 

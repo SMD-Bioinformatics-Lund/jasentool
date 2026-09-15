@@ -22,6 +22,7 @@ from jasentool.config import (
     CREATE_YAML_SOFTWARE_INFO,
     CREATE_YAML_SUPERSEDED,
     CREATE_YAML_VCF_PRIORITY,
+    VERSIONS_FALLBACK,
     get_profile,
 )
 from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, CreateYaml
@@ -72,6 +73,30 @@ def _load_versions_file(path):
         return None
 
 
+def _is_unusable_version(software, version):
+    """True for an empty version or one that is just the tool's name (e.g. gambitcore)."""
+    text = "" if version is None else str(version).strip()
+    return not text or text == software
+
+
+def _drop_unusable_versions(merged, sample_id):
+    """Remove unusable versions from `merged` in place so the fallback treats them as missing."""
+    for process in list(merged):
+        process_data = merged[process]
+        if not isinstance(process_data, dict):
+            continue
+        for software in list(process_data):
+            info = process_data[software]
+            if isinstance(info, dict) and _is_unusable_version(software, info.get("version")):
+                logger.debug(
+                    "%s: ignoring unusable %s version %r from %s",
+                    sample_id, software, info.get("version"), process,
+                )
+                del process_data[software]
+        if not process_data:
+            del merged[process]
+
+
 class RebuildManifests:
     """Regenerate `<sample_id>_bonsai.yaml` manifests for every backed-up sample of a profile."""
 
@@ -83,18 +108,8 @@ class RebuildManifests:
         self.reference_genome_accession = getattr(
             options, "reference_genome_accession", None
         )
-        self.versions_fallback = self._load_versions_fallback(
-            getattr(options, "versions_fallback", None)
-        )
-
-    @staticmethod
-    def _load_versions_fallback(path):
-        """Load the flat `software: version` fallback file into a dict, or {} if none given."""
-        if not path:
-            return {}
-        with open(path, "r", encoding="utf-8") as fin:
-            data = yaml.safe_load(fin) or {}
-        return {str(key): str(version) for key, version in data.items()}
+        jasen_version = getattr(options, "jasen_version", None)
+        self.versions_fallback = VERSIONS_FALLBACK[jasen_version] if jasen_version else {}
 
     def _fetch_bonsai_samples(self):
         query = {"pipeline.analysis_profile": self.profile}
@@ -203,8 +218,8 @@ class RebuildManifests:
     def _merge_versions(self, species, sample_id, needed_keys):
         """Merge the sample's per-process `_versions.yml` files into one file.
 
-        Any `needed_keys` still missing after the merge are filled from the
-        `--versions-fallback` map. Returns the written path, or None if neither
+        Any `needed_keys` missing or unusable after the merge are filled from the
+        `--jasen-version` release in `VERSIONS_FALLBACK`. Returns the written path, or None if neither
         the tree nor the fallback produced a version.
         """
         pattern = os.path.join(self.backup_dir, species, "*", f"{sample_id}_*_versions.yml")
@@ -214,6 +229,7 @@ class RebuildManifests:
             data = _load_versions_file(version_file)
             if data:
                 merged.update(data)
+        _drop_unusable_versions(merged, sample_id)
         self._apply_versions_fallback(merged, sample_id, needed_keys)
         if not merged:
             return None
