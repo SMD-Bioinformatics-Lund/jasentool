@@ -572,7 +572,7 @@ def test_database_versions_read_from_meta_files(tmp_path, backup_dir, monkeypatc
     assert "software_info" not in manifest
     assert manifest["database_info"] == [
         {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
-        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "pointfinder", "name": "pointfinder", "version": "4.1.1"},
         {"software": "virulencefinder", "name": "virulencefinder", "version": "2.0.1"},
     ]
 
@@ -642,6 +642,26 @@ def test_symlinked_bam_and_bai_taken_from_symlink_dir(tmp_path, backup_dir, monk
     bam_track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
     assert bam_track["uri"].startswith(str(symlink_dir))
     assert bam_track["index_uri"].startswith(str(symlink_dir))
+
+
+def test_snippy_vcf_taken_from_vcf_dir_in_symlink_tree(tmp_path, backup_dir, monkeypatch):
+    """The symlink tree groups by file type, so snippy's vcf is under vcf/, not snippy/."""
+    species = "mtuberculosis"
+    sample_id = "sample1"
+    symlink_dir = tmp_path / "access"
+    _touch(backup_dir, species, "snippy", f"{sample_id}_snippy.vcf")
+    _touch(symlink_dir, species, "vcf", f"{sample_id}_snippy.vcf")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(
+        tmp_path, backup_dir, profile="mycobacterium_tuberculosis", symlink_dir=symlink_dir,
+    )).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    vcf_track = next(t for t in manifest["igv_annotations"] if t["type"] == "variant")
+    assert vcf_track["uri"] == str(symlink_dir / species / "vcf" / f"{sample_id}_snippy.vcf")
 
 
 def test_symlinked_field_missing_from_symlink_dir_is_left_out(tmp_path, backup_dir,

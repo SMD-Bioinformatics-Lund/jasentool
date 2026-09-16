@@ -2,7 +2,11 @@
 import json
 
 import yaml
-from jasentool.config import DATABASE_VERSIONS_FALLBACK, DATABASES_BY_SOFTWARE
+from jasentool.config import (
+    DATABASE_SOFTWARE,
+    DATABASE_VERSIONS_FALLBACK,
+    DATABASES_BY_SOFTWARE,
+)
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -108,7 +112,11 @@ class CreateYaml:
                 if not version or version == "unknown":
                     version = fallback.get(name)
                 if version:
-                    entries.append({"software": software, "name": name, "version": version})
+                    entries.append({
+                        "name": name,
+                        "software": DATABASE_SOFTWARE.get(name, name),
+                        "version": version,
+                    })
                 else:
                     logger.warning("No version found for %s database '%s'", software, name)
         return entries

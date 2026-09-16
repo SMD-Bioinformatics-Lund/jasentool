@@ -170,8 +170,15 @@ CREATE_YAML_DATABASE_INFO = [
 # create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
 
-# create-yaml fields JASEN passes from params.symlink_dir rather than params.outdir.
-CREATE_YAML_SYMLINKED_FIELDS = {"bam", "bai", "ska_index", "sourmash_signature", "vcf"}
+# create-yaml fields JASEN passes from params.symlink_dir, and the directory each sits in
+# there. The symlink tree groups by file type, so e.g. snippy's vcf is under vcf/, not snippy/.
+CREATE_YAML_SYMLINKED_FIELDS = {
+    "bam": "bam",
+    "bai": "bam",
+    "vcf": "vcf",
+    "ska_index": "ska",
+    "sourmash_signature": "sourmash",
+}
 
 # Tool versions pinned by each JASEN release's containers, for rebuild-manifests
 # --jasen-version. Used only when the backup tree has no usable version for a tool the
@@ -256,6 +263,9 @@ VERSIONS_FALLBACK = {
     "1.2.0": _JASEN_1_2_0,
     "1.3.0": _JASEN_1_3_0,
 }
+
+# Software a database belongs to, where it differs from the database's own name.
+DATABASE_SOFTWARE = {"tbdb": "tbprofiler"}
 
 # Databases each tool is run against, named as in the JASEN *_meta.json files.
 DATABASES_BY_SOFTWARE = {

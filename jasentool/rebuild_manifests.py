@@ -178,9 +178,9 @@ class RebuildManifests:
                     groups_by_sample[sid].append(name)
         return groups_by_sample
 
-    def _resolve_output_path(self, output, species, sample_id, root=None):
+    def _resolve_output_path(self, output, species, sample_id, root=None, dirname=None):
         """Return the first match for `output` under `root` (default: backup tree), or None."""
-        dirname = output["dirname"]
+        dirname = dirname or output["dirname"]
         mask = output.get("mask", "")
         search_dir = os.path.join(root or self.backup_dir, species, dirname)
         for ext in _as_list(output["file_ext"]):
@@ -198,7 +198,10 @@ class RebuildManifests:
             field = CREATE_YAML_FIELD_MAP.get(software_name)
         if not self.symlink_dir or field not in CREATE_YAML_SYMLINKED_FIELDS:
             return self._resolve_output_path(output, species, sample_id)
-        path = self._resolve_output_path(output, species, sample_id, root=self.symlink_dir)
+        path = self._resolve_output_path(
+            output, species, sample_id,
+            root=self.symlink_dir, dirname=CREATE_YAML_SYMLINKED_FIELDS[field],
+        )
         if not path and self._resolve_output_path(output, species, sample_id):
             logger.warning(
                 "%s: %s is in the backup tree but not under %s; leaving it out",
