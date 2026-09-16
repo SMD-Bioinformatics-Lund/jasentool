@@ -108,11 +108,7 @@ class CreateYaml:
                 if not version or version == "unknown":
                     version = fallback.get(name)
                 if version:
-                    entries.append({
-                        "software": software,
-                        "database": name,
-                        "database_version": version,
-                    })
+                    entries.append({"software": software, "name": name, "version": version})
                 else:
                     logger.warning("No version found for %s database '%s'", software, name)
         return entries
