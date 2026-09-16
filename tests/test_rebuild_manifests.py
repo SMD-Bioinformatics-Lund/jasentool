@@ -550,14 +550,18 @@ def test_samtools_supersedes_legacy_postalignqc(tmp_path, backup_dir, monkeypatc
     assert "samtools" in softwares
 
 
-def test_database_meta_files_go_to_software_info(tmp_path, backup_dir, monkeypatch):
-    """*_meta.json outputs carry database versions and feed create-yaml's --software-info."""
+def test_database_versions_read_from_meta_files(tmp_path, backup_dir, monkeypatch):
+    """*_meta.json outputs become database_info entries tied to their tool."""
     species = "saureus"
     sample_id = "sample1"
-    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
-    _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder_meta.json")
-    _touch(backup_dir, species, "virulencefinder", f"{sample_id}_virulencefinder_meta.json")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder.json")
+    _touch(backup_dir, species, "virulencefinder", f"{sample_id}_virulencefinder.json")
+    _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder_meta.json", json.dumps([
+        {"name": "resfinder", "version": "2.6.0", "type": "database"},
+        {"name": "pointfinder", "version": "4.1.1", "type": "database"},
+    ]))
+    _touch(backup_dir, species, "virulencefinder", f"{sample_id}_virulencefinder_meta.json",
+           json.dumps({"name": "virulencefinder", "version": "2.0.1", "type": "database"}))
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
@@ -565,10 +569,31 @@ def test_database_meta_files_go_to_software_info(tmp_path, backup_dir, monkeypat
     RebuildManifests(_make_options(tmp_path, backup_dir)).run()
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    info = manifest["software_info"]
-    assert any(path.endswith(f"{sample_id}_resfinder_meta.json") for path in info)
-    assert any(path.endswith(f"{sample_id}_virulencefinder_meta.json") for path in info)
-    assert {e["software"] for e in manifest["analysis_result"]} == {"quast"}
+    assert "software_info" not in manifest
+    assert manifest["database_info"] == [
+        {"software": "resfinder", "database": "resfinder", "database_version": "2.6.0"},
+        {"software": "resfinder", "database": "pointfinder", "database_version": "4.1.1"},
+        {"software": "virulencefinder", "database": "virulencefinder", "database_version": "2.0.1"},
+    ]
+
+
+def test_tbdb_version_from_jasen_release(tmp_path, backup_dir, monkeypatch):
+    species = "mtuberculosis"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "tbprofiler_mergedb", f"{sample_id}_tbprofiler.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(
+        tmp_path, backup_dir, profile="mycobacterium_tuberculosis", jasen_version="1.3.0",
+    )).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert manifest["database_info"] == [
+        {"software": "tbprofiler", "database": "tbdb",
+         "database_version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
+    ]
 
 
 # ── --sample-id filtering ──────────────────────────────────────────────────────

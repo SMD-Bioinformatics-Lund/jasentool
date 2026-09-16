@@ -114,7 +114,8 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | Argument | Description |
 |----------|-------------|
 | `--lims-id` | LIMS ID |
-| `--software-info` | Software info file(s); repeat for multiple |
+| `--database-info` | JASEN `*_meta.json` database version file(s); repeat for multiple |
+| `--jasen-version` | JASEN release, used to fill database versions a meta file lacks; defaults to the version in `--nextflow-run-info` |
 
 **Example**
 

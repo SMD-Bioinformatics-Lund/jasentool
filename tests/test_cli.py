@@ -439,9 +439,9 @@ def test_create_yaml_all_args(tmp_path):
         "--serotypefinder", "serotypefinder.json",
         "--shigapass", "shigapass.tsv",
         "--ska-index", "index.skf",
-        "--software-info", "resfinder_meta.json",
-        "--software-info", "serotypefinder_meta.json",
-        "--software-info", "virulencefinder_meta.json",
+        "--database-info", "resfinder_meta.json",
+        "--database-info", "serotypefinder_meta.json",
+        "--database-info", "virulencefinder_meta.json",
         "--sourmash-signature", "sourmash.sig",
         "--spatyper", "spatyper.tsv",
         "--tb-grading-rules-bed", "tb_grading_rules.bed",
@@ -462,9 +462,8 @@ def test_create_yaml_all_args(tmp_path):
     assert data["nextflow_run_info"] == "analysis_meta.json"
     assert data["ref_genome_sequence"] == "genome.fasta"
     assert data["ref_genome_annotation"] == "annotation.gff"
-    assert data["software_info"] == [
-        "resfinder_meta.json", "serotypefinder_meta.json", "virulencefinder_meta.json"
-    ]
+    assert "software_info" not in data
+    assert "database_info" not in data  # meta files and run info don't exist here
 
     # igv_annotations: bam/bai, tb_grading_rules_bed, tbdb_bed, vcf
     igv = {e["name"]: e for e in data["igv_annotations"]}
