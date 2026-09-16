@@ -40,7 +40,7 @@ def test_versions_read_from_meta_files(tmp_path):
     )
     assert data["database_info"] == [
         {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
-        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "pointfinder", "name": "pointfinder", "version": "4.1.1"},
         {"software": "virulencefinder", "name": "virulencefinder", "version": "2.0.1"},
     ]
 
@@ -53,7 +53,7 @@ def test_release_fallback_fills_missing_meta_and_tbdb(tmp_path):
     )
     assert data["database_info"] == [
         {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
-        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "pointfinder", "name": "pointfinder", "version": "4.1.1"},
         {"software": "tbprofiler", "name": "tbdb",
          "version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
     ]
