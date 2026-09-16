@@ -346,7 +346,9 @@ PROFILES = [
         "profile": "streptococcus_pyogenes",
         "species": "spyogenes",
         "species_full": "Streptococcus pyogenes",
-        "outputs": _build_outputs(_COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STREP_OUTPUTS),
+        "outputs": _build_outputs(
+            _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STREP_OUTPUTS, _POST_ALIGN_QC,
+        ),
     },
     {
         "profile": "streptococcus",
