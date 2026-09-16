@@ -81,18 +81,22 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | `--mykrobe` | Mykrobe output |
 | `--nanoplot` | NanoPlot output |
 | `--nextflow-run-info` | Nextflow run info JSON |
-| `--postalnqc` | Post-alignment QC output (mutually exclusive with `--samtools-bedcov`/`--samtools-stats`) |
+| `--plasmidfinder` | PlasmidFinder output |
+| `--plasmidfinder-genome-hits` | PlasmidFinder hits in the genome sequence |
+| `--plasmidfinder-plasmid-seqs` | PlasmidFinder plasmid sequences |
+| `--postalignqc` | Legacy post-alignment QC JSON, written by JASEN 1.2.0 and earlier; superseded by `--samtools-stats` |
 | `--quast` | QUAST output |
 | `--ref-genome-annotation` | Reference genome annotation |
 | `--ref-genome-sequence` | Reference genome FASTA |
 | `--reference-genome-accession` | Reference genome assembly accession (e.g. `GCF_000012045.1`) recorded in the manifest. Must match a reference genome registered in Bonsai |
 | `--resfinder` | ResFinder output |
-| `--samtools` | Samtools stats output |
-| `--samtools-bedcov` | Samtools bedcov output (mutually exclusive with `--postalnqc`) |
-| `--samtools-stats` | Samtools stats (detailed) output (mutually exclusive with `--postalnqc`) |
+| `--samtools` | Samtools coverage output |
+| `--samtools-bedcov` | Samtools bedcov output; an auxiliary input to the `--samtools-stats` parser rather than a result of its own |
+| `--samtools-stats` | Samtools stats output, parsed as post-alignment QC |
 | `--sccmec` | SCCmec output |
 | `--serotypefinder` | SerotypeFinder output |
 | `--shigapass` | ShigaPass output |
+| `--shigatyper` | ShigaTyper output |
 | `--ska-index` | SKA index file |
 | `--sourmash-signature` | Sourmash signature file |
 | `--spatyper` | spaTyper output |
@@ -114,8 +118,15 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | Argument | Description |
 |----------|-------------|
 | `--lims-id` | LIMS ID |
+| `--versions` | Merged `versions.yml`; supplies each analysis result's `software_version` |
 | `--database-info` | JASEN `*_meta.json` database version file(s); repeat for multiple |
 | `--jasen-version` | JASEN release, used to fill database versions a meta file lacks; defaults to the version in `--nextflow-run-info` |
+
+Database versions are written to the manifest as `database_info` entries of `software`, `name` and
+`version`, one per database of each tool present in the manifest. A tool's own database is named
+after it (`resfinder`, `pointfinder`, `virulencefinder`, `serotypefinder`, `plasmidfinder`); tbdb
+belongs to `tbprofiler`. Versions come from the `--database-info` files, falling back to the
+versions the `--jasen-version` release pinned.
 
 **Example**
 
