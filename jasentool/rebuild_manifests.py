@@ -18,8 +18,8 @@ from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
 from jasentool.config import (
+    CREATE_YAML_DATABASE_INFO,
     CREATE_YAML_FIELD_MAP,
-    CREATE_YAML_SOFTWARE_INFO,
     CREATE_YAML_SUPERSEDED,
     CREATE_YAML_SYMLINKED_FIELDS,
     CREATE_YAML_VCF_PRIORITY,
@@ -38,7 +38,7 @@ _OPTIONAL_FIELDS = [field for field, _, _ in _ANALYSIS_TOOLS] + [
     "sourmash_signature", "ska_index",
     "nextflow_run_info", "ref_genome_sequence", "ref_genome_annotation",
 ]
-_REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "software_info"]
+_REQUIRED_FIELDS = ["bam", "bai", "tb_grading_rules_bed", "tbdb_bed", "vcf", "database_info"]
 
 _FIELD_TO_VERSION_KEY = {
     field: _VERSION_KEY_MAP.get(software, software)
@@ -111,6 +111,7 @@ class RebuildManifests:
             options, "reference_genome_accession", None
         )
         jasen_version = getattr(options, "jasen_version", None)
+        self.jasen_version = jasen_version
         self.versions_fallback = VERSIONS_FALLBACK[jasen_version] if jasen_version else {}
 
     def _fetch_bonsai_samples(self):
@@ -282,24 +283,24 @@ class RebuildManifests:
         )
 
     def _resolve_fields(self, outputs, species, sample_id):
-        """Return ({create-yaml field: path}, [software-info path, ...]) for the backup tree."""
+        """Return ({create-yaml field: path}, [database-info path, ...]) for the backup tree."""
         fields = {}
-        software_info = []
+        database_info = []
         vcf_candidates = {}
         for output in outputs:
             software_name = output["software_name"]
             known = (
                 software_name in CREATE_YAML_FIELD_MAP
                 or software_name in CREATE_YAML_VCF_PRIORITY
-                or software_name in CREATE_YAML_SOFTWARE_INFO
+                or software_name in CREATE_YAML_DATABASE_INFO
             )
             if not known:
                 continue
             path = self._resolve_field_path(output, species, sample_id)
             if not path:
                 continue
-            if software_name in CREATE_YAML_SOFTWARE_INFO:
-                software_info.append(path)
+            if software_name in CREATE_YAML_DATABASE_INFO:
+                database_info.append(path)
             elif software_name in CREATE_YAML_VCF_PRIORITY:
                 vcf_candidates[software_name] = path
             else:
@@ -314,11 +315,11 @@ class RebuildManifests:
                     "%s: ignoring %s, superseded by %s", sample_id, old_field, preferred
                 )
                 del fields[old_field]
-        return fields, software_info
+        return fields, database_info
 
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):
         sample_id = doc["sample_id"]
-        fields, software_info = self._resolve_fields(outputs, species, sample_id)
+        fields, database_info = self._resolve_fields(outputs, species, sample_id)
         needed_keys = {
             _FIELD_TO_VERSION_KEY[field]
             for field in fields if field in _FIELD_TO_VERSION_KEY
@@ -329,7 +330,8 @@ class RebuildManifests:
         create_yaml_options = types.SimpleNamespace(**{field: None for field in _OPTIONAL_FIELDS})
         for field in _REQUIRED_FIELDS:
             setattr(create_yaml_options, field, None)
-        create_yaml_options.software_info = software_info
+        create_yaml_options.database_info = database_info
+        create_yaml_options.jasen_version = self.jasen_version
         for field, path in fields.items():
             setattr(create_yaml_options, field, path)
 

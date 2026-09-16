@@ -244,9 +244,14 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--bam', type=click.Path(), default=None)
 @click.option('--bai', type=click.Path(), default=None)
 @click.option('--chewbbaca', type=click.Path(), default=None)
+@click.option('--database-info', type=click.Path(), multiple=True,
+              help='JASEN *_meta.json database version file; repeat for multiple')
 @click.option('--emmtyper', type=click.Path(), default=None)
 @click.option('--gambitcore', type=click.Path(), default=None)
 @click.option('--groups', multiple=True, required=True)
+@click.option('--jasen-version', default=None,
+              help='JASEN release, used to fill database versions a meta file lacks. '
+                   'Defaults to the version in --nextflow-run-info.')
 @click.option('--kleborate', type=click.Path(), default=None)
 @click.option('--kleborate-hamronization', type=click.Path(), default=None)
 @click.option('--kraken', type=click.Path(), default=None)
@@ -276,7 +281,6 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--shigapass', type=click.Path(), default=None)
 @click.option('--shigatyper', type=click.Path(), default=None)
 @click.option('--ska-index', type=click.Path(), default=None)
-@click.option('--software-info', type=click.Path(), multiple=True)
 @click.option('--sourmash-signature', type=click.Path(), default=None)
 @click.option('--spatyper', type=click.Path(), default=None)
 @click.option('--tb-grading-rules-bed', type=click.Path(), default=None)
@@ -286,7 +290,8 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--versions', type=click.Path(), default=None)
 @click.option('--virulencefinder', type=click.Path(), default=None)
 @click.option('-o', '--output', required=True, type=click.Path())
-def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups,
+def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, database_info, emmtyper, gambitcore,
+                    groups, jasen_version,
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
                     mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
                     plasmidfinder_genome_hits, plasmidfinder_plasmid_seqs,
@@ -295,14 +300,14 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
                     reference_genome_accession, resfinder,
                     sample_id, sample_name, samtools, samtools_bedcov,
                     samtools_stats, sccmec, serotypefinder, shigapass,
-                    shigatyper, ska_index, software_info, sourmash_signature,
+                    shigatyper, ska_index, sourmash_signature,
                     spatyper, tb_grading_rules_bed, tbdb_bed, tbprofiler,
                     vcf, versions, virulencefinder, output):
     """Create YAML input file for Bonsai upload."""
     _init_logging()
     options = types.SimpleNamespace(
-        amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca,
-        emmtyper=emmtyper, gambitcore=gambitcore, groups=groups,
+        amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca, database_info=database_info,
+        emmtyper=emmtyper, gambitcore=gambitcore, groups=groups, jasen_version=jasen_version,
         kleborate=kleborate, kleborate_hamronization=kleborate_hamronization,
         kraken=kraken, lims_id=lims_id, mlst=mlst, mykrobe=mykrobe,
         nanoplot=nanoplot, nextflow_run_info=nextflow_run_info,
@@ -317,7 +322,7 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, emmtyper, gambitcore, groups
         sample_id=sample_id, sample_name=sample_name, samtools=samtools,
         samtools_bedcov=samtools_bedcov, samtools_stats=samtools_stats,
         sccmec=sccmec, serotypefinder=serotypefinder, shigapass=shigapass,
-        shigatyper=shigatyper, ska_index=ska_index, software_info=software_info,
+        shigatyper=shigatyper, ska_index=ska_index,
         sourmash_signature=sourmash_signature, spatyper=spatyper,
         tb_grading_rules_bed=tb_grading_rules_bed, tbdb_bed=tbdb_bed,
         tbprofiler=tbprofiler, vcf=vcf, versions=versions,
@@ -442,8 +447,8 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='If set, only rebuild the manifest for this sample_id (e.g. to test on one '
                    'sample before a full run)')
 @click.option('--jasen-version', type=click.Choice(sorted(VERSIONS_FALLBACK)), default=None,
-              help='JASEN release the samples were run with. Fills a version the backup tree '
-                   'lacks for a tool from the containers that release pinned (the tree always wins).')
+              help='JASEN release the samples were run with. Fills a tool or database version '
+                   'the backup tree lacks from what that release pinned (the tree always wins).')
 @click.option('--reference-genome-accession', default=None,
               help='Reference genome assembly accession (e.g. GCF_000012045.1) to stamp on '
                    'every manifest. Must match a reference genome registered in Bonsai.')

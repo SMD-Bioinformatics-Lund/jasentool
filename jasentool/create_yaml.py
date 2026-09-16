@@ -1,5 +1,8 @@
 """Module for creating YAML input files for Bonsai upload"""
+import json
+
 import yaml
+from jasentool.config import DATABASE_VERSIONS_FALLBACK, DATABASES_BY_SOFTWARE
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -60,6 +63,60 @@ class CreateYaml:
                         versions[software] = str(info["version"])
         return versions
 
+    @staticmethod
+    def _load_database_meta(paths):
+        """Read JASEN *_meta.json files into {database name: version}."""
+        versions = {}
+        for path in paths or []:
+            try:
+                with open(path, encoding="utf-8") as fin:
+                    content = json.load(fin)
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.warning("Skipping unreadable database info file %s: %s", path, exc)
+                continue
+            for record in content if isinstance(content, list) else [content]:
+                if isinstance(record, dict) and record.get("name"):
+                    versions[record["name"]] = str(record.get("version") or "").strip()
+        return versions
+
+    @staticmethod
+    def _jasen_release(options):
+        """JASEN release from --jasen-version, else the version recorded in the run info."""
+        release = getattr(options, "jasen_version", None)
+        run_info = getattr(options, "nextflow_run_info", None)
+        if not release and run_info:
+            try:
+                with open(run_info, encoding="utf-8") as fin:
+                    release = json.load(fin).get("version")
+            except (OSError, json.JSONDecodeError, AttributeError):
+                release = None
+        return str(release).lstrip("v") if release else None
+
+    def _database_info(self, options):
+        """Database versions for the manifest's tools, from meta files or the release fallback."""
+        meta = self._load_database_meta(getattr(options, "database_info", None))
+        fallback = DATABASE_VERSIONS_FALLBACK.get(self._jasen_release(options), {})
+        present = {
+            software for field, software, _ in _ANALYSIS_TOOLS if getattr(options, field, None)
+        }
+        entries = []
+        for software, names in DATABASES_BY_SOFTWARE.items():
+            if software not in present:
+                continue
+            for name in names:
+                version = meta.get(name)
+                if not version or version == "unknown":
+                    version = fallback.get(name)
+                if version:
+                    entries.append({
+                        "software": software,
+                        "database": name,
+                        "database_version": version,
+                    })
+                else:
+                    logger.warning("No version found for %s database '%s'", software, name)
+        return entries
+
     def run(self, options):
         prp_input = {}
         prp_input["sample_id"] = options.sample_id
@@ -67,8 +124,9 @@ class CreateYaml:
         if options.lims_id:
             prp_input["lims_id"] = options.lims_id
         prp_input["groups"] = list(options.groups)
-        if options.software_info:
-            prp_input["software_info"] = list(options.software_info)
+        database_info = self._database_info(options)
+        if database_info:
+            prp_input["database_info"] = database_info
 
         reference_genome_accession = getattr(
             options, "reference_genome_accession", None

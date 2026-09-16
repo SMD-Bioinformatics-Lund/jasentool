@@ -160,8 +160,8 @@ CREATE_YAML_FIELD_MAP = {
 # When a sample has both, keep only samtools.
 CREATE_YAML_SUPERSEDED = {"postalignqc": "samtools_stats"}
 
-# Outputs passed to create-yaml as --software-info, which takes a list.
-CREATE_YAML_SOFTWARE_INFO = [
+# Outputs passed to create-yaml as --database-info, which takes a list.
+CREATE_YAML_DATABASE_INFO = [
     "resfinder_meta",
     "virulencefinder_meta",
     "serotypefinder_meta",
@@ -255,6 +255,50 @@ VERSIONS_FALLBACK = {
     "1.1.2": _JASEN_1_1_2,
     "1.2.0": _JASEN_1_2_0,
     "1.3.0": _JASEN_1_3_0,
+}
+
+# Databases each tool is run against, named as in the JASEN *_meta.json files.
+DATABASES_BY_SOFTWARE = {
+    "resfinder": ["resfinder", "pointfinder"],
+    "virulencefinder": ["virulencefinder"],
+    "serotypefinder": ["serotypefinder"],
+    "plasmidfinder": ["plasmidfinder"],
+    "tbprofiler": ["tbdb"],
+}
+
+# Database versions pinned in each JASEN release: submodule commits up to 1.1.2,
+# Makefile versions from 1.2.0.
+_JASEN_1_0_0_DATABASES = {
+    "pointfinder": "cb424d459212782fb38a0d81a75fd089b7df704d",
+    "resfinder": "8117fca4401e05529301b5cc95c192239a451f49",
+    "serotypefinder": "ada62c62a7fa74032448bb2273d1f7045c59fdda",
+    "tbdb": "4907915526b52ac2f20f1324613f5d4dc951e0bd",
+    "virulencefinder": "041b8b30ede055f92cbd8eaf3679ca7554857514",
+}
+
+_JASEN_1_1_0_DATABASES = {
+    "pointfinder": "694919f59a38980204009e7ade76bf319cb7df0b",
+    "resfinder": "cf9bbc7b13f04de987f7dd4a3a1440c7af0b1ce0",
+    "serotypefinder": "d9be114411a6561e8b5c43db292737c7275195f5",
+    "tbdb": "4907915526b52ac2f20f1324613f5d4dc951e0bd",
+    "virulencefinder": "9638945ea72ec748beded45bb9fe48351eee346f",
+}
+
+_JASEN_1_2_0_DATABASES = {
+    "pointfinder": "4.1.1",
+    "resfinder": "2.6.0",
+    "serotypefinder": "1.1.0",
+    "tbdb": "4907915526b52ac2f20f1324613f5d4dc951e0bd",
+    "virulencefinder": "2.0.1",
+}
+
+DATABASE_VERSIONS_FALLBACK = {
+    "1.0.0": _JASEN_1_0_0_DATABASES,
+    "1.1.0": _JASEN_1_1_0_DATABASES,
+    "1.1.1": _JASEN_1_1_0_DATABASES,
+    "1.1.2": _JASEN_1_1_0_DATABASES,
+    "1.2.0": _JASEN_1_2_0_DATABASES,
+    "1.3.0": _JASEN_1_2_0_DATABASES,
 }
 
 
