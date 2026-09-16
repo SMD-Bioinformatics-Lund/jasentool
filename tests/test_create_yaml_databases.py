@@ -39,9 +39,9 @@ def test_versions_read_from_meta_files(tmp_path):
         "--database-info", resfinder_meta, "--database-info", virulencefinder_meta,
     )
     assert data["database_info"] == [
-        {"software": "resfinder", "database": "resfinder", "database_version": "2.6.0"},
-        {"software": "resfinder", "database": "pointfinder", "database_version": "4.1.1"},
-        {"software": "virulencefinder", "database": "virulencefinder", "database_version": "2.0.1"},
+        {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
+        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "virulencefinder", "name": "virulencefinder", "version": "2.0.1"},
     ]
 
 
@@ -52,10 +52,10 @@ def test_release_fallback_fills_missing_meta_and_tbdb(tmp_path):
         "--jasen-version", "1.3.0",
     )
     assert data["database_info"] == [
-        {"software": "resfinder", "database": "resfinder", "database_version": "2.6.0"},
-        {"software": "resfinder", "database": "pointfinder", "database_version": "4.1.1"},
-        {"software": "tbprofiler", "database": "tbdb",
-         "database_version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
+        {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
+        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "tbprofiler", "name": "tbdb",
+         "version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
     ]
 
 
@@ -65,8 +65,8 @@ def test_release_taken_from_run_info(tmp_path):
         tmp_path, "--tbprofiler", "tbprofiler.json", "--nextflow-run-info", run_info,
     )
     assert data["database_info"] == [
-        {"software": "tbprofiler", "database": "tbdb",
-         "database_version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
+        {"software": "tbprofiler", "name": "tbdb",
+         "version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
     ]
 
 
@@ -76,7 +76,7 @@ def test_jasen_version_wins_over_run_info(tmp_path):
         tmp_path, "--resfinder", "resfinder.json", "--nextflow-run-info", run_info,
         "--jasen-version", "1.2.0",
     )
-    assert data["database_info"][0]["database_version"] == "2.6.0"
+    assert data["database_info"][0]["version"] == "2.6.0"
 
 
 def test_submodule_era_release_uses_commit_ids(tmp_path):
@@ -84,8 +84,8 @@ def test_submodule_era_release_uses_commit_ids(tmp_path):
         tmp_path, "--virulencefinder", "virulencefinder.json", "--jasen-version", "1.1.2",
     )
     assert data["database_info"] == [
-        {"software": "virulencefinder", "database": "virulencefinder",
-         "database_version": "9638945ea72ec748beded45bb9fe48351eee346f"},
+        {"software": "virulencefinder", "name": "virulencefinder",
+         "version": "9638945ea72ec748beded45bb9fe48351eee346f"},
     ]
 
 
@@ -99,7 +99,7 @@ def test_unknown_meta_version_uses_fallback(tmp_path):
         "--database-info", meta, "--jasen-version", "1.2.0",
     )
     assert data["database_info"] == [
-        {"software": "virulencefinder", "database": "virulencefinder", "database_version": "2.0.1"},
+        {"software": "virulencefinder", "name": "virulencefinder", "version": "2.0.1"},
     ]
 
 

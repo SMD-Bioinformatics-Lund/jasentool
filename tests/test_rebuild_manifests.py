@@ -571,9 +571,9 @@ def test_database_versions_read_from_meta_files(tmp_path, backup_dir, monkeypatc
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert "software_info" not in manifest
     assert manifest["database_info"] == [
-        {"software": "resfinder", "database": "resfinder", "database_version": "2.6.0"},
-        {"software": "resfinder", "database": "pointfinder", "database_version": "4.1.1"},
-        {"software": "virulencefinder", "database": "virulencefinder", "database_version": "2.0.1"},
+        {"software": "resfinder", "name": "resfinder", "version": "2.6.0"},
+        {"software": "resfinder", "name": "pointfinder", "version": "4.1.1"},
+        {"software": "virulencefinder", "name": "virulencefinder", "version": "2.0.1"},
     ]
 
 
@@ -591,8 +591,8 @@ def test_tbdb_version_from_jasen_release(tmp_path, backup_dir, monkeypatch):
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["database_info"] == [
-        {"software": "tbprofiler", "database": "tbdb",
-         "database_version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
+        {"software": "tbprofiler", "name": "tbdb",
+         "version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
     ]
 
 
