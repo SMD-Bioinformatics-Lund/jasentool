@@ -489,6 +489,44 @@ def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, mo
     assert entries[("samtools", "coverage")].endswith("_mapcoverage.txt")
 
 
+def test_alignment_qc_resolved_for_spyogenes(tmp_path, backup_dir, monkeypatch):
+    """JASEN runs alignment QC for S. pyogenes; only the generic streptococcus profile skips it."""
+    species = "spyogenes"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "coverage", f"{sample_id}_bwa_mapcoverage.txt")
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+    _touch(backup_dir, species, "samtools_bedcov", f"{sample_id}.bedcov.tsv")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "streptococcus_pyogenes")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(
+        tmp_path, backup_dir, profile="streptococcus_pyogenes",
+    )).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
+    assert ("samtools", "coverage") in entries
+    assert ("samtools", "stats") in entries
+    assert ("samtools", "bedcov") in entries
+
+
+def test_alignment_qc_not_resolved_for_generic_streptococcus(tmp_path, backup_dir, monkeypatch):
+    """The generic streptococcus profile has no reference genome, so no alignment QC runs."""
+    species = "streptococcus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+    _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "streptococcus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, profile="streptococcus")).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    assert {e["software"] for e in manifest["analysis_result"]} == {"quast"}
+
+
 def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monkeypatch):
     """Older runs only wrote postalignqc/<sample_id>_qc.json."""
     species = "saureus"
