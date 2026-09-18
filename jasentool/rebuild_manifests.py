@@ -26,7 +26,12 @@ from jasentool.config import (
     VERSIONS_FALLBACK,
     get_profile,
 )
-from jasentool.create_yaml import _ANALYSIS_TOOLS, _VERSION_KEY_MAP, CreateYaml
+from jasentool.create_yaml import (
+    _ANALYSIS_TOOLS,
+    _VERSION_KEY_MAP,
+    CreateYaml,
+    _is_unusable_version,
+)
 from jasentool.database import Database
 from jasentool.log import get_logger
 
@@ -73,11 +78,6 @@ def _load_versions_file(path):
         logger.warning("Skipping unparseable versions file %s: %s", path, exc)
         return None
 
-
-def _is_unusable_version(software, version):
-    """True for an empty version or one that is just the tool's name (e.g. gambitcore)."""
-    text = "" if version is None else str(version).strip()
-    return not text or text == software
 
 
 def _drop_unusable_versions(merged, sample_id):

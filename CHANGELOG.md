@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `jasentool_cronjob.sh` now uses the current `reformat-csv` option names (`--csv-file`, `--sh-file`, `--remote-dir`, `--auto-start`, `--alter-sample-id`).
 - `rebuild-manifests` replaces empty or name-only tool versions, such as gambitcore's, with the release fallback.
 - `rebuild-manifests` no longer drops kleborate outputs.
+- `create-yaml` also replaces empty or name-only tool versions with the release fallback.
+- `create-yaml` writes the kleborate hAMRonization output as `hAMRonization`, the name Bonsai parses it under.
+- `create-yaml` leaves plasmidfinder outputs out of the manifest, as Bonsai cannot parse them yet.
 
 ### Changed
 

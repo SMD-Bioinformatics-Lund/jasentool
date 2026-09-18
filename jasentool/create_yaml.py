@@ -6,6 +6,7 @@ from jasentool.config import (
     DATABASE_SOFTWARE,
     DATABASE_VERSIONS_FALLBACK,
     DATABASES_BY_SOFTWARE,
+    VERSIONS_FALLBACK,
 )
 from jasentool.log import get_logger
 
@@ -18,15 +19,12 @@ _ANALYSIS_TOOLS = [
     ("emmtyper", "emmtyper", None),
     ("gambitcore", "gambitcore", None),
     ("kleborate", "kleborate", None),
-    ("kleborate_hamronization", "kleborate", "hamronization"),
+    ("kleborate_hamronization", "hAMRonization", None),
     ("kraken", "bracken", None),
     ("mlst", "mlst", None),
     ("mykrobe", "mykrobe", None),
     ("nanoplot", "nanoplot", None),
-    ("plasmidfinder", "plasmidfinder", None),
     ("postalignqc", "postalignqc", None),
-    ("plasmidfinder_genome_hits", "plasmidfinder", "genome_hits"),
-    ("plasmidfinder_plasmid_seqs", "plasmidfinder", "plasmid_seqs"),
     ("quast", "quast", None),
     ("resfinder", "resfinder", None),
     ("samtools", "samtools", "coverage"),
@@ -41,11 +39,21 @@ _ANALYSIS_TOOLS = [
     ("virulencefinder", "virulencefinder", None),
 ]
 
+# Accepted from JASEN but left out of the manifest until Bonsai can parse them.
+_UNSUPPORTED_FIELDS = ["plasmidfinder", "plasmidfinder_genome_hits", "plasmidfinder_plasmid_seqs"]
+
 _VERSION_KEY_MAP = {
     "amrfinder":   "amrfinderplus",
+    "hAMRonization": "kleborate",
     "sccmectyper": "sccmec",
     "tbprofiler":  "tb-profiler",
 }
+
+def _is_unusable_version(software, version):
+    """True for an empty version or one that is just the tool's name (e.g. gambitcore)."""
+    text = "" if version is None else str(version).strip()
+    return not text or text == software
+
 
 class CreateYaml:
     @staticmethod
@@ -63,8 +71,10 @@ class CreateYaml:
         for process_data in data.values():
             if isinstance(process_data, dict):
                 for software, info in process_data.items():
-                    if isinstance(info, dict) and "version" in info:
-                        versions[software] = str(info["version"])
+                    if isinstance(info, dict) and not _is_unusable_version(
+                        software, info.get("version")
+                    ):
+                        versions[software] = str(info["version"]).strip()
         return versions
 
     @staticmethod
@@ -164,7 +174,12 @@ class CreateYaml:
             )
 
         versions = self._load_versions(options.versions) if options.versions else {}
+        versions_fallback = VERSIONS_FALLBACK.get(self._jasen_release(options), {})
         seen_software = set()
+
+        for field in _UNSUPPORTED_FIELDS:
+            if getattr(options, field, None):
+                logger.info("Leaving %s out of the manifest; Bonsai cannot parse it", field)
 
         for field, software, subcommand in _ANALYSIS_TOOLS:
             uri = getattr(options, field, None)
@@ -174,7 +189,7 @@ class CreateYaml:
                     entry["subcommand"] = subcommand
                 if versions:
                     version_key = _VERSION_KEY_MAP.get(software, software)
-                    version = versions.get(version_key)
+                    version = versions.get(version_key) or versions_fallback.get(version_key)
                     if version:
                         entry["software_version"] = version
                     elif software not in seen_software:
