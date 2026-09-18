@@ -489,6 +489,49 @@ def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, mo
     assert entries[("samtools", "coverage")].endswith("_mapcoverage.txt")
 
 
+def test_klebsiella_profile_resolves_kleborate_and_serotypefinder(tmp_path, backup_dir,
+                                                                   monkeypatch):
+    species = "klebsiella"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "kleborate", f"{sample_id}_kleborate.txt")
+    _touch(backup_dir, species, "kleborate", f"{sample_id}_kleborate_hAMRonization.txt")
+    _touch(backup_dir, species, "serotypefinder", f"{sample_id}_serotypefinder.json")
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "klebsiella")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, profile="klebsiella")).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
+    assert ("kleborate", None) in entries
+    assert ("kleborate", "hamronization") in entries
+    assert ("serotypefinder", None) in entries
+    assert ("samtools", "stats") in entries
+    assert manifest["groups"] == ["klebsiella"]
+
+
+def test_staphylococcus_profile_resolves_staph_typing(tmp_path, backup_dir, monkeypatch):
+    species = "staphylococcus"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "sccmec", f"{sample_id}_sccmec.tsv")
+    _touch(backup_dir, species, "spatyper", f"{sample_id}_spatyper.tsv")
+    _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, profile="staphylococcus")).run()
+
+    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
+    entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
+    assert ("sccmectyper", None) in entries
+    assert ("spatyper", None) in entries
+    assert ("samtools", "stats") in entries
+    assert manifest["groups"] == ["staphylococcus"]
+
+
 def test_alignment_qc_resolved_for_spyogenes(tmp_path, backup_dir, monkeypatch):
     """JASEN runs alignment QC for S. pyogenes; only the generic streptococcus profile skips it."""
     species = "spyogenes"

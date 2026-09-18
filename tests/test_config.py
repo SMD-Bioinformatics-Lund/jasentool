@@ -10,7 +10,7 @@ OUTPUT_KEYS = {"software_name", "dirname", "mask", "file_ext"}
 
 
 def test_profiles_have_required_keys():
-    assert len(PROFILES) == 5
+    assert len(PROFILES) == 7
     for entry in PROFILES:
         assert PROFILE_KEYS.issubset(entry.keys())
         assert isinstance(entry["outputs"], list)
@@ -34,6 +34,8 @@ def test_known_profile_names():
         "mycobacterium_tuberculosis",
         "streptococcus_pyogenes",
         "streptococcus",
+        "staphylococcus",
+        "klebsiella",
     }
 
 

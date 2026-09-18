@@ -113,6 +113,14 @@ _ECOLI_OUTPUTS = [
 ]
 
 # Streptococcus pyogenes / streptococcus-specific outputs.
+_KLEBSIELLA_OUTPUTS = [
+    _out("kleborate", "kleborate", "_kleborate", ".txt", required=False),
+    _out("kleborate_hamronization", "kleborate",
+         "_kleborate_hAMRonization", ".txt", required=False),
+    _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json"),
+    _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json"),
+]
+
 _STREP_OUTPUTS = [
     _out("emmtyper", "emmtyper", "_emmtyper", ".tsv"),
 ]
@@ -138,6 +146,8 @@ CREATE_YAML_FIELD_MAP = {
     "resfinder_json": "resfinder",
     "virulencefinder_json": "virulencefinder",
     "chewbbaca": "chewbbaca",
+    "kleborate": "kleborate",
+    "kleborate_hamronization": "kleborate_hamronization",
     "mlst_json": "mlst",
     "mykrobe": "mykrobe",
     "tbprofiler_json": "tbprofiler",
@@ -348,6 +358,22 @@ PROFILES = [
         "species_full": "Streptococcus pyogenes",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STREP_OUTPUTS, _POST_ALIGN_QC,
+        ),
+    },
+    {
+        "profile": "staphylococcus",
+        "species": "staphylococcus",
+        "species_full": "Staphylococcus",
+        "outputs": _build_outputs(
+            _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STAPH_OUTPUTS, _POST_ALIGN_QC,
+        ),
+    },
+    {
+        "profile": "klebsiella",
+        "species": "klebsiella",
+        "species_full": "Klebsiella",
+        "outputs": _build_outputs(
+            _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _KLEBSIELLA_OUTPUTS, _POST_ALIGN_QC,
         ),
     },
     {
