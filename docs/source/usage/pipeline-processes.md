@@ -75,15 +75,15 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | `--emmtyper` | Emmtyper output |
 | `--gambitcore` | GAMBIT core output |
 | `--kleborate` | Kleborate output |
-| `--kleborate-hamronization` | Kleborate hAMRonization output |
+| `--kleborate-hamronization` | Kleborate hAMRonization output, written as software `hAMRonization` |
 | `--kraken` | Kraken2 output |
 | `--mlst` | MLST output |
 | `--mykrobe` | Mykrobe output |
 | `--nanoplot` | NanoPlot output |
 | `--nextflow-run-info` | Nextflow run info JSON |
-| `--plasmidfinder` | PlasmidFinder output |
-| `--plasmidfinder-genome-hits` | PlasmidFinder hits in the genome sequence |
-| `--plasmidfinder-plasmid-seqs` | PlasmidFinder plasmid sequences |
+| `--plasmidfinder` | PlasmidFinder output; accepted but left out of the manifest until Bonsai can parse it |
+| `--plasmidfinder-genome-hits` | PlasmidFinder hits in the genome sequence; accepted but left out of the manifest until Bonsai can parse it |
+| `--plasmidfinder-plasmid-seqs` | PlasmidFinder plasmid sequences; accepted but left out of the manifest until Bonsai can parse it |
 | `--postalignqc` | Legacy post-alignment QC JSON, written by JASEN 1.2.0 and earlier; superseded by `--samtools-stats` |
 | `--quast` | QUAST output |
 | `--ref-genome-annotation` | Reference genome annotation |
@@ -118,13 +118,13 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | Argument | Description |
 |----------|-------------|
 | `--lims-id` | LIMS ID |
-| `--versions` | Merged `versions.yml`; supplies each analysis result's `software_version` |
+| `--versions` | Merged `versions.yml`; supplies each analysis result's `software_version`. Empty or name-only versions fall back to the `--jasen-version` release's pinned version |
 | `--database-info` | JASEN `*_meta.json` database version file(s); repeat for multiple |
-| `--jasen-version` | JASEN release, used to fill database versions a meta file lacks; defaults to the version in `--nextflow-run-info` |
+| `--jasen-version` | JASEN release, used to fill tool and database versions that are missing; defaults to the version in `--nextflow-run-info` |
 
 Database versions are written to the manifest as `database_info` entries of `software`, `name` and
 `version`, one per database of each tool present in the manifest. A tool's own database is named
-after it (`resfinder`, `pointfinder`, `virulencefinder`, `serotypefinder`, `plasmidfinder`); tbdb
+after it (`resfinder`, `pointfinder`, `virulencefinder`, `serotypefinder`); tbdb
 belongs to `tbprofiler`. Versions come from the `--database-info` files, falling back to the
 versions the `--jasen-version` release pinned.
 

@@ -374,9 +374,7 @@ def test_create_yaml_analysis_result(tmp_path):
     assert result.exit_code == 0, result.output
     data = yaml.safe_load(out.read_text())
     results = {(e["software"], e.get("subcommand")): e for e in data["analysis_result"]}
-    assert results[("plasmidfinder", None)]["uri"] == "plasmidfinder.json"
-    assert results[("plasmidfinder", "genome_hits")]["uri"] == "plasmidfinder_hit_in_genome_seq.fsa"
-    assert results[("plasmidfinder", "plasmid_seqs")]["uri"] == "plasmidfinder_plasmid_seqs.fsa"
+    assert not any(software == "plasmidfinder" for software, _ in results)
     assert results[("resfinder", None)]["uri"] == "resfinder.json"
     assert results[("samtools", "coverage")]["uri"] == "samtools_coverage.txt"
     assert results[("samtools", "bedcov")]["uri"] == "samtools_bedcov.txt"
@@ -480,7 +478,7 @@ def test_create_yaml_all_args(tmp_path):
     assert results[("emmtyper", None)]["uri"] == "emmtyper.tsv"
     assert results[("gambitcore", None)]["uri"] == "gambitcore.json"
     assert results[("kleborate", None)]["uri"] == "kleborate.tsv"
-    assert results[("kleborate", "hamronization")]["uri"] == "kleborate_hamronization.tsv"
+    assert results[("hAMRonization", None)]["uri"] == "kleborate_hamronization.tsv"
     assert results[("bracken", None)]["uri"] == "kraken.out"
     assert results[("mlst", None)]["uri"] == "mlst.json"
     assert results[("mykrobe", None)]["uri"] == "mykrobe.json"
@@ -1007,3 +1005,28 @@ def test_compare_distances_help():
 def test_compare_distances_missing_args():
     result = runner.invoke(cli, ["compare-distances"])
     assert result.exit_code != 0
+
+
+def test_create_yaml_replaces_unusable_version_with_release_fallback(tmp_path):
+    versions = tmp_path / "versions.yml"
+    versions.write_text(yaml.safe_dump({
+        "GAMBITCORE": {"gambitcore": {"version": "gambitcore"}},
+        "KLEBORATE": {"kleborate": {"version": "3.2.4"}},
+    }))
+    out = tmp_path / "input.yml"
+    result = runner.invoke(cli, [
+        "create-yaml",
+        "--sample-id", "SAMP009",
+        "--sample-name", "Sample 009",
+        "--groups", "klebsiella",
+        "--versions", str(versions),
+        "--jasen-version", "1.3.0",
+        "--gambitcore", "gambitcore.tsv",
+        "--kleborate-hamronization", "kleborate_hAMRonization.txt",
+        "-o", str(out),
+    ])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(out.read_text())
+    results = {e["software"]: e for e in data["analysis_result"]}
+    assert results["gambitcore"]["software_version"] == "0.0.2"
+    assert results["hAMRonization"]["software_version"] == "3.2.4"

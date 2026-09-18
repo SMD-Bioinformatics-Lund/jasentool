@@ -506,7 +506,7 @@ def test_klebsiella_profile_resolves_kleborate_and_serotypefinder(tmp_path, back
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
     assert ("kleborate", None) in entries
-    assert ("kleborate", "hamronization") in entries
+    assert ("hAMRonization", None) in entries
     assert ("serotypefinder", None) in entries
     assert ("samtools", "stats") in entries
     assert manifest["groups"] == ["klebsiella"]
