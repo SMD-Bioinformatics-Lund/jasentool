@@ -12,16 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `format-cdm` subcommand — builds a CDM input file from a JASEN sample manifest (as produced by `create-yaml`). Ports `postalignqc`/`quast`/`gambitcore`/`chewbbaca` parsing and CDM record formatting from bonsai-prp as a self-contained `jasentool.cdm` module, with no dependency on bonsai-libs or bonsai-prp.
 - `compare-distances` gained `--min-mean-distance`/`--max-mean-distance` flags that write an extra Bland-Altman plot (`*_bland_altman_mean_<lo>-<hi>.png`) zoomed to a clinically relevant mean-distance window, alongside the full-range plot. The bias and ±1.96 SD reference lines stay computed over all pairs; the zoom rescales the y-axis to the visible points.
 - `rebuild-manifests` subcommand — rebuilds Bonsai manifest YAMLs (and their merged versions.yml) from the backup tree, with `--jasen-version` filling in versions for missing or malformed `_versions.yml` files from that JASEN release's pinned containers (1.0.0–1.3.0).
+- `create-yaml` and `rebuild-manifests` take `--reference-genome-accession`.
+- `create-yaml` records database versions as `database_info`, read from `--database-info` meta files and filled from `--jasen-version`'s pinned versions.
+- `rebuild-manifests --symlink-dir` takes the BAM, BAI, VCF, sourmash signature and SKA index from the JASEN symlink tree.
+- `rebuild-manifests` picks up bracken, the bwa BAM/BAI, samtools alignment QC and legacy postalignqc outputs.
+- `staphylococcus` and `klebsiella` profiles.
 
 ### Fixed
 
 - `download-bigsdb` session-token refresh no longer crashes with newer `requests` versions, and a refreshed token is reused across locus downloads instead of being requested per locus.
 - `download-bigsdb --download-scheme` now errors clearly when `--url` is not a scheme route.
 - `jasentool_cronjob.sh` now uses the current `reformat-csv` option names (`--csv-file`, `--sh-file`, `--remote-dir`, `--auto-start`, `--alter-sample-id`).
+- `rebuild-manifests` replaces empty or name-only tool versions, such as gambitcore's, with the release fallback.
+- `rebuild-manifests` no longer drops kleborate outputs.
 
 ### Changed
 
 - `download-bigsdb --setup` skips the interactive OAuth setup if an access token is already saved.
+- `create-yaml --software-info` is renamed `--database-info`.
+- `create-yaml --kraken` results are recorded as `bracken`.
+- `rebuild-manifests` sets each manifest's groups to the profile's species, plus any Bonsai groups.
+- S. pyogenes now expects the alignment QC outputs.
 
 ## [1.2.0]
 

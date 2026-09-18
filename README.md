@@ -40,6 +40,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 | Subcommand | Description |
 |------------|-------------|
 | `check-backup` | Cross-check Bonsai samples against the backup storage tree |
+| `rebuild-manifests` | Rebuild Bonsai manifests from the backup storage tree |
 | `rerun-chewbbaca` | Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV |
 | `compare-distances` | Build cgMLST distance matrices for two chewBBACA tables and their difference |
 | `find` | Query samples from MongoDB |
@@ -55,6 +56,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 | `count-reads` | Count reads in FASTQ file(s) |
 | `create-blacklist` | Aggregate minority base frequencies across BAMs to produce a blacklist TSV |
 | `create-yaml` | Create YAML input file for Bonsai upload |
+| `format-cdm` | Build a CDM input file from a sample manifest |
 | `minority-report` | Compute minority base frequency distribution from a `samtools mpileup` file |
 | `post-align-qc` | Compute post-alignment QC from BAM |
 
