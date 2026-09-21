@@ -31,9 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `create-yaml` `--kraken` now records the kraken report as software `kraken`; the new `--bracken` records the bracken output as software `bracken`
 - `download-bigsdb --setup` skips the interactive OAuth setup if an access token is already saved.
 - `create-yaml --software-info` is renamed `--database-info`.
-- `create-yaml --kraken` results are recorded as `bracken`.
 - `rebuild-manifests` sets each manifest's groups to the profile's species, plus any Bonsai groups.
 - S. pyogenes now expects the alignment QC outputs.
 

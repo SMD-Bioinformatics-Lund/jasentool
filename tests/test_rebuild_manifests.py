@@ -968,10 +968,12 @@ def test_duplicate_profile_group_from_bonsai_not_repeated(tmp_path, backup_dir, 
 
 
 def test_bracken_output_resolved_from_kraken_dir(tmp_path, backup_dir, monkeypatch):
+    """Backed-up runs published bracken into kraken/, before kraken had its own output."""
     species = "saureus"
     sample_id = "sample1"
     _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.out")
     _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.report")
+    _touch(backup_dir, species, "kraken", f"{sample_id}_kraken.report")
     _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])

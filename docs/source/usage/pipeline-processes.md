@@ -71,12 +71,13 @@ jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--
 | Argument | Description |
 |----------|-------------|
 | `--amrfinder` | AMRFinder output |
+| `--bracken` | Bracken output |
 | `--chewbbaca` | chewBBACA cgMLST output |
 | `--emmtyper` | Emmtyper output |
 | `--gambitcore` | GAMBIT core output |
 | `--kleborate` | Kleborate output |
 | `--kleborate-hamronization` | Kleborate hAMRonization output, written as software `hAMRonization` |
-| `--kraken` | Kraken2 output |
+| `--kraken` | Kraken2 report |
 | `--mlst` | MLST output |
 | `--mykrobe` | Mykrobe output |
 | `--nanoplot` | NanoPlot output |
@@ -139,6 +140,7 @@ jasentool create-yaml \
   --bai aligned.bam.bai \
   --mlst mlst.json \
   --kraken kraken_report.txt \
+  --bracken bracken.out \
   -o input.yml
 ```
 

@@ -243,6 +243,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--amrfinder', type=click.Path(), default=None)
 @click.option('--bam', type=click.Path(), default=None)
 @click.option('--bai', type=click.Path(), default=None)
+@click.option('--bracken', type=click.Path(), default=None)
 @click.option('--chewbbaca', type=click.Path(), default=None)
 @click.option('--database-info', type=click.Path(), multiple=True,
               help='JASEN *_meta.json database version file; repeat for multiple')
@@ -290,7 +291,7 @@ def concatenate_files_cmd(input_files, output_file):
 @click.option('--versions', type=click.Path(), default=None)
 @click.option('--virulencefinder', type=click.Path(), default=None)
 @click.option('-o', '--output', required=True, type=click.Path())
-def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, database_info, emmtyper, gambitcore,
+def create_yaml_cmd(amrfinder, bam, bai, bracken, chewbbaca, database_info, emmtyper, gambitcore,
                     groups, jasen_version,
                     kleborate, kleborate_hamronization, kraken, lims_id, mlst,
                     mykrobe, nanoplot, nextflow_run_info, plasmidfinder,
@@ -306,7 +307,8 @@ def create_yaml_cmd(amrfinder, bam, bai, chewbbaca, database_info, emmtyper, gam
     """Create YAML input file for Bonsai upload."""
     _init_logging()
     options = types.SimpleNamespace(
-        amrfinder=amrfinder, bam=bam, bai=bai, chewbbaca=chewbbaca, database_info=database_info,
+        amrfinder=amrfinder, bam=bam, bai=bai, bracken=bracken, chewbbaca=chewbbaca,
+        database_info=database_info,
         emmtyper=emmtyper, gambitcore=gambitcore, groups=groups, jasen_version=jasen_version,
         kleborate=kleborate, kleborate_hamronization=kleborate_hamronization,
         kraken=kraken, lims_id=lims_id, mlst=mlst, mykrobe=mykrobe,
