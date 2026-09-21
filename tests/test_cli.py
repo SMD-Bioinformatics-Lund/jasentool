@@ -416,12 +416,13 @@ def test_create_yaml_all_args(tmp_path):
         "--amrfinder", "amrfinder.out",
         "--bam", "mapping.bam",
         "--bai", "mapping.bam.bai",
+        "--bracken", "bracken.out",
         "--chewbbaca", "chewbbaca.out",
         "--emmtyper", "emmtyper.tsv",
         "--gambitcore", "gambitcore.json",
         "--kleborate", "kleborate.tsv",
         "--kleborate-hamronization", "kleborate_hamronization.tsv",
-        "--kraken", "kraken.out",
+        "--kraken", "kraken.report",
         "--mlst", "mlst.json",
         "--mykrobe", "mykrobe.json",
         "--nanoplot", "nanoplot.txt",
@@ -479,7 +480,8 @@ def test_create_yaml_all_args(tmp_path):
     assert results[("gambitcore", None)]["uri"] == "gambitcore.json"
     assert results[("kleborate", None)]["uri"] == "kleborate.tsv"
     assert results[("hAMRonization", None)]["uri"] == "kleborate_hamronization.tsv"
-    assert results[("bracken", None)]["uri"] == "kraken.out"
+    assert results[("bracken", None)]["uri"] == "bracken.out"
+    assert results[("kraken", None)]["uri"] == "kraken.report"
     assert results[("mlst", None)]["uri"] == "mlst.json"
     assert results[("mykrobe", None)]["uri"] == "mykrobe.json"
     assert results[("nanoplot", None)]["uri"] == "nanoplot.txt"

@@ -140,7 +140,7 @@ CREATE_YAML_FIELD_MAP = {
     "quast": "quast",
     "sourmash": "sourmash_signature",
     "gambitcore": "gambitcore",
-    "bracken": "kraken",
+    "bracken": "bracken",
     "ska": "ska_index",
     "amrfinderplus": "amrfinder",
     "resfinder_json": "resfinder",

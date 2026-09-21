@@ -15,12 +15,13 @@ logger = get_logger(__name__)
 
 _ANALYSIS_TOOLS = [
     ("amrfinder", "amrfinder", None),
+    ("bracken", "bracken", None),
     ("chewbbaca", "chewbbaca", None),
     ("emmtyper", "emmtyper", None),
     ("gambitcore", "gambitcore", None),
     ("kleborate", "kleborate", None),
     ("kleborate_hamronization", "hAMRonization", None),
-    ("kraken", "bracken", None),
+    ("kraken", "kraken", None),
     ("mlst", "mlst", None),
     ("mykrobe", "mykrobe", None),
     ("nanoplot", "nanoplot", None),
@@ -45,6 +46,7 @@ _UNSUPPORTED_FIELDS = ["plasmidfinder", "plasmidfinder_genome_hits", "plasmidfin
 _VERSION_KEY_MAP = {
     "amrfinder":   "amrfinderplus",
     "hAMRonization": "kleborate",
+    "kraken":      "kraken2",
     "sccmectyper": "sccmec",
     "tbprofiler":  "tb-profiler",
 }
