@@ -52,9 +52,6 @@ _FIELD_TO_VERSION_KEY = {
 _FALLBACK_PROCESS_KEY = "jasentool_version_fallback"
 _RUN_METADATA_SOFTWARE = "save_analysis_metadata"
 
-# release_life_cycle values JASEN emits that bonsai-prp's schema doesn't accept.
-_RELEASE_LIFE_CYCLE_MAP = {"diagnostic": "production"}
-
 
 def _load_versions_file(path):
     """Load one `_versions.yml`, dropping junk lines (a leaked `END_VERSIONS`
@@ -212,10 +209,9 @@ class RebuildManifests:
     def _resolve_run_metadata(self, outputs, species, sample_id):
         """Return (path, parsed_dict) for the sample's run metadata, or (None, {}).
 
-        Writes a normalized copy into the output dir (translating any
-        release_life_cycle value bonsai-prp rejects) and returns that copy's path,
-        so the manifest's nextflow_run_info points at a valid, local file. The
-        original in the backup tree is left untouched.
+        Points the manifest's nextflow_run_info at the original analysis_meta.json in
+        the backup tree (absolute path); nothing is copied. The parsed contents are
+        returned only so lims_id/sample_name can be read from them.
         """
         for output in outputs:
             if output["software_name"] != _RUN_METADATA_SOFTWARE:
@@ -229,13 +225,7 @@ class RebuildManifests:
             except (OSError, json.JSONDecodeError) as exc:
                 logger.warning("%s: could not read run metadata %s: %s", sample_id, path, exc)
                 return None, {}
-            life_cycle = data.get("release_life_cycle")
-            if life_cycle in _RELEASE_LIFE_CYCLE_MAP:
-                data["release_life_cycle"] = _RELEASE_LIFE_CYCLE_MAP[life_cycle]
-            dest = os.path.abspath(os.path.join(self.output_dir, f"{sample_id}_analysis_meta.json"))
-            with open(dest, "w", encoding="utf-8") as fout:
-                json.dump(data, fout, indent=2)
-            return dest, data
+            return os.path.abspath(path), data
         return None, {}
 
     def _merge_versions(self, species, sample_id, needed_keys):
