@@ -38,6 +38,7 @@ _COMMON_OUTPUTS = [
     _out("export_to_cdm", "qc", "", ".cdmpy"),
     _out("save_analysis_metadata", "analysis_metadata", "_analysis_meta", ".json"),
     _out("bracken", "kraken", "_bracken", ".out", required=False),
+    _out("bracken_report", "kraken", "_bracken", ".report", required=False),
     # Optional / feature- and platform-gated entries — uncomment if/when needed.
     # The wildcard-mask entries (fastqc_*) trigger a full directory listing per
     # sample, which dominates runtime on NFS-backed backup trees; reinstate them
@@ -127,9 +128,9 @@ _STREP_OUTPUTS = [
 
 # Alignment QC outputs; run for non-Streptococcus profiles only.
 _POST_ALIGN_QC = [
-    _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt"),
-    _out("samtools_stats", "samtools_stats", "", ".stats"),
-    _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv"),
+    _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt", required=False),
+    _out("samtools_stats", "samtools_stats", "", ".stats", required=False),
+    _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv", required=False),
     _out("post_align_qc", "postalignqc", "_qc", ".json", required=False),
 ]
 
