@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
+- `identify-missing --cgviz-address` sets the cgviz MongoDB host.
+
 ### Fixed
 
 ### Changed
+
+- `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.
 
 ## [1.3.0]
 

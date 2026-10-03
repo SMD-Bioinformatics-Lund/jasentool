@@ -63,8 +63,8 @@ jasentool find \
 ```bash
 jasentool identify-missing \
   --output-file missing.json \
-  --db-name mydb \
-  --db-collection samples \
+  --cgviz-db-name mydb \
+  --cgviz-db-collection samples \
   --analysis-dir /path/to/jasen/results
 ```
 
