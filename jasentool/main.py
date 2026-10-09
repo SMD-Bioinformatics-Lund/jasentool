@@ -25,6 +25,7 @@ from jasentool.annotate_delly import AnnotateDelly
 from jasentool.minority_report import MinorityReport
 from jasentool.create_blacklist import CreateBlacklist
 from jasentool.check_backup import CheckBackup
+from jasentool.compare_bonsai import CompareBonsai
 from jasentool.rebuild_manifests import RebuildManifests
 from jasentool.rerun_chewbbaca import RerunChewbbaca
 from jasentool.compare_distances import CompareDistances
@@ -103,9 +104,9 @@ class OptionsParser:
         utils = Utils()
         handler = Missing()
         db = Database()
-        db.initialize(options.db_name)
+        db.initialize(options.cgviz_db_name, uri=options.cgviz_address)
         if options.sample_sheet:
-            meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
+            meta_dict = db.find(options.cgviz_db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
             sorted_meta_dict = sorted(meta_dict, key=lambda x: x["run"], reverse=False)
             id_seqrun_dict = {sample["id"]: sample["run"].split("/")[-1] for sample in sorted_meta_dict}
             csv_dict = handler.parse_sample_sheet(options.input_file[0], options.restore_dir, id_seqrun_dict)
@@ -113,7 +114,7 @@ class OptionsParser:
         if options.analysis_dir:
             log_fpath = os.path.splitext(options.missing_log)[0] + ".log"
             empty_fpath = os.path.splitext(options.output_file)[0] + "_empty.csv"
-            meta_dict = db.find(options.db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
+            meta_dict = db.find(options.cgviz_db_collection, {"metadata.QC": "OK"}, db.get_meta_fields())
             analysis_dir_fnames = parse_dir(options.analysis_dir, options.alter_sample_id)
             csv_dict, missing_samples_txt = handler.find_missing(meta_dict, analysis_dir_fnames, options.restore_dir)
             empty_files_dict, csv_dict = handler.remove_empty_files(csv_dict)
@@ -124,6 +125,8 @@ class OptionsParser:
             bash_fpath = os.path.splitext(options.restore_file)[0] + ".sh"
             bash_script = handler.create_bash_script(csv_dict, options.restore_dir)
             utils.write_out_txt(bash_script, bash_fpath)
+        if options.compare_bonsai:
+            CompareBonsai(options).run()
 
     def transform_file_format(self, options):
         """Execute conversion of file formats"""

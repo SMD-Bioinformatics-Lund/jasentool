@@ -33,18 +33,21 @@ jasentool find \
 ## identify-missing
 
 ```
-jasentool identify-missing --output-file <FILE> --db-name <DB> --db-collection <COLLECTION>
+jasentool identify-missing --output-file <FILE>
+                            [--cgviz-db-name <DB>] [--cgviz-db-collection <COLLECTION>]
                             [-i <FILE> [...]]
                             [--analysis-dir <DIR>] [--restore-dir <DIR>] [--restore-file <FILE>]
                             [--missing-log <FILE>] [--assay <ASSAY>] [--platform <PLATFORM>]
-                            [--sample-sheet] [--alter-sample-id]
+                            [--sample-sheet] [--alter-sample-id] [--cgviz-address <URI>]
+                            [--compare-bonsai] [--bonsai-db-name <DB>] [--bonsai-db-collection <COLLECTION>]
+                            [--bonsai-address <URI>] [--bonsai-profile <PROFILE>]
 ```
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `-o`/`--output-file` | Yes | — | Output file path |
-| `--db-name` | Yes | — | MongoDB database name |
-| `--db-collection` | Yes | — | MongoDB collection name |
+| `--cgviz-db-name` (alias `--db-name`) | No | `cgviz` | cgviz MongoDB database name |
+| `--cgviz-db-collection` (alias `--db-collection`) | No | `sample` | cgviz MongoDB collection name |
 | `-i`/`--input-file` | No | — | Input filepath(s) |
 | `--analysis-dir` | No | — | Analysis results directory containing JASEN results |
 | `--restore-dir` | No | `/fs2/seqdata/restored` | Directory for restored spring files |
@@ -54,15 +57,36 @@ jasentool identify-missing --output-file <FILE> --db-name <DB> --db-collection <
 | `--platform` | No | `illumina` | Sequencing platform |
 | `--sample-sheet` | No | False | Use sample sheet input |
 | `--alter-sample-id` | No | False | Alter sample ID to LIMS ID + sequencing run |
+| `--cgviz-address`/`--cgviz-uri` | No | `mongodb://localhost:27017/` | cgviz MongoDB host address |
+| `--compare-bonsai` | No | False | Compare cgviz QC-approved samples with Bonsai |
+| `--bonsai-db-name` | No | `bonsai` | Bonsai MongoDB database name |
+| `--bonsai-db-collection` | No | `sample` | Bonsai MongoDB collection holding samples |
+| `--bonsai-address`/`--bonsai-uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
+| `--bonsai-profile` | No | `staphylococcus_aureus` | Bonsai analysis profile compared against cgviz |
+
+**Comparing cgviz with Bonsai.** With `--compare-bonsai`, identify-missing checks that Bonsai holds exactly the QC-approved cgviz samples, from the right sequencing run. A cgviz sample is approved when `metadata.QC` is `OK`. cgviz `id` is matched to Bonsai `sample_name`, and the basename of cgviz `run` (the sequencing run folder) to Bonsai's run: `sequencing.run_id` in Bonsai v2, `sequencing.sequencing_run_id` in v3. Only Bonsai samples whose `pipeline.analysis_profile` contains `--bonsai-profile` are compared. Two CSVs are written next to `--output-file`:
+
+- **`<stem>_missing_from_bonsai.csv`** — one row per approved cgviz sample and run with no Bonsai sample of that name and run. Columns: `sample_name, cgviz_run, bonsai_runs, reason`. `reason` is `missing` (no Bonsai sample of that name) or `run_mismatch` (Bonsai only has it from other runs, listed in `bonsai_runs`).
+- **`<stem>_bonsai_unapproved.csv`** — one row per Bonsai sample that doesn't match an approved cgviz sample and run. Columns: `sample_id, sample_name, lims_id, bonsai_run, cgviz_approved_runs, cgviz_qc, reason`. `reason` is `wrong_run` (approved in cgviz, but from another run), `not_approved` (in cgviz but not QC-approved; see `cgviz_qc`) or `not_in_cgviz`.
+
+A sample sequenced twice shows up as two Bonsai samples; only the one from an approved cgviz run passes.
 
 **Example**
 
 ```bash
 jasentool identify-missing \
   --output-file missing.json \
-  --db-name mydb \
-  --db-collection samples \
+  --cgviz-db-name mydb \
+  --cgviz-db-collection samples \
   --analysis-dir /fs1/results/jasen
+```
+
+```bash
+jasentool identify-missing \
+  --output-file cgviz_vs_bonsai.csv \
+  --compare-bonsai \
+  --cgviz-address mongodb://cgviz.host:27017/ \
+  --bonsai-address mongodb://bonsai.host:27017/
 ```
 
 ## check-backup

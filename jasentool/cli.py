@@ -96,8 +96,12 @@ def validate_pipelines_cmd(input_file, input_dir, output_file, output_dir, db_na
 
 @cli.command('identify-missing')
 @click.option('-o', '--output-file', required=True, help='Path to output file')
-@click.option('--db-name', required=True, help='MongoDB database name')
-@click.option('--db-collection', required=True, help='MongoDB collection name')
+@click.option('--cgviz-db-name', '--db-name', default='cgviz', show_default=True,
+              help='cgviz MongoDB database name')
+@click.option('--cgviz-db-collection', '--db-collection', default='sample', show_default=True,
+              help='cgviz MongoDB collection name')
+@click.option('--cgviz-address', '--cgviz-uri', default='mongodb://localhost:27017/',
+              help='cgviz MongoDB address')
 @click.option('--analysis-dir', default=None,
               help='Analysis results dir containing JASEN results')
 @click.option('--restore-dir', default='/fs2/seqdata/restored',
@@ -111,17 +115,33 @@ def validate_pipelines_cmd(input_file, input_dir, output_file, output_dir, db_na
 @click.option('--alter-sample-id', is_flag=True, default=False,
               help='Alter sample ID to be LIMS ID + sequencing run')
 @click.option('-i', '--input-file', multiple=True, default=None, help='Input filepath(s)')
-def identify_missing_cmd(output_file, db_name, db_collection, analysis_dir, restore_dir,
-                         restore_file, missing_log, assay, platform, sample_sheet,
-                         alter_sample_id, input_file):
+@click.option('--compare-bonsai', is_flag=True, default=False,
+              help='Compare cgviz QC-approved samples against Bonsai')
+@click.option('--bonsai-db-name', default='bonsai', show_default=True,
+              help='Bonsai MongoDB database name')
+@click.option('--bonsai-db-collection', default='sample', show_default=True,
+              help='Bonsai MongoDB collection holding samples')
+@click.option('--bonsai-address', '--bonsai-uri', default='mongodb://localhost:27017/',
+              help='Bonsai MongoDB address')
+@click.option('--bonsai-profile', default='staphylococcus_aureus', show_default=True,
+              help='Bonsai analysis profile to compare against cgviz')
+def identify_missing_cmd(output_file, cgviz_db_name, cgviz_db_collection, cgviz_address,
+                         analysis_dir, restore_dir, restore_file, missing_log, assay,
+                         platform, sample_sheet, alter_sample_id, input_file,
+                         compare_bonsai, bonsai_db_name, bonsai_db_collection,
+                         bonsai_address, bonsai_profile):
     """Find missing sample data from old runs."""
     _init_logging()
     options = types.SimpleNamespace(
-        output_file=output_file, db_name=db_name, db_collection=db_collection,
+        output_file=output_file, cgviz_db_name=cgviz_db_name,
+        cgviz_db_collection=cgviz_db_collection, cgviz_address=cgviz_address,
         analysis_dir=analysis_dir, restore_dir=restore_dir, restore_file=restore_file,
         missing_log=missing_log, assay=assay, platform=platform,
         sample_sheet=sample_sheet, alter_sample_id=alter_sample_id,
         input_file=list(input_file) if input_file else None,
+        compare_bonsai=compare_bonsai, bonsai_db_name=bonsai_db_name,
+        bonsai_db_collection=bonsai_db_collection,
+        bonsai_address=bonsai_address, bonsai_profile=bonsai_profile,
     )
     _parser().identify_missing(options)
 
