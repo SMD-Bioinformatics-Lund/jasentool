@@ -476,9 +476,12 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
                    'every manifest. Must match a reference genome registered in Bonsai.')
 @click.option('-o', '--output-dir', required=True, type=click.Path(),
               help='Directory to write <sample_id>_bonsai.yaml and <sample_id>_versions.yml')
+@click.option('--force', is_flag=True, default=False,
+              help='Overwrite manifests already in --output-dir. By default a sample whose '
+                   '<sample_id>_bonsai.yaml already exists is skipped.')
 def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collection,
                           db_collection_groups, address, no_bonsai, sample_id, jasen_version,
-                          reference_genome_accession, output_dir):
+                          reference_genome_accession, output_dir, force):
     """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
     _init_logging()
     if not no_bonsai and not (db_name and db_collection):
@@ -490,6 +493,7 @@ def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collecti
         db_collection=db_collection, db_collection_groups=db_collection_groups,
         address=address, no_bonsai=no_bonsai, sample_id=sample_id, jasen_version=jasen_version,
         reference_genome_accession=reference_genome_accession, output_dir=output_dir,
+        force=force,
     )
     _parser().rebuild_manifests(options)
 

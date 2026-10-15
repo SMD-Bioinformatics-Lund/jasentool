@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `rebuild-manifests` skips samples whose `<sample_id>_bonsai.yaml` is already in `--output-dir`; `--force` overwrites them.
 - `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.
 
 ## [1.3.0]
