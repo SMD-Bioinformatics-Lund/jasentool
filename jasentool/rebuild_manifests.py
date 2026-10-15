@@ -104,6 +104,7 @@ class RebuildManifests:
         self.backup_dir = options.backup_dir
         self.symlink_dir = getattr(options, "symlink_dir", None)
         self.output_dir = options.output_dir
+        self.force = getattr(options, "force", False)
         self.reference_genome_accession = getattr(
             options, "reference_genome_accession", None
         )
@@ -310,6 +311,9 @@ class RebuildManifests:
                 del fields[old_field]
         return fields, database_info
 
+    def _manifest_path(self, sample_id):
+        return os.path.join(self.output_dir, f"{sample_id}_bonsai.yaml")
+
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):
         sample_id = doc["sample_id"]
         fields, database_info = self._resolve_fields(outputs, species, sample_id)
@@ -339,7 +343,7 @@ class RebuildManifests:
             group for group in groups_by_sample.get(sample_id, []) if group != species
         ]
         create_yaml_options.versions = versions_path
-        create_yaml_options.output = os.path.join(self.output_dir, f"{sample_id}_bonsai.yaml")
+        create_yaml_options.output = self._manifest_path(sample_id)
 
         CreateYaml().run(create_yaml_options)
         return bool(fields), versions_path is not None, metadata_path is not None
@@ -366,6 +370,7 @@ class RebuildManifests:
         )
 
         n_written = 0
+        n_skipped = 0
         n_no_fields = 0
         n_no_versions = 0
         n_no_metadata = 0
@@ -377,6 +382,9 @@ class RebuildManifests:
             sample_id = doc.get("sample_id")
             if not sample_id:
                 logger.warning("Skipping doc with no sample_id: %s", doc)
+                continue
+            if not self.force and os.path.exists(self._manifest_path(sample_id)):
+                n_skipped += 1
                 continue
             has_fields, has_versions, has_metadata = self._build_sample_yaml(
                 doc, outputs, species, groups_by_sample,
@@ -395,6 +403,11 @@ class RebuildManifests:
                 n_no_metadata += 1
 
         logger.info("%d manifests written to %s", n_written, self.output_dir)
+        if n_skipped:
+            logger.info(
+                "%d samples skipped: manifest already in %s (use --force to overwrite)",
+                n_skipped, self.output_dir,
+            )
         if n_no_fields:
             logger.warning("%d samples had no analysis-result files found", n_no_fields)
         if n_no_versions:

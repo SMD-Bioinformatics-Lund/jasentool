@@ -183,7 +183,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
                             [--symlink-dir <DIR>] [--address <URI>]
                             [--db-collection-groups <COLLECTION>]
                             [--sample-id <ID>] [--jasen-version <RELEASE>]
-                            [--reference-genome-accession <ACC>]
+                            [--reference-genome-accession <ACC>] [--force]
 ```
 
 | Argument | Required | Default | Description |
@@ -200,8 +200,9 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
 | `--sample-id` | No | — | Rebuild only this one sample. Handy for a test run before doing everything. Works in both modes |
 | `--jasen-version` | No | — | JASEN release (`1.0.0`–`1.3.0`) the samples were run with; fills a version the backup tree lacks for a tool from that release's containers (the tree always wins) |
 | `--reference-genome-accession` | No | — | Assembly accession stamped on every manifest as `reference_genome_accession` |
+| `--force` | No | False | Overwrite manifests already in `--output-dir`. Without it, a sample whose `<sample_id>_bonsai.yaml` already exists is skipped |
 
-**Outputs** (per sample, in `--output-dir`)
+**Outputs** (per sample, in `--output-dir`). A sample whose `<sample_id>_bonsai.yaml` is already there is skipped, and none of its files are touched, unless `--force` is given, so an interrupted run can be resumed by running it again.
 
 - **`<sample_id>_versions.yml`** — the merged per-process versions file, including any `--jasen-version` fallback fills. Omitted only when neither the tree nor the fallback produced a version for the sample.
 - **`<sample_id>_analysis_meta.json`** — a copy of the run metadata with `release_life_cycle` normalized, referenced by the manifest's `nextflow_run_info`. Written only when the backup tree has a metadata file for the sample.

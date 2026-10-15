@@ -37,13 +37,13 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
                   sample_id=None, no_bonsai=False, jasen_version=None,
-                  reference_genome_accession=None, symlink_dir=None):
+                  reference_genome_accession=None, symlink_dir=None, force=False):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
         jasen_version=jasen_version, reference_genome_accession=reference_genome_accession,
-        symlink_dir=None if symlink_dir is None else str(symlink_dir),
+        symlink_dir=None if symlink_dir is None else str(symlink_dir), force=force,
     )
 
 
@@ -1063,3 +1063,30 @@ def test_no_bonsai_ignores_wildcard_and_versions_files(tmp_path, backup_dir, mon
     out_dir = tmp_path / "out"
     assert (out_dir / "realSample_bonsai.yaml").exists()
     assert not (out_dir / "ghost_bonsai.yaml").exists()
+
+
+def _stale_manifest_setup(tmp_path, backup_dir):
+    for sample_id in ("S1", "S2"):
+        _touch(backup_dir, "saureus", "quast", f"{sample_id}_quast.tsv")
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "S1_bonsai.yaml").write_text("stale\n")
+    return out
+
+
+def test_existing_manifest_skipped_without_force(tmp_path, backup_dir):
+    out = _stale_manifest_setup(tmp_path, backup_dir)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+
+    assert (out / "S1_bonsai.yaml").read_text() == "stale\n"
+    assert yaml.safe_load((out / "S2_bonsai.yaml").read_text())["sample_id"] == "S2"
+
+
+def test_force_overwrites_existing_manifest(tmp_path, backup_dir):
+    out = _stale_manifest_setup(tmp_path, backup_dir)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True, force=True)).run()
+
+    assert yaml.safe_load((out / "S1_bonsai.yaml").read_text())["sample_id"] == "S1"
+    assert yaml.safe_load((out / "S2_bonsai.yaml").read_text())["sample_id"] == "S2"
