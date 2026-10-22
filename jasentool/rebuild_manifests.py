@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from jasentool.check_backup import _as_list, _glob_matches
 from jasentool.config import (
+    CREATE_YAML_ASSET_FIELDS,
     CREATE_YAML_DATABASE_INFO,
     CREATE_YAML_FIELD_MAP,
     CREATE_YAML_SUPERSEDED,
@@ -105,12 +106,26 @@ class RebuildManifests:
         self.symlink_dir = getattr(options, "symlink_dir", None)
         self.output_dir = options.output_dir
         self.force = getattr(options, "force", False)
+        self.asset_fields = self._resolve_asset_fields(getattr(options, "assets_dir", None))
         self.reference_genome_accession = getattr(
             options, "reference_genome_accession", None
         )
         jasen_version = getattr(options, "jasen_version", None)
         self.jasen_version = jasen_version
         self.versions_fallback = VERSIONS_FALLBACK[jasen_version] if jasen_version else {}
+
+    def _resolve_asset_fields(self, assets_dir):
+        """Return {create-yaml field: path} for the profile's files under JASEN's assets_dir."""
+        if not assets_dir:
+            return {}
+        fields = {
+            field: os.path.join(os.path.abspath(assets_dir), relative_path)
+            for field, relative_path in CREATE_YAML_ASSET_FIELDS.get(self.profile, {}).items()
+        }
+        for path in fields.values():
+            if not os.path.exists(path):
+                logger.warning("%s not found; writing its path to the manifests anyway", path)
+        return fields
 
     def _fetch_bonsai_samples(self):
         query = {"pipeline.analysis_profile": self.profile}
@@ -329,7 +344,7 @@ class RebuildManifests:
             setattr(create_yaml_options, field, None)
         create_yaml_options.database_info = database_info
         create_yaml_options.jasen_version = self.jasen_version
-        for field, path in fields.items():
+        for field, path in {**fields, **self.asset_fields}.items():
             setattr(create_yaml_options, field, path)
 
         create_yaml_options.sample_id = sample_id
