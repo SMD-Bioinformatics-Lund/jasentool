@@ -179,7 +179,15 @@ CREATE_YAML_DATABASE_INFO = [
 ]
 
 # create-yaml has one IGV vcf slot; prefer these sources in order.
-CREATE_YAML_VCF_PRIORITY = ["tbprofiler_vcf", "snippy_vcf", "freebayes"]
+CREATE_YAML_VCF_PRIORITY = ["annotate_delly", "tbprofiler_vcf", "snippy_vcf", "freebayes"]
+
+# create-yaml fields JASEN passes from params.assets_dir, per profile, relative to it.
+CREATE_YAML_ASSET_FIELDS = {
+    "mycobacterium_tuberculosis": {
+        "tb_grading_rules_bed": "tb_info/bed/tb_grading_rules.bed",
+        "tbdb_bed": "tbdb/converged_who_fohm_tbdb.bed.gz",
+    },
+}
 
 # create-yaml fields JASEN passes from params.symlink_dir, and the directory each sits in
 # there. The symlink tree groups by file type, so e.g. snippy's vcf is under vcf/, not snippy/.

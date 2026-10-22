@@ -37,13 +37,15 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
                   sample_id=None, no_bonsai=False, jasen_version=None,
-                  reference_genome_accession=None, symlink_dir=None, force=False):
+                  reference_genome_accession=None, symlink_dir=None, force=False,
+                  assets_dir=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
         jasen_version=jasen_version, reference_genome_accession=reference_genome_accession,
         symlink_dir=None if symlink_dir is None else str(symlink_dir), force=force,
+        assets_dir=None if assets_dir is None else str(assets_dir),
     )
 
 
@@ -1090,3 +1092,71 @@ def test_force_overwrites_existing_manifest(tmp_path, backup_dir):
 
     assert yaml.safe_load((out / "S1_bonsai.yaml").read_text())["sample_id"] == "S1"
     assert yaml.safe_load((out / "S2_bonsai.yaml").read_text())["sample_id"] == "S2"
+
+
+def _tb_variant_track(tmp_path, backup_dir, monkeypatch, symlink_dir=None):
+    fake = FakeMongo(samples=[_sample("sample1", "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+    options = _make_options(tmp_path, backup_dir, profile="mycobacterium_tuberculosis",
+                            symlink_dir=symlink_dir)
+    RebuildManifests(options).run()
+    manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
+    return next(e for e in manifest["igv_annotations"] if e["name"] == "Predicted variants")
+
+
+def test_tb_prefers_annotated_delly_vcf(tmp_path, backup_dir, monkeypatch):
+    _touch(backup_dir, "mtuberculosis", "vcf", "sample1_tbprofiler.vcf.gz")
+    annotated = _touch(backup_dir, "mtuberculosis", "vcf", "sample1_annotated_delly.vcf")
+
+    assert _tb_variant_track(tmp_path, backup_dir, monkeypatch)["uri"] == str(annotated)
+
+
+def test_tb_annotated_delly_vcf_taken_from_symlink_dir(tmp_path, backup_dir, monkeypatch):
+    symlink_dir = tmp_path / "access"
+    _touch(backup_dir, "mtuberculosis", "vcf", "sample1_tbprofiler.vcf.gz")
+    _touch(backup_dir, "mtuberculosis", "vcf", "sample1_annotated_delly.vcf")
+    linked = _touch(symlink_dir, "mtuberculosis", "vcf", "sample1_annotated_delly.vcf")
+
+    track = _tb_variant_track(tmp_path, backup_dir, monkeypatch, symlink_dir=symlink_dir)
+    assert track["uri"] == str(linked)
+
+
+def _igv_tracks(tmp_path, backup_dir, monkeypatch, profile, **kwargs):
+    species = {"mycobacterium_tuberculosis": "mtuberculosis",
+               "staphylococcus_aureus": "saureus"}[profile]
+    fake = FakeMongo(samples=[_sample("sample1", profile)])
+    _patch_database(monkeypatch, fake)
+    _touch(backup_dir, species, "vcf", "sample1_annotated_delly.vcf")
+    RebuildManifests(_make_options(tmp_path, backup_dir, profile=profile, **kwargs)).run()
+    manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
+    return manifest["igv_annotations"]
+
+
+def test_tb_bed_tracks_taken_from_assets_dir(tmp_path, backup_dir, monkeypatch):
+    assets_dir = tmp_path / "jasen" / "assets"
+    symlink_dir = tmp_path / "access"
+    linked_vcf = _touch(symlink_dir, "mtuberculosis", "vcf", "sample1_annotated_delly.vcf")
+
+    tracks = _igv_tracks(tmp_path, backup_dir, monkeypatch, "mycobacterium_tuberculosis",
+                         assets_dir=assets_dir, symlink_dir=symlink_dir)
+
+    assert tracks == [
+        {"name": "tbdb grading rules bed", "type": "bed",
+         "uri": str(assets_dir / "tb_info" / "bed" / "tb_grading_rules.bed")},
+        {"name": "tbdb bed", "type": "bed",
+         "uri": str(assets_dir / "tbdb" / "converged_who_fohm_tbdb.bed.gz")},
+        {"name": "Predicted variants", "type": "variant", "uri": str(linked_vcf)},
+    ]
+
+
+def test_tb_bed_tracks_left_out_without_assets_dir(tmp_path, backup_dir, monkeypatch):
+    tracks = _igv_tracks(tmp_path, backup_dir, monkeypatch, "mycobacterium_tuberculosis")
+
+    assert [t["type"] for t in tracks] == ["variant"]
+
+
+def test_assets_dir_adds_nothing_for_non_tb_profile(tmp_path, backup_dir, monkeypatch):
+    tracks = _igv_tracks(tmp_path, backup_dir, monkeypatch, "staphylococcus_aureus",
+                         assets_dir=tmp_path / "assets")
+
+    assert not any(t["type"] == "bed" for t in tracks)

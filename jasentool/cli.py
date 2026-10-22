@@ -454,6 +454,9 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='Root of the JASEN symlink tree (params.symlink_dir). When set, the bam, bai, '
                    'vcf, sourmash signature and ska index are taken from here instead of the '
                    'backup tree, so their paths are ones Bonsai can read.')
+@click.option('--assets-dir', default=None, type=click.Path(file_okay=False),
+              help='JASEN assets directory (params.assets_dir, e.g. /fs1/pipelines/jasen/assets). '
+                   'For TB, adds the tbdb grading rules and tbdb BED tracks from here.')
 @click.option('--db-name', default=None,
               help='Bonsai MongoDB database name (required unless --no-bonsai)')
 @click.option('--db-collection', default=None,
@@ -479,7 +482,7 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
 @click.option('--force', is_flag=True, default=False,
               help='Overwrite manifests already in --output-dir. By default a sample whose '
                    '<sample_id>_bonsai.yaml already exists is skipped.')
-def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collection,
+def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, assets_dir, db_name, db_collection,
                           db_collection_groups, address, no_bonsai, sample_id, jasen_version,
                           reference_genome_accession, output_dir, force):
     """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
@@ -489,7 +492,8 @@ def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collecti
             "--db-name and --db-collection are required unless --no-bonsai is set"
         )
     options = types.SimpleNamespace(
-        profile=profile, backup_dir=backup_dir, symlink_dir=symlink_dir, db_name=db_name,
+        profile=profile, backup_dir=backup_dir, symlink_dir=symlink_dir,
+        assets_dir=assets_dir, db_name=db_name,
         db_collection=db_collection, db_collection_groups=db_collection_groups,
         address=address, no_bonsai=no_bonsai, sample_id=sample_id, jasen_version=jasen_version,
         reference_genome_accession=reference_genome_accession, output_dir=output_dir,
