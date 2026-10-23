@@ -22,15 +22,15 @@ A call counts as missing unless it is an integer allele; chewBBACA inferred alle
 the missing-loci summary, the ST plot, and dash_change, and matches cgmlst-dists, which
 strips the alpha prefix so `INF-431` becomes allele 431 (only codes resolving to 0, e.g.
 `-`/`LNF`/`NIPH`/`PLOT`/`ASM`, are missing). The in-Python fallback in
-`jasentool.matrix.Matrix` does NOT strip `INF-`, so it differs there when cgmlst-dists is
-absent.
+`jasentool.matrix.Matrix` strips `INF-` the same way.
 
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
 
 Per-file distances are computed with `cgmlst-dists` (each file is first written out
 sorted by sample id with the `ST` column dropped); if the binary is unavailable the
-in-Python `jasentool.matrix.Matrix` method is used instead. Diagnostic plots are also
+in-Python `jasentool.matrix.Matrix` method is used instead. With `--threads` above 1 the two
+files are processed at the same time, each with half the threads. Diagnostic plots are also
 written: a scatter and a Bland-Altman of the two files' pairwise distances, and -- when a
 `sample_name,mlst_st` map is supplied -- per-sample missing-loci counts grouped by ST.
 """
@@ -39,6 +39,8 @@ import csv
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from io import StringIO
 
 import matplotlib
@@ -131,6 +133,14 @@ class CompareDistances:
         return calls
 
     @classmethod
+    def _present_mask(cls, calls, sample_ids):
+        """Float 0/1 array (samples x loci), 1 where the call is not missing."""
+        return np.array(
+            [[not cls._is_missing(call) for call in calls[sid]] for sid in sample_ids],
+            dtype=np.float32,
+        )
+
+    @classmethod
     def _build_dash_change_matrix(cls, calls1, calls2, sample_ids):
         """Per pair, count loci comparable in exactly one of the two files.
 
@@ -140,26 +150,23 @@ class CompareDistances:
         appeared or disappeared between versions), i.e. the loci through which
         differing missing data can change the distance. Symmetric and non-negative.
 
+        With P1/P2 the per-file present masks and B = P1*P2, the count is
+        P1 P1^T + P2 P2^T - 2 B B^T (comparable in file 1, plus in file 2, minus
+        twice in both). The 0/1 sums are exact in float32 below 2**24 loci.
+
         Compares the two files locus-by-locus, so it assumes both list the same
         loci in the same column order.
         """
-        n = len(sample_ids)
-        mat = [[0] * n for _ in range(n)]
-        for i in range(n):
-            a1, a2 = calls1[sample_ids[i]], calls2[sample_ids[i]]
-            for j in range(i + 1, n):
-                b1, b2 = calls1[sample_ids[j]], calls2[sample_ids[j]]
-                count = 0
-                for x1, y1, x2, y2 in zip(a1, b1, a2, b2):
-                    comparable1 = not cls._is_missing(x1) and not cls._is_missing(y1)
-                    comparable2 = not cls._is_missing(x2) and not cls._is_missing(y2)
-                    if comparable1 != comparable2:
-                        count += 1
-                mat[i][j] = count
-                mat[j][i] = count
+        present1 = cls._present_mask(calls1, sample_ids)
+        present2 = cls._present_mask(calls2, sample_ids)
+        both = present1 * present2
+        counts = present1 @ present1.T + present2 @ present2.T - 2 * (both @ both.T)
+        mat = np.rint(counts).astype(np.int64)
+        np.fill_diagonal(mat, 0)
         return pd.DataFrame(mat, index=sample_ids, columns=sample_ids)
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def _is_missing(call):
         """True unless the call is a valid integer allele.
 
@@ -213,13 +220,13 @@ class CompareDistances:
     MAX_DISTANCE = 2000
 
     @classmethod
-    def _distances_via_cgmlst_dists(cls, clean_path, bin_path):
+    def _distances_via_cgmlst_dists(cls, clean_path, bin_path, threads=1):
         """Run cgmlst-dists on a cleaned TSV; return a DataFrame, or None on failure."""
+        cmd = [bin_path, "-x", str(cls.MAX_DISTANCE)]
+        if threads > 1:
+            cmd += ["-j", str(threads)]
         try:
-            proc = subprocess.run(
-                [bin_path, "-x", str(cls.MAX_DISTANCE), clean_path],
-                capture_output=True, text=True, check=True,
-            )
+            proc = subprocess.run(cmd + [clean_path], capture_output=True, text=True, check=True)
         except FileNotFoundError:
             logger.warning("cgmlst-dists binary '%s' not found; using Python fallback",
                            bin_path)
@@ -234,17 +241,29 @@ class CompareDistances:
         matrix.index.name = None
         return matrix
 
-    def _distance_matrix(self, calls, stem):
+    def _distance_matrix(self, calls, stem, threads=1):
         """Per-file distance matrix via cgmlst-dists, falling back to the Python method."""
         clean_path = os.path.join(self.options.output_dir, f"{stem}_clean.tsv")
         self._write_clean_tsv(calls, clean_path)
         logger.info("Wrote %s", clean_path)
-        matrix = self._distances_via_cgmlst_dists(clean_path, self.options.cgmlst_dists_bin)
+        matrix = self._distances_via_cgmlst_dists(
+            clean_path, self.options.cgmlst_dists_bin, threads)
         if matrix is None:
-            matrix = Matrix.generate_matrix(list(calls), lambda sid: calls[sid])
+            matrix = Matrix.generate_matrix(list(calls), lambda sid: calls[sid], threads)
         else:
             logger.info("Computed %s distances with cgmlst-dists", stem)
         return matrix
+
+    def _distance_matrices(self, calls1, calls2, stem1, stem2):
+        """Both files' distance matrices, side by side when there are threads to spare."""
+        threads = getattr(self.options, "threads", 1) or 1
+        if threads == 1:
+            return self._distance_matrix(calls1, stem1), self._distance_matrix(calls2, stem2)
+        per_file = threads // 2
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            future1 = pool.submit(self._distance_matrix, calls1, stem1, per_file)
+            future2 = pool.submit(self._distance_matrix, calls2, stem2, per_file)
+            return future1.result(), future2.result()
 
     @staticmethod
     def _read_st_map(path):
@@ -409,8 +428,7 @@ class CompareDistances:
         if stem1 == stem2:
             stem1, stem2 = f"{stem1}_1", f"{stem2}_2"
 
-        matrix1 = self._distance_matrix(calls1, stem1)
-        matrix2 = self._distance_matrix(calls2, stem2)
+        matrix1, matrix2 = self._distance_matrices(calls1, calls2, stem1, stem2)
 
         # Identify samples present in one file but not the other. These are
         # excluded from the difference matrix, which still runs on shared samples.

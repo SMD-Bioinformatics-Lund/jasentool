@@ -268,7 +268,7 @@ Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call table
 
 Each input is a chewBBACA table: a header row, then one sample per row with `sample_id` in the first column and the per-locus allele calls after it. The header is required, and the command errors if the first row isn't one. Either style is accepted: newer output leads with `FILE` (`FILE<tab>locus...`), older output with `#Name` (`#Name<tab>ST<tab>locus...`), and the two files may differ here. The header is used to drop the leading `ST` column from older AlleleCall output so only per-locus calls are compared. The delimiter is detected automatically (tab, falling back to comma). Loci are compared by position within each file, so the two files don't have to name their loci the same way, but they should share the same sample names.
 
-For each file, a sample × sample matrix is built where each cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci score 1). Loci where either call is missing or an error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, and so on) are skipped rather than counted as a mismatch. Distances come from [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists): each file is first written out sorted by sample id with the `ST` column dropped (`<stem>_clean.tsv`), then run through `cgmlst-dists -x 2000`. If the binary isn't found (set its path with `--cgmlst-dists-bin`), it falls back to the pure-Python method in `jasentool/matrix.py`. The `-x 2000` matters: cgmlst-dists caps distances at its `-x` value (default 999) and returns early once it's reached, which would pile every larger distance onto 999; raising the cap above the usual locus count keeps the real spread. The difference matrix is `matrix1 - matrix2` over the samples in both files.
+For each file, a sample × sample matrix is built where each cell is the number of loci at which the two samples' calls **differ** (matching loci score 0, mismatching loci score 1). Loci where either call is missing or an error (`-`, `INF`, `LNF`, `PLOT3`, `PLOT5`, `NIPH`, `ASM`, and so on) are skipped rather than counted as a mismatch. Distances come from [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists): each file is first written out sorted by sample id with the `ST` column dropped (`<stem>_clean.tsv`), then run through `cgmlst-dists -x 2000`. If the binary isn't found (set its path with `--cgmlst-dists-bin`), it falls back to a numpy calculation in `jasentool/matrix.py` that gives the same distances. With `--threads N` above 1, the two files are processed at the same time with `N // 2` threads each, passed to `cgmlst-dists -j` or to the fallback. The `-x 2000` matters: cgmlst-dists caps distances at its `-x` value (default 999) and returns early once it's reached, which would pile every larger distance onto 999; raising the cap above the usual locus count keeps the real spread. The difference matrix is `matrix1 - matrix2` over the samples in both files.
 
 **Missing-data (`-`) control.** Because `-` loci are skipped, a file with more missing data gives systematically smaller distances, which skews the difference. A few outputs help you tell missing data apart from genuine allele changes:
 
@@ -284,6 +284,7 @@ Samples present in only one of the two files are written to a missing-samples re
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
                             [--mlst <SAMPLE_ST.csv>] [--cgmlst-dists-bin <PATH>]
                             [--min-mean-distance <N>] [--max-mean-distance <N>]
+                            [--threads <N>]
 ```
 
 | Argument | Required | Default | Description |
@@ -293,9 +294,10 @@ jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
 | `--mlst` | No | — | `sample_name,mlst_st` CSV/TSV; enables the missing-loci-vs-ST plot |
 | `--cgmlst-dists-bin` | No | `cgmlst-dists` | Path/name of the cgmlst-dists executable (Python fallback if absent) |
 | `--min-mean-distance`/`--max-mean-distance` | No | — | If either is set, write an extra Bland–Altman plot zoomed to this mean-distance window (e.g. 0–100) |
+| `-t`/`--threads` | No | `1` | CPU threads for the distance matrices. Above 1, both files are processed at the same time with half the threads each |
 | `-v`/`--verbose` | No | off | Verbose logging and write the plots' underlying point tables (`*_points.tsv`) for manual checking |
 
-> `cgmlst-dists` is a separate bioconda tool, not a Python dependency. Install it through the conda `environment.yml` (or however you prefer) to use it; without it, the Python fallback runs.
+> `cgmlst-dists` is a separate bioconda tool, not a Python dependency. Install it through the conda `environment.yml` (or however you prefer) to use it; without it, the numpy fallback runs. `-j` needs cgmlst-dists 0.4.0 or later; with an older binary and `--threads` above 1, the run fails over to the fallback with a warning.
 
 **Outputs**
 

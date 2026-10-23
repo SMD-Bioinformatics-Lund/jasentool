@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
 - `identify-missing --cgviz-address` sets the cgviz MongoDB host.
+- `compare-distances --threads` runs both files' distance matrices at the same time, passing half the threads to each `cgmlst-dists -j` (or the fallback).
 - `rebuild-manifests` can fill missing tool and database versions for JASEN 0.9.0 samples.
 - `rebuild-manifests --assets-dir` adds the tbdb grading rules and tbdb BED tracks to TB manifests from JASEN's assets directory.
 
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `compare-distances` computes the `dash_change` matrix and its no-`cgmlst-dists` distance fallback with numpy, giving the same results much faster on large tables. The fallback (also used by `validate-pipelines`) now raises an error when samples' allele lists differ in length.
 - `rebuild-manifests` fills missing tool versions from the JASEN release in each sample's `analysis_meta.json`; `--jasen-version` now overrides it.
 - `rebuild-manifests` skips samples whose `<sample_id>_bonsai.yaml` is already in `--output-dir`; `--force` overwrites them.
 - `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.

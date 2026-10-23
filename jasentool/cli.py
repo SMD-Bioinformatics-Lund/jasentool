@@ -555,18 +555,22 @@ def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file
 @click.option('--max-mean-distance', default=None, type=float,
               help='Upper bound on the Bland-Altman mean-distance (x) axis for an extra '
                    'zoomed plot (e.g. 50 or 100, the clinically relevant band)')
+@click.option('-t', '--threads', default=1, show_default=True, type=click.IntRange(min=1),
+              help='CPU threads for the distance matrices. Above 1, both files are processed '
+                   'at the same time with half the threads each (cgmlst-dists -j or the '
+                   'Python fallback)')
 @click.option('-v', '--verbose', is_flag=True, default=False,
               help='Verbose logging and write the underlying plot point tables (*_points.tsv) '
                    'so individual points can be checked by hand')
 def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin,
-                          min_mean_distance, max_mean_distance, verbose):
+                          min_mean_distance, max_mean_distance, threads, verbose):
     """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
     _init_logging(verbose)
     options = types.SimpleNamespace(
         file1=input_files[0], file2=input_files[1], output_dir=output_dir,
         mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin,
         min_mean_distance=min_mean_distance, max_mean_distance=max_mean_distance,
-        verbose=verbose,
+        threads=threads, verbose=verbose,
     )
     _parser().compare_distances(options)
 

@@ -1,8 +1,10 @@
 """Module for validating pipelines"""
 
 import os
-import sys
 import json
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -42,6 +44,7 @@ class Matrix:
         return jasen_cgmlst_alleles
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def _parse_allele(call):
         """Return the integer allele, or None if missing.
 
@@ -69,18 +72,44 @@ class Matrix:
         return mismatch_count
 
     @staticmethod
-    def generate_matrix(sample_ids, get_cgmlst_data):
-        """Generate pairwise matrix by comparing cgmlst alleles"""
-        matrix_df = pd.DataFrame(index=sample_ids, columns=sample_ids)
+    def encode_alleles(allele_lists):
+        """Integer array of equal-length allele lists, with -1 where a call is missing."""
+        def parse(call):
+            value = Matrix._parse_allele(call)
+            return -1 if value is None else value
+        return np.array([[parse(call) for call in alleles] for alleles in allele_lists],
+                        dtype=np.int64)
+
+    @staticmethod
+    def distance_array(alleles, threads=1):
+        """Per pair of rows, count loci where both have an allele and the alleles differ."""
+        valid = alleles >= 0
+        n_samples = len(alleles)
+        dist = np.zeros((n_samples, n_samples), dtype=np.int64)
+
+        def fill(rows):
+            for i in rows:
+                mismatch = (alleles[i] != alleles[i + 1:]) & valid[i] & valid[i + 1:]
+                dist[i, i + 1:] = mismatch.sum(axis=1)
+
+        threads = max(1, threads)
+        with ThreadPoolExecutor(max_workers=threads) as pool:
+            list(pool.map(fill, [range(start, n_samples, threads) for start in range(threads)]))
+        return dist + dist.T
+
+    @staticmethod
+    def generate_matrix(sample_ids, get_cgmlst_data, threads=1):
+        """Pairwise cgMLST distance matrix; NaN for samples without allele data."""
         id_allele_dict = {sample_id: get_cgmlst_data(sample_id) for sample_id in sample_ids}
-        logger.debug("The sample id - alleles dict is approximately %d bytes in size",
-                     sys.getsizeof(id_allele_dict))
-        for row_sample in sample_ids:
-            row_sample_cgmlst = id_allele_dict[row_sample]
-            for col_sample in sample_ids:
-                col_sample_cgmlst = id_allele_dict[col_sample]
-                if row_sample_cgmlst and col_sample_cgmlst:
-                    matrix_df.loc[row_sample, col_sample] = Matrix.compare_cgmlst_alleles(row_sample_cgmlst, col_sample_cgmlst)
+        present = [sid for sid in sample_ids if id_allele_dict[sid]]
+        if len({len(id_allele_dict[sid]) for sid in present}) > 1:
+            raise ValueError("cgMLST allele lists differ in length between samples")
+        dist = Matrix.distance_array(
+            Matrix.encode_alleles([id_allele_dict[sid] for sid in present]), threads)
+        if len(present) == len(sample_ids):
+            return pd.DataFrame(dist, index=sample_ids, columns=sample_ids)
+        matrix_df = pd.DataFrame(np.nan, index=sample_ids, columns=sample_ids)
+        matrix_df.loc[present, present] = dist
         return matrix_df
 
     def plot_heatmap(self, distance_df, output_plot_fpath):
