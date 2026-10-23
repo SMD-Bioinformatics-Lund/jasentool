@@ -1160,3 +1160,39 @@ def test_assets_dir_adds_nothing_for_non_tb_profile(tmp_path, backup_dir, monkey
                          assets_dir=tmp_path / "assets")
 
     assert not any(t["type"] == "bed" for t in tracks)
+
+
+def _release_fallback_run(tmp_path, backup_dir, monkeypatch, meta_version, jasen_version=None):
+    _touch(backup_dir, "saureus", "chewbbaca", "sample1_chewbbaca.tsv")
+    _touch(backup_dir, "saureus", "analysis_metadata", "sample1_analysis_meta.json",
+           json.dumps({"version": meta_version, "lims_id": "L1"}))
+    monkeypatch.setattr(
+        "jasentool.rebuild_manifests.VERSIONS_FALLBACK",
+        {"1.1.0": {"chewbbaca": "3.3.2"}, "1.3.0": {"chewbbaca": "3.5.3"}},
+    )
+    _patch_database(monkeypatch, FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")]))
+    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version=jasen_version)).run()
+    manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
+    return {e["software"]: e for e in manifest["analysis_result"]}["chewbbaca"]
+
+
+def test_versions_fallback_uses_release_from_run_metadata(tmp_path, backup_dir, monkeypatch):
+    chewbbaca = _release_fallback_run(tmp_path, backup_dir, monkeypatch, "1.3.0")
+
+    assert chewbbaca["software_version"] == "3.5.3"
+    versions = yaml.safe_load((tmp_path / "out" / "sample1_versions.yml").read_text())
+    assert versions["jasentool_version_fallback"]["chewbbaca"]["version"] == "3.5.3"
+
+
+def test_jasen_version_overrides_run_metadata_release(tmp_path, backup_dir, monkeypatch):
+    chewbbaca = _release_fallback_run(tmp_path, backup_dir, monkeypatch, "1.3.0",
+                                      jasen_version="1.1.0")
+
+    assert chewbbaca["software_version"] == "3.3.2"
+
+
+def test_unknown_release_leaves_version_missing(tmp_path, backup_dir, monkeypatch, caplog):
+    chewbbaca = _release_fallback_run(tmp_path, backup_dir, monkeypatch, "9.9.9")
+
+    assert "software_version" not in chewbbaca
+    assert "release 9.9.9 has no versions fallback" in caplog.text

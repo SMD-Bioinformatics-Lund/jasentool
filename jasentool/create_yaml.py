@@ -106,7 +106,7 @@ class CreateYaml:
                     release = json.load(fin).get("version")
             except (OSError, json.JSONDecodeError, AttributeError):
                 release = None
-        return str(release).lstrip("v") if release else None
+        return str(release).strip() if release else None
 
     def _database_info(self, options):
         """Database versions for the manifest's tools, from meta files or the release fallback."""

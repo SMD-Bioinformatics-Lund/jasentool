@@ -110,9 +110,8 @@ class RebuildManifests:
         self.reference_genome_accession = getattr(
             options, "reference_genome_accession", None
         )
-        jasen_version = getattr(options, "jasen_version", None)
-        self.jasen_version = jasen_version
-        self.versions_fallback = VERSIONS_FALLBACK[jasen_version] if jasen_version else {}
+        self.jasen_version = getattr(options, "jasen_version", None)
+        self._releases_without_fallback = set()
 
     def _resolve_asset_fields(self, assets_dir):
         """Return {create-yaml field: path} for the profile's files under JASEN's assets_dir."""
@@ -244,11 +243,24 @@ class RebuildManifests:
             return os.path.abspath(path), data
         return None, {}
 
-    def _merge_versions(self, species, sample_id, needed_keys):
+    def _sample_release(self, sample_id, metadata):
+        """JASEN release for a sample: --jasen-version, else the version in its run metadata."""
+        release = self.jasen_version or str(metadata.get("version") or "").strip()
+        if not release:
+            return None
+        if release not in VERSIONS_FALLBACK and release not in self._releases_without_fallback:
+            self._releases_without_fallback.add(release)
+            logger.warning(
+                "%s: JASEN release %s has no versions fallback; missing versions stay missing",
+                sample_id, release,
+            )
+        return release
+
+    def _merge_versions(self, species, sample_id, needed_keys, versions_fallback):
         """Merge the sample's per-process `_versions.yml` files into one file.
 
         Any `needed_keys` missing or unusable after the merge are filled from the
-        `--jasen-version` release in `VERSIONS_FALLBACK`. Returns the written path, or None if neither
+        sample's JASEN release in `VERSIONS_FALLBACK`. Returns the written path, or None if neither
         the tree nor the fallback produced a version.
         """
         pattern = os.path.join(self.backup_dir, species, "*", f"{sample_id}_*_versions.yml")
@@ -259,7 +271,7 @@ class RebuildManifests:
             if data:
                 merged.update(data)
         _drop_unusable_versions(merged, sample_id)
-        self._apply_versions_fallback(merged, sample_id, needed_keys)
+        self._apply_versions_fallback(merged, sample_id, needed_keys, versions_fallback)
         if not merged:
             return None
         dest = os.path.join(self.output_dir, f"{sample_id}_versions.yml")
@@ -267,9 +279,9 @@ class RebuildManifests:
             yaml.dump(merged, fout, default_flow_style=False)
         return dest
 
-    def _apply_versions_fallback(self, merged, sample_id, needed_keys):
+    def _apply_versions_fallback(self, merged, sample_id, needed_keys, versions_fallback):
         """Fill any `needed_keys` absent from `merged` (tree) from the fallback map, in place."""
-        if not self.versions_fallback:
+        if not versions_fallback:
             return
         present = {
             software
@@ -277,9 +289,9 @@ class RebuildManifests:
             for software in process_data
         }
         filled = {
-            key: self.versions_fallback[key]
+            key: versions_fallback[key]
             for key in needed_keys
-            if key not in present and key in self.versions_fallback
+            if key not in present and key in versions_fallback
         }
         if not filled:
             return
@@ -336,14 +348,17 @@ class RebuildManifests:
             _FIELD_TO_VERSION_KEY[field]
             for field in fields if field in _FIELD_TO_VERSION_KEY
         }
-        versions_path = self._merge_versions(species, sample_id, needed_keys)
         metadata_path, metadata = self._resolve_run_metadata(outputs, species, sample_id)
+        release = self._sample_release(sample_id, metadata)
+        versions_path = self._merge_versions(
+            species, sample_id, needed_keys, VERSIONS_FALLBACK.get(release, {}),
+        )
 
         create_yaml_options = types.SimpleNamespace(**{field: None for field in _OPTIONAL_FIELDS})
         for field in _REQUIRED_FIELDS:
             setattr(create_yaml_options, field, None)
         create_yaml_options.database_info = database_info
-        create_yaml_options.jasen_version = self.jasen_version
+        create_yaml_options.jasen_version = release
         for field, path in {**fields, **self.asset_fields}.items():
             setattr(create_yaml_options, field, path)
 
