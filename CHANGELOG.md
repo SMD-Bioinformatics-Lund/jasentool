@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `rebuild-manifests` fills missing tool versions from the JASEN release in each sample's `analysis_meta.json`; `--jasen-version` now overrides it.
 - `rebuild-manifests` skips samples whose `<sample_id>_bonsai.yaml` is already in `--output-dir`; `--force` overwrites them.
 - `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.
 

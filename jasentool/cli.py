@@ -472,8 +472,9 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='If set, only rebuild the manifest for this sample_id (e.g. to test on one '
                    'sample before a full run)')
 @click.option('--jasen-version', type=click.Choice(sorted(VERSIONS_FALLBACK)), default=None,
-              help='JASEN release the samples were run with. Fills a tool or database version '
-                   'the backup tree lacks from what that release pinned (the tree always wins).')
+              help='JASEN release the samples were run with, overriding the version in each '
+                   "sample's analysis_meta.json. Fills a tool or database version the backup "
+                   'tree lacks from what that release pinned (the tree always wins).')
 @click.option('--reference-genome-accession', default=None,
               help='Reference genome assembly accession (e.g. GCF_000012045.1) to stamp on '
                    'every manifest. Must match a reference genome registered in Bonsai.')
