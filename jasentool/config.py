@@ -200,9 +200,35 @@ CREATE_YAML_SYMLINKED_FIELDS = {
 }
 
 # Tool versions pinned by each JASEN release's containers, for rebuild-manifests
-# --jasen-version. Used only when the backup tree has no usable version for a tool the
+# (the sample's release, or --jasen-version). Used only when the backup tree has no usable version for a tool the
 # sample has an output for. Keys are the software name inside a versions.yml (what
 # create-yaml looks up), not the container image name.
+_JASEN_0_9_0 = {
+    "amrfinderplus": "3.11.11",
+    "blast": "2.14.0",
+    "bracken": "2.8",
+    "bwakit": "0.7.17.dev1",
+    "chewbbaca": "3.3.2",
+    "flye": "2.9.3",
+    "freebayes": "1.3.6",
+    "kraken2": "2.1.2",
+    "medaka": "1.11.3",
+    "mlst": "2.23.0",
+    "mykrobe": "0.12.2",
+    "perl-json": "4.10",
+    "postalignqc": "0.10.0",
+    "quast": "5.2.0",
+    "resfinder": "4.4.2",
+    "samtools": "1.17",
+    "serotypefinder": "2.0.2",
+    "shigapass": "1.5.0",
+    "skesa": "2.5.1",
+    "snippy": "4.6.0",
+    "sourmash": "4.8.2",
+    "spades": "3.15.5",
+    "tb-profiler": "6.3.0",
+    "virulencefinder": "2.0.4",
+}
 _JASEN_1_0_0 = {
     "amrfinderplus": "3.11.11",
     "blast": "2.14.0",
@@ -221,6 +247,7 @@ _JASEN_1_0_0 = {
     "mykrobe": "0.12.2",
     "nanoplot": "1.43.0",
     "perl-json": "4.10",
+    "postalignqc": "0.11.4",
     "quast": "5.2.0",
     "resfinder": "4.4.2",
     "samtools": "1.17",
@@ -275,6 +302,7 @@ _JASEN_1_3_0 = {
 }
 
 VERSIONS_FALLBACK = {
+    "0.9.0": _JASEN_0_9_0,
     "1.0.0": _JASEN_1_0_0,
     "1.1.0": _JASEN_1_1_0,
     "1.1.1": _JASEN_1_1_0,
@@ -297,6 +325,13 @@ DATABASES_BY_SOFTWARE = {
 
 # Database versions pinned in each JASEN release: submodule commits up to 1.1.2,
 # Makefile versions from 1.2.0.
+_JASEN_0_9_0_DATABASES = {
+    "pointfinder": "cb424d459212782fb38a0d81a75fd089b7df704d",
+    "resfinder": "8117fca4401e05529301b5cc95c192239a451f49",
+    "serotypefinder": "ada62c62a7fa74032448bb2273d1f7045c59fdda",
+    "tbdb": "e25540b2748565c904df9968b2388694f8202dd4",
+    "virulencefinder": "041b8b30ede055f92cbd8eaf3679ca7554857514",
+}
 _JASEN_1_0_0_DATABASES = {
     "pointfinder": "cb424d459212782fb38a0d81a75fd089b7df704d",
     "resfinder": "8117fca4401e05529301b5cc95c192239a451f49",
@@ -322,6 +357,7 @@ _JASEN_1_2_0_DATABASES = {
 }
 
 DATABASE_VERSIONS_FALLBACK = {
+    "0.9.0": _JASEN_0_9_0_DATABASES,
     "1.0.0": _JASEN_1_0_0_DATABASES,
     "1.1.0": _JASEN_1_1_0_DATABASES,
     "1.1.1": _JASEN_1_1_0_DATABASES,

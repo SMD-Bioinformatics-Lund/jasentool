@@ -308,7 +308,8 @@ def test_unusable_tree_version_without_fallback_is_omitted(tmp_path, backup_dir,
     assert "software_version" not in results["gambitcore"]
 
 
-@pytest.mark.parametrize("jasen_version, chewbbaca_version", [("1.1.0", "3.3.2"), ("1.3.0", "3.5.3")])
+@pytest.mark.parametrize("jasen_version, chewbbaca_version",
+                         [("0.9.0", "3.3.2"), ("1.1.0", "3.3.2"), ("1.3.0", "3.5.3")])
 def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, monkeypatch,
                                                        jasen_version, chewbbaca_version):
     """--jasen-version fills from that release, and only for tools the sample has an output for."""
@@ -589,6 +590,8 @@ def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monk
 
 
 @pytest.mark.parametrize("jasen_version, expected", [
+    ("0.9.0", "0.10.0"),
+    ("1.0.0", "0.11.4"),
     ("1.1.0", "1.3.1"),
     ("1.1.1", "1.3.1"),
     ("1.1.2", "1.3.3"),
