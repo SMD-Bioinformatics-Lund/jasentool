@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `rerun-software --tool {chewbbaca,amrfinder,resfinder,shigatyper}` re-runs a JASEN tool on backed-up inputs with JASEN's arguments and output names. It replaces `rerun-chewbbaca`, which remains as a hidden alias.
+- `check-backup` writes `<stem>_assemblies.csv`, listing each sample's unmasked assembly for `rerun-software --tool amrfinder`.
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
 - `identify-missing --cgviz-address` sets the cgviz MongoDB host.
 - `rebuild-manifests` can fill missing tool and database versions for JASEN 0.9.0 samples.

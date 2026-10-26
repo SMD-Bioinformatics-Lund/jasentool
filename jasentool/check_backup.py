@@ -233,6 +233,13 @@ class CheckBackup:
         logger.info("%d masked-assembly FASTAs listed (see %s)",
                     len(masked_rows), masked_fpath)
 
+        assembly_rows = _collect_assemblies(samples, self.backup_dir, species, self.profile)
+        assembly_fpath = os.path.splitext(self.output_file)[0] + "_assemblies.csv"
+        _write_csv(assembly_fpath, assembly_rows, fieldnames=[
+            "sample_id", "sample_name", "lims_id", "profile", "assembly_path",
+        ])
+        logger.info("%d assembly FASTAs listed (see %s)", len(assembly_rows), assembly_fpath)
+
         group_orphan_rows = _find_group_orphans(
             self.options.db_collection,
             self.options.db_collection_groups,
@@ -415,7 +422,7 @@ def _collect_masked_assemblies(samples, backup_dir, species, profile):
 
     These masked FASTAs are what JASEN's `mask_polymorph_assembly` step produces
     and what gets fed into chewBBACA downstream; use the matching script
-    `scripts/rerun_chewbbaca.py` to consume this CSV.
+    `jasentool rerun-software --tool chewbbaca` to consume this CSV.
     """
     mask_dir = os.path.join(backup_dir, species, "mask")
     if not os.path.isdir(mask_dir):
@@ -435,6 +442,34 @@ def _collect_masked_assemblies(samples, backup_dir, species, profile):
                 "lims_id": doc.get("lims_id", ""),
                 "profile": profile,
                 "masked_assembly_path": os.path.join(mask_dir, fname),
+            })
+    return rows
+
+
+# JASEN's final assembly, by suffix in <species>/fasta/; flye output is polished into medaka's.
+_ASSEMBLY_SUFFIXES = ["_medaka.fasta", "_spades.fasta", "_skesa.fasta"]
+
+
+def _collect_assemblies(samples, backup_dir, species, profile):
+    """List each sample's backed-up unmasked assembly (the one JASEN screens with amrfinder)."""
+    fasta_dir = os.path.join(backup_dir, species, "fasta")
+    if not os.path.isdir(fasta_dir):
+        return []
+    available = set(os.listdir(fasta_dir))
+    rows = []
+    for doc in samples:
+        sid = doc.get("sample_id")
+        if not sid:
+            continue
+        fname = next((f"{sid}{suffix}" for suffix in _ASSEMBLY_SUFFIXES
+                      if f"{sid}{suffix}" in available), None)
+        if fname:
+            rows.append({
+                "sample_id": sid,
+                "sample_name": doc.get("sample_name", ""),
+                "lims_id": doc.get("lims_id", ""),
+                "profile": profile,
+                "assembly_path": os.path.join(fasta_dir, fname),
             })
     return rows
 

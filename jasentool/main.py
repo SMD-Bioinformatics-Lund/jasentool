@@ -27,7 +27,7 @@ from jasentool.create_blacklist import CreateBlacklist
 from jasentool.check_backup import CheckBackup
 from jasentool.compare_bonsai import CompareBonsai
 from jasentool.rebuild_manifests import RebuildManifests
-from jasentool.rerun_chewbbaca import RerunChewbbaca
+from jasentool.rerun_software import RerunSoftware
 from jasentool.compare_distances import CompareDistances
 from jasentool.log import get_logger
 
@@ -213,9 +213,9 @@ class OptionsParser:
         """Rebuild Bonsai manifest YAMLs from the backup storage tree."""
         RebuildManifests(options).run()
 
-    def rerun_chewbbaca(self, options):
-        """Re-run chewBBACA AlleleCall on a check-backup _masked_assemblies.csv."""
-        RerunChewbbaca(options).run()
+    def rerun_software(self, options):
+        """Re-run a supported JASEN tool on the inputs listed in a CSV."""
+        RerunSoftware(options).run()
 
     def compare_distances(self, options):
         """Build cgMLST distance matrices for two chewBBACA tables and their difference."""

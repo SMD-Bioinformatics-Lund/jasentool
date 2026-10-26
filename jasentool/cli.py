@@ -11,6 +11,7 @@ from jasentool import __version__
 from jasentool.config import VERSIONS_FALLBACK
 from jasentool.log import setup_logging
 from jasentool.main import OptionsParser
+from jasentool.rerun_software import RERUN_TOOLS
 
 
 def _parser():
@@ -503,39 +504,93 @@ def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, assets_dir, db_name,
     _parser().rebuild_manifests(options)
 
 
-@cli.command('rerun-chewbbaca')
-@click.option('--masked-assemblies', required=True, type=click.Path(),
-              help='Path to _masked_assemblies.csv from `check-backup`')
-@click.option('--schema-dir', required=True, type=click.Path(),
-              help='chewBBACA schema directory (passed as --schema-directory)')
-@click.option('--output-dir', required=True, type=click.Path(),
-              help='Output directory; chewBBACA results land in <output-dir>/output_dir/, '
-                   'batch list in <output-dir>/batch_input.list')
+_RERUN_TOOL_ONLY = {
+    "pointfinder_db": ("--pointfinder-db", {"resfinder"}),
+    "training_file": ("--training-file", {"chewbbaca"}),
+    "db": ("--db", {"amrfinder", "chewbbaca", "resfinder"}),
+}
+_RERUN_REQUIRED = {
+    "chewbbaca": [("db", "--db")],
+    "amrfinder": [("profile", "--profile")],
+    "resfinder": [("db", "--db"), ("pointfinder_db", "--pointfinder-db"), ("profile", "--profile")],
+    "shigatyper": [],
+}
+
+
+@cli.command('rerun-software')
+@click.option('--tool', required=True, type=click.Choice(RERUN_TOOLS),
+              help='Tool to re-run')
+@click.option('-i', '--input', 'input_csv', required=True, type=click.Path(),
+              help='CSV of inputs. chewbbaca: <stem>_masked_assemblies.csv and amrfinder: '
+                   '<stem>_assemblies.csv, both from check-backup; resfinder and shigatyper: '
+                   'a JASEN samplesheet (id, platform, read1, read2)')
+@click.option('-o', '--output-dir', required=True, type=click.Path(),
+              help='Directory for the results, named as JASEN names them')
+@click.option('--profile', default=None,
+              help='JASEN profile, e.g. escherichia_coli. Required for amrfinder and resfinder, '
+                   'which take their organism/species from it. When the CSV has a profile '
+                   'column, only matching rows are run')
+@click.option('--db', default=None, type=click.Path(),
+              help='chewbbaca: schema directory (required); amrfinder: database directory; '
+                   'resfinder: ResFinder database (required)')
+@click.option('--pointfinder-db', default=None, type=click.Path(),
+              help='resfinder: PointFinder database (required)')
 @click.option('--training-file', default=None, type=click.Path(),
-              help='Optional chewBBACA training file (--ptf)')
-@click.option('--cpus', default=4, show_default=True, type=int,
-              help='chewBBACA --cpu value')
-@click.option('--chewie-bin', default='chewie', show_default=True,
-              help='Path or name of the chewie executable')
+              help='chewbbaca: Prodigal training file (--ptf)')
+@click.option('--cpus', default=4, show_default=True, type=click.IntRange(min=1),
+              help='Threads per run (chewbbaca --cpu, amrfinder --threads)')
+@click.option('--jobs', default=1, show_default=True, type=click.IntRange(min=1),
+              help='Samples run at the same time (amrfinder, resfinder, shigatyper)')
+@click.option('--bin', 'bin_cmd', default=None,
+              help='Command that runs the tool (default: chewie, amrfinder, '
+                   '"python -m resfinder" or shigatyper)')
 @click.option('--singularity-image', default=None, type=click.Path(),
-              help='If set, wrap chewie invocation as `singularity exec <image> chewie ...`')
+              help='If set, run the tool as `singularity exec <image> ...`')
 @click.option('--singularity-bind', default=None,
               help='Comma-separated bind list passed to `singularity exec --bind` '
                    '(e.g. "/media/isilon,/data,/scratch"). Only used with --singularity-image.')
-@click.option('--profile-filter', default=None,
-              help='If set, include only rows whose `profile` column matches this value')
+def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
+                       training_file, cpus, jobs, bin_cmd, singularity_image, singularity_bind):
+    """Re-run chewbbaca, amrfinder, resfinder or shigatyper on backed-up inputs."""
+    _init_logging()
+    options = types.SimpleNamespace(
+        tool=tool, input=input_csv, output_dir=output_dir, profile=profile, db=db,
+        pointfinder_db=pointfinder_db, training_file=training_file, cpus=cpus, jobs=jobs,
+        bin=bin_cmd, singularity_image=singularity_image, singularity_bind=singularity_bind,
+    )
+    for field, (flag, tools) in _RERUN_TOOL_ONLY.items():
+        if getattr(options, field) and tool not in tools:
+            raise click.UsageError(f"{flag} is not used by --tool {tool}")
+    for field, flag in _RERUN_REQUIRED[tool]:
+        if not getattr(options, field):
+            raise click.UsageError(f"--tool {tool} requires {flag}")
+    if jobs > 1 and tool == "chewbbaca":
+        raise click.UsageError("--jobs is not used by --tool chewbbaca, which runs as one batch")
+    _parser().rerun_software(options)
+
+
+@cli.command('rerun-chewbbaca', hidden=True)
+@click.option('--masked-assemblies', required=True, type=click.Path())
+@click.option('--schema-dir', required=True, type=click.Path())
+@click.option('--output-dir', required=True, type=click.Path())
+@click.option('--training-file', default=None, type=click.Path())
+@click.option('--cpus', default=4, show_default=True, type=int)
+@click.option('--chewie-bin', default='chewie', show_default=True)
+@click.option('--singularity-image', default=None, type=click.Path())
+@click.option('--singularity-bind', default=None)
+@click.option('--profile-filter', default=None)
 def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file,
                         cpus, chewie_bin, singularity_image, singularity_bind,
                         profile_filter):
-    """Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV."""
+    """Old name for `rerun-software --tool chewbbaca`."""
     _init_logging()
     options = types.SimpleNamespace(
-        masked_assemblies=masked_assemblies, schema_dir=schema_dir,
-        output_dir=output_dir, training_file=training_file,
-        cpus=cpus, chewie_bin=chewie_bin, singularity_image=singularity_image,
-        singularity_bind=singularity_bind, profile_filter=profile_filter,
+        tool="chewbbaca", input=masked_assemblies, output_dir=output_dir,
+        profile=profile_filter, db=schema_dir, pointfinder_db=None,
+        training_file=training_file, cpus=cpus, jobs=1, bin=chewie_bin,
+        singularity_image=singularity_image, singularity_bind=singularity_bind,
     )
-    _parser().rerun_chewbbaca(options)
+    _parser().rerun_software(options)
 
 
 @cli.command('compare-distances')

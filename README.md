@@ -41,7 +41,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 |------------|-------------|
 | `check-backup` | Cross-check Bonsai samples against the backup storage tree |
 | `rebuild-manifests` | Rebuild Bonsai manifests from the backup storage tree |
-| `rerun-chewbbaca` | Re-run chewBBACA AlleleCall on a check-backup masked-assemblies CSV |
+| `rerun-software` | Re-run chewBBACA, AMRFinderPlus, ResFinder or ShigaTyper on backed-up inputs |
 | `compare-distances` | Build cgMLST distance matrices for two chewBBACA tables and their difference |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
