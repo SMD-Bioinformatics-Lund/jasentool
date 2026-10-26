@@ -569,30 +569,6 @@ def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
     _parser().rerun_software(options)
 
 
-@cli.command('rerun-chewbbaca', hidden=True)
-@click.option('--masked-assemblies', required=True, type=click.Path())
-@click.option('--schema-dir', required=True, type=click.Path())
-@click.option('--output-dir', required=True, type=click.Path())
-@click.option('--training-file', default=None, type=click.Path())
-@click.option('--cpus', default=4, show_default=True, type=int)
-@click.option('--chewie-bin', default='chewie', show_default=True)
-@click.option('--singularity-image', default=None, type=click.Path())
-@click.option('--singularity-bind', default=None)
-@click.option('--profile-filter', default=None)
-def rerun_chewbbaca_cmd(masked_assemblies, schema_dir, output_dir, training_file,
-                        cpus, chewie_bin, singularity_image, singularity_bind,
-                        profile_filter):
-    """Old name for `rerun-software --tool chewbbaca`."""
-    _init_logging()
-    options = types.SimpleNamespace(
-        tool="chewbbaca", input=masked_assemblies, output_dir=output_dir,
-        profile=profile_filter, db=schema_dir, pointfinder_db=None,
-        training_file=training_file, cpus=cpus, jobs=1, bin=chewie_bin,
-        singularity_image=singularity_image, singularity_bind=singularity_bind,
-    )
-    _parser().rerun_software(options)
-
-
 @cli.command('compare-distances')
 @click.option('-i', '--input', 'input_files', required=True, nargs=2,
               type=click.Path(exists=True, dir_okay=False),

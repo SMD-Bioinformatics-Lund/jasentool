@@ -98,20 +98,6 @@ def test_chewbbaca_passes_through_its_exit_code(monkeypatch, tmp_path):
     assert result.exit_code == 3
 
 
-def test_old_rerun_chewbbaca_name_still_works(monkeypatch, tmp_path):
-    fake = _install(monkeypatch, FakeTool())
-    a1 = _touch(tmp_path / "s1_mask.fasta")
-    masked = _csv(tmp_path / "masked.csv", [{"sample_id": "s1", "masked_assembly_path": str(a1)}])
-    schema = tmp_path / "schema"
-    schema.mkdir()
-
-    result = runner.invoke(cli, ["rerun-chewbbaca", "--masked-assemblies", str(masked),
-                                 "--schema-dir", str(schema), "--output-dir", str(tmp_path / "out")])
-
-    assert result.exit_code == 0, result.output
-    assert fake.calls[0]["cmd"][:2] == ["chewie", "AlleleCall"]
-
-
 @pytest.mark.parametrize("profile, organism", [
     ("escherichia_coli", "Escherichia"),
     ("staphylococcus_aureus", "Staphylococcus_aureus"),

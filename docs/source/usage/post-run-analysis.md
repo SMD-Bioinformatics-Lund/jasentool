@@ -270,7 +270,7 @@ Per-sample tools run in `<output-dir>/work/<sample_id>/`, which is removed after
 | `--singularity-image` | No | — | If set, run the tool as `singularity exec <image> ...`. The input, database and output paths must be visible inside the container |
 | `--singularity-bind` | No | — | Comma-separated bind list for `singularity exec --bind` (only with `--singularity-image`) |
 
-Options that a tool doesn't use (for example `--pointfinder-db` with `--tool amrfinder`) are rejected. The old `rerun-chewbbaca` command still works as an alias for `--tool chewbbaca`.
+Options that a tool doesn't use (for example `--pointfinder-db` with `--tool amrfinder`) are rejected.
 
 **Examples**
 
