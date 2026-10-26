@@ -125,7 +125,8 @@ The primary summary is written to `--output-file` as given. The sibling files re
 - **`<stem>_missing.csv`** — one row per missing file. Columns: `sample_id, sample_name, lims_id, profile, software_name, software_dirname, expected_glob, searched_path, required`. `expected_glob` is the filename the matcher looked for (`<sample_id><mask><file_ext>`) and `searched_path` is the directory it looked in. To confirm that one tool is missing across the board, group by `software_name`.
 - **`<stem>_stats.csv`** — one row per declared output. Columns: `software_name, dirname, mask, file_ext, required, n_missing, n_found, total_samples, missing_pct`. Sorted by `n_missing`, worst first. The top ten are also printed to the log (`Top N outputs by missing count: ...`), so you can spot config drift without opening the CSV.
 - **`<stem>_review.csv`** — Bonsai-side sample quirks, one row per `(sample, reason)`. Columns: `sample_id, sample_name, lims_id, profile, reason`. `reason` is one of `name_equals_id` (the `sample_name` equals the `sample_id`, usually because the readable name was never set on import), `duplicate_sample_id` (the `sample_id` appears more than once in the queried set), or `duplicate_sample_name` (the `sample_name` appears more than once, a possible duplicate upload). Always written; header-only when there are no quirks.
-- **`<stem>_masked_assemblies.csv`** — backed-up masked FASTA assemblies, limited to samples where `sample_name != sample_id`. One row per `<sample_id>_mask.fasta` found in `<backup-dir>/<species>/mask/`. These are the outputs of JASEN's `mask_polymorph_assembly` step and the exact input chewBBACA originally consumed. Columns: `sample_id, sample_name, lims_id, profile, masked_assembly_path`. Samples flagged `name_equals_id` in `<stem>_review.csv` are excluded. Feed this CSV to `jasentool rerun-chewbbaca` when re-running chewBBACA after a schema or version update.
+- **`<stem>_masked_assemblies.csv`** — backed-up masked FASTA assemblies, limited to samples where `sample_name != sample_id`. One row per `<sample_id>_mask.fasta` found in `<backup-dir>/<species>/mask/`. These are the outputs of JASEN's `mask_polymorph_assembly` step and the exact input chewBBACA originally consumed. Columns: `sample_id, sample_name, lims_id, profile, masked_assembly_path`. Samples flagged `name_equals_id` in `<stem>_review.csv` are excluded. Feed this CSV to `jasentool rerun-software --tool chewbbaca` when re-running chewBBACA after a schema or version update.
+- **`<stem>_assemblies.csv`** — each sample's backed-up unmasked assembly, the one JASEN screens with AMRFinderPlus. One row per sample with a `<sample_id>_medaka.fasta`, `_spades.fasta` or `_skesa.fasta` in `<backup-dir>/<species>/fasta/` (in that order of preference; flye's raw assembly is skipped because medaka polishes it). Columns: `sample_id, sample_name, lims_id, profile, assembly_path`. Unlike the masked list, no samples are excluded. Feed it to `jasentool rerun-software --tool amrfinder`.
 - **`<stem>_group_orphans.csv`** — a Bonsai data-integrity check, one row per `(group, sample_id)` where the `sample_id` is listed in some `sample_group.included_samples` but doesn't exist in the `sample` collection. Columns: `group_id, group_name, sample_id`. This is profile-independent: it queries the full `sample` and `sample_group` collections regardless of `--profile`. Always written; header-only when every group reference resolves.
 - **`<stem>_orphans.csv`** — files in the backup tree that don't match any expected entry. Only written with `--check-orphans`. One row per orphan: `filepath, species, software_dirname, filename`. Common causes: the filename starts with a `sample_id` no longer in Bonsai (the sample was deleted but its files remain); it starts with a known `sample_id` but the suffix doesn't match (`jasentool/config.py` is behind what the pipeline now writes); or it doesn't look like a `sample_id` at all (`README`, `.DS_Store`, a half-written `.tmp`, a manual upload). Files ending in `_versions.yml` are matched by `sample_id` prefix rather than exact name, since they're JASEN's per-process metadata (`<sample>_<process_path>_versions.yml`): if the prefix matches a known `sample_id` the file is skipped, otherwise it's flagged like any other orphan.
 
@@ -230,41 +231,64 @@ jasentool rebuild-manifests \
   -o rebuilt_manifests/
 ```
 
-## rerun-chewbbaca
+## rerun-software
 
-Re-run chewBBACA `AlleleCall` in one batch on the masked assemblies listed in a `<stem>_masked_assemblies.csv` from `check-backup`. Useful after a chewBBACA schema or version update; compare the old and new allele calls with `compare-distances`.
+Re-run one of chewBBACA, AMRFinderPlus, ResFinder or ShigaTyper on backed-up inputs, for example after a tool, schema or database update. Arguments and output names follow JASEN's modules, so the results can sit alongside the backed-up ones. Compare old and new chewBBACA allele calls with `compare-distances`.
 
 ```
-jasentool rerun-chewbbaca --masked-assemblies <CSV> --schema-dir <DIR> --output-dir <DIR>
-                          [--training-file <FILE>] [--cpus <N>] [--chewie-bin <PATH>]
-                          [--singularity-image <IMAGE>] [--singularity-bind <DIRS>]
-                          [--profile-filter <PROFILE>]
+jasentool rerun-software --tool <TOOL> -i <CSV> -o <OUTPUT_DIR>
+                         [--profile <PROFILE>] [--db <DIR>] [--pointfinder-db <DIR>]
+                         [--training-file <FILE>] [--cpus <N>] [--jobs <N>] [--bin <CMD>]
+                         [--singularity-image <IMAGE>] [--singularity-bind <DIRS>]
 ```
+
+| `--tool` | Input CSV (`-i`) | Runs | Needs | Outputs in `-o` |
+|----------|------------------|------|-------|-----------------|
+| `chewbbaca` | `<stem>_masked_assemblies.csv` from `check-backup` | `chewie AlleleCall` once over all samples | `--db` (schema directory) | `output_dir/` (chewBBACA's results), `batch_input.list` |
+| `amrfinder` | `<stem>_assemblies.csv` from `check-backup` | `amrfinder --plus` per sample, with `--organism` from the profile | `--profile` | `<sample_id>_amrfinder.tsv` |
+| `resfinder` | JASEN samplesheet | `python -m resfinder` per sample on the reads, with `--species` from the profile; nanopore samples add `--nanopore --ignore_indels --ignore_stop_codons` | `--profile`, `--db` (ResFinder), `--pointfinder-db` | `<sample_id>_resfinder.json`, `_resfinder_meta.json`, `_pheno_table.txt`, `_point_table.txt` (when PointFinder writes one) |
+| `shigatyper` | JASEN samplesheet | `shigatyper` per sample on the reads: `--R1/--R2`, or `--SE` (plus `--ont` for nanopore) | — | `<sample_id>.tsv`, `<sample_id>-hits.tsv` (when written) |
+
+The JASEN samplesheet is the CSV you pass to JASEN (`id`, `platform`, `read1`, `read2`). It points at the raw reads, whereas JASEN gives ResFinder and ShigaTyper reads after host removal, downsampling and trimming, so results can differ slightly from the pipeline's. `_resfinder_meta.json` records the database versions from each database's `VERSION` file, as JASEN does (`unknown`, with a warning, when the file is missing).
+
+The organism and species names follow JASEN: AMRFinderPlus gets `Escherichia` for *E. coli*, `Genus_species` for other two-word species and no `--organism` for `staphylococcus`, `streptococcus` and `klebsiella`; ResFinder gets the species name, or `Other` for `staphylococcus`, `streptococcus` and `streptococcus_pyogenes`.
+
+Per-sample tools run in `<output-dir>/work/<sample_id>/`, which is removed after a successful run. A failed sample keeps its work directory with the tool's log (`<tool>.log`), the run carries on with the other samples, and the command exits non-zero at the end. Samples whose input files are missing are skipped with a warning. chewBBACA's exit code is passed through.
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--masked-assemblies` | Yes | — | `_masked_assemblies.csv` from `check-backup` |
-| `--schema-dir` | Yes | — | chewBBACA schema directory (passed as `--schema-directory`) |
-| `--output-dir` | Yes | — | Output directory; results land in `<output-dir>/output_dir/`, batch list in `<output-dir>/batch_input.list` |
-| `--training-file` | No | None | Optional chewBBACA training file (`--ptf`) |
-| `--cpus` | No | 4 | chewBBACA `--cpu` value |
-| `--chewie-bin` | No | `chewie` | Path or name of the chewie executable |
-| `--singularity-image` | No | None | If set, run as `singularity exec <image> chewie ...` |
-| `--singularity-bind` | No | None | Comma-separated bind list for `singularity exec --bind` (only with `--singularity-image`) |
-| `--profile-filter` | No | None | Only include rows whose `profile` column matches this value |
+| `--tool` | Yes | — | `amrfinder`, `chewbbaca`, `resfinder` or `shigatyper` |
+| `-i`/`--input` | Yes | — | Input CSV (see the table above). The sample id comes from `sample_id`, or `id` in a samplesheet |
+| `-o`/`--output-dir` | Yes | — | Directory for the results |
+| `--profile` | amrfinder, resfinder | — | JASEN profile, e.g. `escherichia_coli`. Sets the organism/species. When the CSV has a `profile` column, only matching rows are run |
+| `--db` | chewbbaca, resfinder | — | chewbbaca: schema directory; amrfinder: database directory (optional, AMRFinderPlus's default otherwise); resfinder: ResFinder database |
+| `--pointfinder-db` | resfinder | — | PointFinder database |
+| `--training-file` | No | — | chewbbaca: Prodigal training file (`--ptf`) |
+| `--cpus` | No | `4` | Threads per run: chewBBACA `--cpu`, AMRFinderPlus `--threads` |
+| `--jobs` | No | `1` | Samples run at the same time (amrfinder, resfinder, shigatyper) |
+| `--bin` | No | per tool | Command that runs the tool: `chewie`, `amrfinder`, `python -m resfinder` or `shigatyper` |
+| `--singularity-image` | No | — | If set, run the tool as `singularity exec <image> ...`. The input, database and output paths must be visible inside the container |
+| `--singularity-bind` | No | — | Comma-separated bind list for `singularity exec --bind` (only with `--singularity-image`) |
 
-**Example**
+Options that a tool doesn't use (for example `--pointfinder-db` with `--tool amrfinder`) are rejected. The old `rerun-chewbbaca` command still works as an alias for `--tool chewbbaca`.
+
+**Examples**
 
 ```bash
-jasentool rerun-chewbbaca \
-  --masked-assemblies backup_check_masked_assemblies.csv \
-  --schema-dir /path/to/schema \
-  --output-dir chewbbaca_rerun/
+jasentool rerun-software --tool chewbbaca \
+  -i backup_check_masked_assemblies.csv --db /path/to/schema -o chewbbaca_rerun/
+
+jasentool rerun-software --tool amrfinder --profile escherichia_coli \
+  -i backup_check_assemblies.csv -o amrfinder_rerun/ --jobs 8 \
+  --singularity-image ncbi-amrfinderplus.sif --singularity-bind /fs1,/data
+
+jasentool rerun-software --tool shigatyper --profile escherichia_coli \
+  -i samplesheet.csv -o shigatyper_rerun/ --jobs 8
 ```
 
 ## compare-distances
 
-Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Use it to measure how sample-to-sample distances shift between two chewBBACA runs, for example before and after re-running chewBBACA on masked assemblies (see `rerun-chewbbaca`), or after a schema or version change.
+Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Use it to measure how sample-to-sample distances shift between two chewBBACA runs, for example before and after re-running chewBBACA on masked assemblies (see `rerun-software`), or after a schema or version change.
 
 Each input is a chewBBACA table: a header row, then one sample per row with `sample_id` in the first column and the per-locus allele calls after it. The header is required, and the command errors if the first row isn't one. Either style is accepted: newer output leads with `FILE` (`FILE<tab>locus...`), older output with `#Name` (`#Name<tab>ST<tab>locus...`), and the two files may differ here. The header is used to drop the leading `ST` column from older AlleleCall output so only per-locus calls are compared. The delimiter is detected automatically (tab, falling back to comma). Loci are compared by position within each file, so the two files don't have to name their loci the same way, but they should share the same sample names.
 
