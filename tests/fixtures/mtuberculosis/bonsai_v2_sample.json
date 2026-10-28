@@ -1,0 +1,2779 @@
+{
+ "sample_id": "s1",
+ "typing_result": [
+  {
+   "type": "lineage",
+   "software": "tbprofiler",
+   "result": {
+    "lineage_depth": null,
+    "main_lineage": "lineage2",
+    "sublineage": "lineage2.2.1",
+    "lineages": [
+     {
+      "lineage": "lineage2",
+      "family": "East-Asian",
+      "rd": "RD105",
+      "fraction": 0.9989017023613399,
+      "support": [
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 39158,
+        "target_allele_count": 196,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 282892,
+        "target_allele_count": 102,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 497491,
+        "target_allele_count": 218,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 811753,
+        "target_allele_count": 136,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 1102468,
+        "target_allele_count": 167,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 1317655,
+        "target_allele_count": 249,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 1577241,
+        "target_allele_count": 169,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 1980652,
+        "target_allele_count": 172,
+        "other_allele_count": 1,
+        "target_allele_percent": 99.42196531791907
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 4254431,
+        "target_allele_count": 165,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2",
+        "chrom": "NC_000962.3",
+        "pos": 4308395,
+        "target_allele_count": 245,
+        "other_allele_count": 1,
+        "target_allele_percent": 99.59349593495935
+       }
+      ]
+     },
+     {
+      "lineage": "lineage2.2.1",
+      "family": "East-Asian (Beijing)",
+      "rd": "RD105;RD207;RD181",
+      "fraction": 0.998792270531401,
+      "support": [
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 135329,
+        "target_allele_count": 171,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 163705,
+        "target_allele_count": 112,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 215977,
+        "target_allele_count": 168,
+        "other_allele_count": 1,
+        "target_allele_percent": 99.40828402366864
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 533547,
+        "target_allele_count": 119,
+        "other_allele_count": 1,
+        "target_allele_percent": 99.16666666666667
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 797736,
+        "target_allele_count": 236,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 1906078,
+        "target_allele_count": 148,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 2078246,
+        "target_allele_count": 149,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 2825581,
+        "target_allele_count": 144,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 3498198,
+        "target_allele_count": 177,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2.1",
+        "chrom": "NC_000962.3",
+        "pos": 4158493,
+        "target_allele_count": 230,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       }
+      ]
+     },
+     {
+      "lineage": "lineage2.2",
+      "family": "East-Asian (Beijing)",
+      "rd": "RD105;RD207",
+      "fraction": 0.9980324643384161,
+      "support": [
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 195682,
+        "target_allele_count": 201,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 363464,
+        "target_allele_count": 240,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 465300,
+        "target_allele_count": 154,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 892416,
+        "target_allele_count": 160,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 1288698,
+        "target_allele_count": 212,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 1695037,
+        "target_allele_count": 243,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 1849051,
+        "target_allele_count": 249,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 2112832,
+        "target_allele_count": 187,
+        "other_allele_count": 2,
+        "target_allele_percent": 98.94179894179894
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 2202500,
+        "target_allele_count": 192,
+        "other_allele_count": 2,
+        "target_allele_percent": 98.96907216494846
+       },
+       {
+        "id": "lineage2.2",
+        "chrom": "NC_000962.3",
+        "pos": 2505085,
+        "target_allele_count": 191,
+        "other_allele_count": 0,
+        "target_allele_percent": 100.0
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "type": "lineage",
+   "software": "mykrobe",
+   "result": {
+    "lineage_depth": null,
+    "main_lineage": "lineage2",
+    "sublineage": "lineage2.2.4"
+   }
+  }
+ ],
+ "element_type_result": [
+  {
+   "type": "AMR",
+   "software": "tbprofiler",
+   "result": {
+    "phenotypes": {
+     "susceptible": [
+      "ofloxacin",
+      "moxifloxacin",
+      "delamanid",
+      "kanamycin",
+      "amikacin",
+      "ethambutol",
+      "ethionamide",
+      "ciprofloxacin",
+      "levofloxacin",
+      "pyrazinamide",
+      "linezolid",
+      "capreomycin"
+     ],
+     "resistant": [
+      "streptomycin",
+      "isoniazid",
+      "rifampicin"
+     ]
+    },
+    "genes": [],
+    "variants": [
+     {
+      "id": 27,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "pyrazinamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "PPE35",
+      "accession": "CCP44685",
+      "start": 2167926,
+      "end": 2167927,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 142.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2687T>C",
+      "hgvs_aa_change": "p.Leu896Ser"
+     },
+     {
+      "id": 47,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "PPE35",
+      "accession": "CCP44685",
+      "start": 2170086,
+      "end": 2170087,
+      "ref_nt": "G",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 44.0,
+      "frequency": 0.11363636363636363,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.527C>G",
+      "hgvs_aa_change": "p.Ala176Gly"
+     },
+     {
+      "id": 11,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethionamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv0565c",
+      "accession": "CCP43303",
+      "start": 657081,
+      "end": 657082,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 184.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.390G>A",
+      "hgvs_aa_change": "p.Val130Val"
+     },
+     {
+      "id": 12,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethionamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv0565c",
+      "accession": "CCP43303",
+      "start": 657142,
+      "end": 657143,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 198.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.329G>A",
+      "hgvs_aa_change": "p.Arg110His"
+     },
+     {
+      "id": 19,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "moxifloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "levofloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv1129c",
+      "accession": "CCP43883",
+      "start": 1254562,
+      "end": 1254563,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 218.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-28T>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 20,
+      "variant_type": "SNV",
+      "variant_subtype": "INS",
+      "phenotypes": [
+       {
+        "name": "pyrazinamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv1258c",
+      "accession": "CCP44014",
+      "start": 1406760,
+      "end": 1406762,
+      "ref_nt": "T",
+      "alt_nt": "TG",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 193.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "frameshift_variant",
+      "hgvs_nt_change": "c.580_581insC",
+      "hgvs_aa_change": "p.Glu194fs"
+     },
+     {
+      "id": 28,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "clofazimine",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv1979c",
+      "accession": "CCP44748",
+      "start": 2223293,
+      "end": 2223294,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 163.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-129A>G",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 48,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784181,
+      "end": 2784182,
+      "ref_nt": "G",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 38.0,
+      "frequency": 0.15789473684210525,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-139C>A",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 49,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784195,
+      "end": 2784196,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 23.0,
+      "frequency": 0.13043478260869565,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-153A>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 50,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784204,
+      "end": 2784205,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 22.0,
+      "frequency": 0.13636363636363635,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-162A>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 51,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784211,
+      "end": 2784213,
+      "ref_nt": "TC",
+      "alt_nt": "CC",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 21.0,
+      "frequency": 0.14285714285714285,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-169A>G",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 52,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784211,
+      "end": 2784213,
+      "ref_nt": "TC",
+      "alt_nt": "CG",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 21.0,
+      "frequency": 0.14285714285714285,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-170_-169delGAinsCG",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 53,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784211,
+      "end": 2784213,
+      "ref_nt": "TC",
+      "alt_nt": "GC",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 21.0,
+      "frequency": 0.14285714285714285,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-169A>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 54,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784211,
+      "end": 2784213,
+      "ref_nt": "TC",
+      "alt_nt": "GG",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 21.0,
+      "frequency": 0.14285714285714285,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-170_-169delGAinsCC",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 55,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784211,
+      "end": 2784213,
+      "ref_nt": "TC",
+      "alt_nt": "TG",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 21.0,
+      "frequency": 0.14285714285714285,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-170G>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 56,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "Rv2477c",
+      "accession": "CCP45271",
+      "start": 2784617,
+      "end": 2784618,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 4.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-575T>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 31,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "pyrazinamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "Rv3236c",
+      "accession": "CCP46055",
+      "start": 3612813,
+      "end": 3612814,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 118.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.304A>G",
+      "hgvs_aa_change": "p.Thr102Ala"
+     },
+     {
+      "id": 37,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethambutol",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "aftB",
+      "accession": "CCP46634",
+      "start": 4267647,
+      "end": 4267648,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 125.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.1190A>G",
+      "hgvs_aa_change": "p.Asp397Gly"
+     },
+     {
+      "id": 30,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "ald",
+      "accession": "CCP45579",
+      "start": 3086788,
+      "end": 3086789,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 168.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-32T>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 10,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "amikacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "capreomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "kanamycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "ccsA",
+      "accession": "CCP43266",
+      "start": 620625,
+      "end": 620626,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 186.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.735A>G",
+      "hgvs_aa_change": "p.Ile245Met"
+     },
+     {
+      "id": 62,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "clpC1",
+      "accession": "CCP46419",
+      "start": 4038955,
+      "end": 4038956,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 131.0,
+      "frequency": 0.1450381679389313,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "stop_gained",
+      "hgvs_nt_change": "c.1750G>T",
+      "hgvs_aa_change": "p.Glu584*"
+     },
+     {
+      "id": 63,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "clpC1",
+      "accession": "CCP46419",
+      "start": 4040926,
+      "end": 4040927,
+      "ref_nt": "G",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 44.0,
+      "frequency": 0.11363636363636363,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-222C>G",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 64,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "clpC1",
+      "accession": "CCP46419",
+      "start": 4040950,
+      "end": 4040951,
+      "ref_nt": "A",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 25.0,
+      "frequency": 0.16,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-246T>A",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 25,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "cycA",
+      "accession": "CCP44469",
+      "start": 1931179,
+      "end": 1931180,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 108.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.278G>T",
+      "hgvs_aa_change": "p.Arg93Leu"
+     },
+     {
+      "id": 29,
+      "variant_type": "INDEL",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "amikacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         "Abrogates effect of genetically linked AwR and AwRI eis mutations"
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "kanamycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         "Abrogates effect of genetically linked AwR and AwRI eis mutations"
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "eis",
+      "accession": "CCP45207",
+      "start": 2714526,
+      "end": 2714527,
+      "ref_nt": "GGT",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 196.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "frameshift_variant",
+      "hgvs_nt_change": "c.805_806delAC",
+      "hgvs_aa_change": "p.Thr269fs"
+     },
+     {
+      "id": 35,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethambutol",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "embA",
+      "accession": "CCP46623",
+      "start": 4243460,
+      "end": 4243461,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 177.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.228C>T",
+      "hgvs_aa_change": "p.Cys76Cys"
+     },
+     {
+      "id": 65,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "embB",
+      "accession": "CCP46624",
+      "start": 4247015,
+      "end": 4247016,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 94.0,
+      "frequency": 0.1702127659574468,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.502T>G",
+      "hgvs_aa_change": "p.Ser168Ala"
+     },
+     {
+      "id": 36,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "embB",
+      "accession": "CCP46624",
+      "start": 4247028,
+      "end": 4247029,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 86.0,
+      "frequency": 0.16279069767441862,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.515T>G",
+      "hgvs_aa_change": "p.Leu172Arg"
+     },
+     {
+      "id": 34,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethambutol",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "embC",
+      "accession": "CCP46622",
+      "start": 4242643,
+      "end": 4242644,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 158.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.2781C>T",
+      "hgvs_aa_change": "p.Arg927Arg"
+     },
+     {
+      "id": 57,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "fbiD",
+      "accession": "CCP45788",
+      "start": 3339726,
+      "end": 3339727,
+      "ref_nt": "A",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 56.0,
+      "frequency": 0.16071428571428573,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.609A>T",
+      "hgvs_aa_change": "p.Val203Val"
+     },
+     {
+      "id": 58,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "fbiD",
+      "accession": "CCP45788",
+      "start": 3339744,
+      "end": 3339745,
+      "ref_nt": "A",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 31.0,
+      "frequency": 0.12903225806451613,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.627A>T",
+      "hgvs_aa_change": "p.Arg209Arg"
+     },
+     {
+      "id": 59,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "fbiD",
+      "accession": "CCP45788",
+      "start": 3339750,
+      "end": 3339751,
+      "ref_nt": "C",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 38.0,
+      "frequency": 0.15789473684210525,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.633C>G",
+      "hgvs_aa_change": "p.Val211Val"
+     },
+     {
+      "id": 8,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "clofazimine",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "delamanid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "fgd1",
+      "accession": "CCP43138",
+      "start": 491742,
+      "end": 491743,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 149.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.960T>C",
+      "hgvs_aa_change": "p.Phe320Phe"
+     },
+     {
+      "id": 40,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gid",
+      "accession": "CCP46748",
+      "start": 4407588,
+      "end": 4407589,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 233.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.615A>G",
+      "hgvs_aa_change": "p.Ala205Ala"
+     },
+     {
+      "id": 4,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gid",
+      "accession": "CCP46748",
+      "start": 4407686,
+      "end": 4407687,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 221.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "stop_gained",
+      "hgvs_nt_change": "c.517G>T",
+      "hgvs_aa_change": "p.Glu173*"
+     },
+     {
+      "id": 41,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gid",
+      "accession": "CCP46748",
+      "start": 4407927,
+      "end": 4407928,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 247.0,
+      "frequency": 0.9959514170040485,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.276A>C",
+      "hgvs_aa_change": "p.Glu92Asp"
+     },
+     {
+      "id": 42,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 7296,
+      "end": 7297,
+      "ref_nt": "G",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 160.0,
+      "frequency": 0.1125,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-6G>T",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 5,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "moxifloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "levofloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 7362,
+      "end": 7363,
+      "ref_nt": "G",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 181.0,
+      "frequency": 0.994475138121547,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.61G>C",
+      "hgvs_aa_change": "p.Glu21Gln"
+     },
+     {
+      "id": 6,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "moxifloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "levofloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 7585,
+      "end": 7586,
+      "ref_nt": "G",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 212.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.284G>C",
+      "hgvs_aa_change": "p.Ser95Thr"
+     },
+     {
+      "id": 7,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "moxifloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "levofloxacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 9304,
+      "end": 9305,
+      "ref_nt": "G",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 221.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2003G>A",
+      "hgvs_aa_change": "p.Gly668Asp"
+     },
+     {
+      "id": 43,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 9653,
+      "end": 9654,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 160.0,
+      "frequency": 0.1625,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.2352C>A",
+      "hgvs_aa_change": "p.Ile784Ile"
+     },
+     {
+      "id": 44,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "gyrA",
+      "accession": "CCP42728",
+      "start": 9675,
+      "end": 9676,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 139.0,
+      "frequency": 0.11510791366906475,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2374C>A",
+      "hgvs_aa_change": "p.Arg792Ser"
+     },
+     {
+      "id": 26,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "katG",
+      "accession": "CCP44675",
+      "start": 2154724,
+      "end": 2154725,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 212.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.1388G>T",
+      "hgvs_aa_change": "p.Arg463Leu"
+     },
+     {
+      "id": 3,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         "High-level resistance"
+        ],
+        "note": "Assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "katG",
+      "accession": "CCP44675",
+      "start": 2155168,
+      "end": 2155169,
+      "ref_nt": "C",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 152.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.944G>C",
+      "hgvs_aa_change": "p.Ser315Thr"
+     },
+     {
+      "id": 14,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "clofazimine",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mmpL5",
+      "accession": "CCP43419",
+      "start": 775639,
+      "end": 775640,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 207.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2842A>G",
+      "hgvs_aa_change": "p.Ile948Val"
+     },
+     {
+      "id": 15,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "clofazimine",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mmpL5",
+      "accession": "CCP43419",
+      "start": 776100,
+      "end": 776101,
+      "ref_nt": "G",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 198.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2381C>T",
+      "hgvs_aa_change": "p.Thr794Ile"
+     },
+     {
+      "id": 16,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "clofazimine",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mmpL5",
+      "accession": "CCP43419",
+      "start": 776182,
+      "end": 776183,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 157.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.2299G>A",
+      "hgvs_aa_change": "p.Asp767Asn"
+     },
+     {
+      "id": 17,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "mmpS5",
+      "accession": "CCP43420",
+      "start": 779615,
+      "end": 779616,
+      "ref_nt": "G",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 195.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-710C>G",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 9,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "ethionamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mshA",
+      "accession": "CCP43220",
+      "start": 575907,
+      "end": 575908,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 252.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.560C>T",
+      "hgvs_aa_change": "p.Ala187Val"
+     },
+     {
+      "id": 45,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "mshA",
+      "accession": "CCP43220",
+      "start": 576626,
+      "end": 576627,
+      "ref_nt": "A",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 79.0,
+      "frequency": 0.11392405063291139,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.1279A>C",
+      "hgvs_aa_change": "p.Thr427Pro"
+     },
+     {
+      "id": 46,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "mshA",
+      "accession": "CCP43220",
+      "start": 576631,
+      "end": 576632,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 83.0,
+      "frequency": 0.13253012048192772,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.1284C>A",
+      "hgvs_aa_change": "p.Phe428Leu"
+     },
+     {
+      "id": 32,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mtrB",
+      "accession": "CCP46064",
+      "start": 3625065,
+      "end": 3625066,
+      "ref_nt": "T",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 128.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.1549A>C",
+      "hgvs_aa_change": "p.Met517Leu"
+     },
+     {
+      "id": 33,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "bedaquiline",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Uncertain significance",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "mtrB",
+      "accession": "CCP46064",
+      "start": 3626562,
+      "end": 3626563,
+      "ref_nt": "G",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 232.0,
+      "frequency": 0.9956896551724138,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.52C>T",
+      "hgvs_aa_change": "p.Pro18Ser"
+     },
+     {
+      "id": 1,
+      "variant_type": "INDEL",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         "Mutation from literature"
+        ],
+        "note": "",
+        "source": "tbdb"
+       }
+      ],
+      "reference_sequence": "rpoB",
+      "accession": "CCP43410",
+      "start": 761104,
+      "end": 761105,
+      "ref_nt": "TCATGGA",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 151.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "conservative_inframe_deletion",
+      "hgvs_nt_change": "c.1300_1305delATGGAC",
+      "hgvs_aa_change": "p.Met434_Asp435del"
+     },
+     {
+      "id": 13,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "rpoB",
+      "accession": "CCP43410",
+      "start": 763031,
+      "end": 763032,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 215.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.3225T>C",
+      "hgvs_aa_change": "p.Ala1075Ala"
+     },
+     {
+      "id": 22,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "pyrazinamide",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R - Interim",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "rpsA",
+      "accession": "CCP44394",
+      "start": 1834177,
+      "end": 1834178,
+      "ref_nt": "A",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 246.0,
+      "frequency": 0.991869918699187,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.636A>C",
+      "hgvs_aa_change": "p.Arg212Arg"
+     },
+     {
+      "id": 18,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "rpsL",
+      "accession": "CCP43425",
+      "start": 781395,
+      "end": 781396,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 224.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-165T>C",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 2,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "rpsL",
+      "accession": "CCP43425",
+      "start": 781822,
+      "end": 781823,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 236.0,
+      "frequency": 0.9957627118644068,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.263A>G",
+      "hgvs_aa_change": "p.Lys88Arg"
+     },
+     {
+      "id": 21,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "rrs",
+      "accession": "EBG00000313325-1",
+      "start": 1471659,
+      "end": 1471660,
+      "ref_nt": "C",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 142.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "n.-187C>T",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 24,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "capreomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "tlyA",
+      "accession": "CCP44459",
+      "start": 1917972,
+      "end": 1917973,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 166.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.33A>G",
+      "hgvs_aa_change": "p.Leu11Leu"
+     },
+     {
+      "id": 23,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "linezolid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "tsnR",
+      "accession": "CCP44409",
+      "start": 1854300,
+      "end": 1854301,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 128.0,
+      "frequency": 0.9921875,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.695T>C",
+      "hgvs_aa_change": "p.Leu232Pro"
+     },
+     {
+      "id": 66,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "whiB6",
+      "accession": "CCP46691",
+      "start": 4338219,
+      "end": 4338220,
+      "ref_nt": "G",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 137.0,
+      "frequency": 0.11678832116788321,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.303C>A",
+      "hgvs_aa_change": "p.Arg101Arg"
+     },
+     {
+      "id": 38,
+      "variant_type": "SNV",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "amikacin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "capreomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       },
+       {
+        "name": "kanamycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "tbprofiler",
+        "reference": [
+         ""
+        ],
+        "note": "Not assoc w R",
+        "source": "WHO catalogue v2"
+       }
+      ],
+      "reference_sequence": "whiB6",
+      "accession": "CCP46691",
+      "start": 4338595,
+      "end": 4338596,
+      "ref_nt": "GC",
+      "alt_nt": "G",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 224.0,
+      "frequency": 0.9955357142857143,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-75delG",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 39,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "whiB6",
+      "accession": "CCP46691",
+      "start": 4338732,
+      "end": 4338733,
+      "ref_nt": "G",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 192.0,
+      "frequency": 1.0,
+      "confidence": null,
+      "method": null,
+      "passed_qc": true,
+      "variant_effect": "upstream_gene_variant",
+      "hgvs_nt_change": "c.-211C>T",
+      "hgvs_aa_change": ""
+     },
+     {
+      "id": 60,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "whiB7",
+      "accession": "CCP46011",
+      "start": 3568428,
+      "end": 3568429,
+      "ref_nt": "T",
+      "alt_nt": "C",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 87.0,
+      "frequency": 0.1839080459770115,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "synonymous_variant",
+      "hgvs_nt_change": "c.252A>G",
+      "hgvs_aa_change": "p.Gly84Gly"
+     },
+     {
+      "id": 61,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [],
+      "reference_sequence": "whiB7",
+      "accession": "CCP46011",
+      "start": 3568473,
+      "end": 3568474,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 103.0,
+      "frequency": 0.14563106796116504,
+      "confidence": null,
+      "method": null,
+      "passed_qc": false,
+      "variant_effect": "missense_variant",
+      "hgvs_nt_change": "c.207G>T",
+      "hgvs_aa_change": "p.Glu69Asp"
+     }
+    ]
+   }
+  },
+  {
+   "type": "AMR",
+   "software": "mykrobe",
+   "result": {
+    "phenotypes": {
+     "susceptible": [
+      "Ethambutol",
+      "Capreomycin",
+      "Kanamycin",
+      "Levofloxacin",
+      "Pyrazinamide",
+      "Ofloxacin",
+      "Ciprofloxacin",
+      "Ethionamide",
+      "Moxifloxacin",
+      "Linezolid",
+      "Delamanid",
+      "Amikacin"
+     ],
+     "resistant": [
+      "Isoniazid",
+      "Streptomycin",
+      "Rifampicin"
+     ]
+    },
+    "genes": [],
+    "variants": [
+     {
+      "id": 2,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "Streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "gid",
+      "accession": null,
+      "start": 4407684,
+      "end": 4407685,
+      "ref_nt": "C",
+      "alt_nt": "A",
+      "ref_aa": "E",
+      "alt_aa": "*",
+      "depth": 3269.0,
+      "frequency": 0.9486081370449678,
+      "confidence": 18476.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     },
+     {
+      "id": 1,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "Isoniazid",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "katG",
+      "accession": null,
+      "start": 2155167,
+      "end": 2155168,
+      "ref_nt": "C",
+      "alt_nt": "G",
+      "ref_aa": "S",
+      "alt_aa": "T",
+      "depth": 2624.0,
+      "frequency": 1.0,
+      "confidence": 17362.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     },
+     {
+      "id": 3,
+      "variant_type": "INDEL",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "Rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "rpoB",
+      "accession": null,
+      "start": 761094,
+      "end": 761117,
+      "ref_nt": "CTGAGCCAATTCATGGACCAGAACAACCC",
+      "alt_nt": "CTGAGCCAATTCCAGAACAACCC",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 2506.0,
+      "frequency": 0.9996009577015164,
+      "confidence": 16677.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     },
+     {
+      "id": 2,
+      "variant_type": "INDEL",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "Rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "rpoB",
+      "accession": null,
+      "start": 761103,
+      "end": 761105,
+      "ref_nt": "TTCATGGA",
+      "alt_nt": "TT",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 2281.0,
+      "frequency": 0.8671635247698378,
+      "confidence": 13279.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     },
+     {
+      "id": 1,
+      "variant_type": "INDEL",
+      "variant_subtype": "DEL",
+      "phenotypes": [
+       {
+        "name": "Rifampicin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "rpoB",
+      "accession": null,
+      "start": 761104,
+      "end": 761105,
+      "ref_nt": "TCATGGA",
+      "alt_nt": "T",
+      "ref_aa": null,
+      "alt_aa": null,
+      "depth": 2260.0,
+      "frequency": 0.9327433628318584,
+      "confidence": 14397.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     },
+     {
+      "id": 1,
+      "variant_type": "SNV",
+      "variant_subtype": "SUB",
+      "phenotypes": [
+       {
+        "name": "Streptomycin",
+        "group": null,
+        "type": "AMR",
+        "resistance_level": null,
+        "annotation_type": "tool",
+        "annotation_author": "mykrobe",
+        "reference": [],
+        "note": null,
+        "source": null
+       }
+      ],
+      "reference_sequence": "rpsL",
+      "accession": null,
+      "start": 781821,
+      "end": 781822,
+      "ref_nt": "A",
+      "alt_nt": "G",
+      "ref_aa": "K",
+      "alt_aa": "R",
+      "depth": 3776.0,
+      "frequency": 0.9954978813559322,
+      "confidence": 16769.0,
+      "method": "kmer_count",
+      "passed_qc": true
+     }
+    ]
+   }
+  }
+ ],
+ "pipeline": {
+  "softwares": [
+   {
+    "name": "converged_who_fohm_tbdb",
+    "version": "converged_who_fohm_tbdb_2024-05-08",
+    "type": "database"
+   },
+   {
+    "name": "mykrobe-predictor",
+    "version": "v0.12.2",
+    "type": "database"
+   }
+  ]
+ }
+}

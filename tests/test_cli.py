@@ -124,6 +124,7 @@ def test_transform_cgmlst_csv_bed_columns(cgmlst_csv, tmp_path):
     "find", "validate-pipelines", "identify-missing",
     "reformat-csv", "converge-catalogues", "post-align-qc",
     "concatenate-files", "create-yaml", "rebuild-manifests", "rerun-software",
+    "compare-results",
 ])
 def test_help_exits_zero(subcommand):
     result = runner.invoke(cli, [subcommand, "--help"])
@@ -143,6 +144,7 @@ def test_help_exits_zero(subcommand):
     ("create-yaml", []),
     ("rebuild-manifests", []),
     ("rerun-software", []),
+    ("compare-results", []),
 ])
 def test_missing_required_args(subcommand, args):
     result = runner.invoke(cli, [subcommand] + args)
