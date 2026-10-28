@@ -50,7 +50,7 @@ jasentool count-reads \
 
 ## create-yaml
 
-Create a YAML input file for Bonsai upload from sample metadata and analysis result file paths. Builds IGV annotation entries automatically from BAM/BAI, VCF, and BED inputs.
+Create a YAML input file for Bonsai upload from sample metadata and analysis result file paths. The file is in the bonsai-prp 2.0.0 manifest format, which bonsai-prp uploads to Bonsai v3; create-yaml doesn't connect to Bonsai. Builds IGV annotation entries automatically from BAM/BAI, VCF, and BED inputs.
 
 ```
 jasentool create-yaml --sample-id <ID> --sample-name <NAME> --groups <GROUP> [--groups ...] -o <FILE>

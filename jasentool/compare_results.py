@@ -2,9 +2,10 @@
 
 For every sample with a tb-profiler JSON or mykrobe CSV under
 `<input-dir>/mtuberculosis/`, the run's results are compared with the sample's Bonsai
-v2 (2.1.x) document: lineage, number of variants, which variants are called and, for
-tb-profiler, the tbdb database. The run files are parsed the way bonsai-prp 1.6.1 parsed
-them for Bonsai v2, so both sides describe each variant the same way.
+v2 (2.1.0, 2.1.0-patch1 or 2.1.1) document: lineage, number of variants, which variants
+are called and, for tb-profiler, the tbdb database. The run files are parsed the way
+bonsai-prp parsed them for Bonsai v2 (1.3.3 for 2.1.0, 1.6.1 for 2.1.1; both parse
+tb-profiler and mykrobe the same way), so both sides describe each variant the same way.
 
 tb-profiler variants are matched on genome position, ref and alt; a gene name that
 differs for the same variant (e.g. a fabG1/inhA rename) is reported as `variant_gene`.

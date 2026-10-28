@@ -2,6 +2,19 @@
 
 Subcommands for querying and analysing results after JASEN runs.
 
+## Bonsai compatibility
+
+jasentool only reads from Bonsai's MongoDB: no subcommand inserts, updates or deletes anything, in Bonsai or in cgviz. To be certain of that on your side, connect with a MongoDB user that has only the `read` role.
+
+| Subcommand | Bonsai version | Reads |
+|------------|----------------|-------|
+| `check-backup` | v2 (2.1.0, 2.1.0-patch1, 2.1.1) | `sample` (`sample_id`, `sample_name`, `lims_id`, `pipeline.analysis_profile`) and `sample_group` (`name`, `included_samples`) |
+| `rebuild-manifests` | v2, for the sample lookup (none with `--no-bonsai`) | the same as `check-backup` |
+| `identify-missing --compare-bonsai` | v2 | `sample` (`sample_id`, `sample_name`, `lims_id`, `pipeline.analysis_profile`, `sequencing.run_id`) |
+| `compare-results` | v2 | `sample` (`sample_id`, `typing_result`, `element_type_result`, `pipeline.softwares`) |
+
+Bonsai v3 isn't supported by any of them: its samples have no `pipeline.analysis_profile` and its groups no `included_samples`, so the lookups find nothing. The manifests `create-yaml` and `rebuild-manifests` write are in the bonsai-prp 2.0.0 format, which bonsai-prp uploads to Bonsai v3; jasentool itself never uploads them.
+
 ## find
 
 ```
@@ -64,7 +77,7 @@ jasentool identify-missing --output-file <FILE>
 | `--bonsai-address`/`--bonsai-uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
 | `--bonsai-profile` | No | `staphylococcus_aureus` | Bonsai analysis profile compared against cgviz |
 
-**Comparing cgviz with Bonsai.** With `--compare-bonsai`, identify-missing checks that Bonsai holds exactly the QC-approved cgviz samples, from the right sequencing run. A cgviz sample is approved when `metadata.QC` is `OK`. cgviz `id` is matched to Bonsai `sample_name`, and the basename of cgviz `run` (the sequencing run folder) to Bonsai's run: `sequencing.run_id` in Bonsai v2, `sequencing.sequencing_run_id` in v3. Only Bonsai samples whose `pipeline.analysis_profile` contains `--bonsai-profile` are compared. Two CSVs are written next to `--output-file`:
+**Comparing cgviz with Bonsai.** With `--compare-bonsai`, identify-missing checks that Bonsai holds exactly the QC-approved cgviz samples, from the right sequencing run. A cgviz sample is approved when `metadata.QC` is `OK`. cgviz `id` is matched to Bonsai `sample_name`, and the basename of cgviz `run` (the sequencing run folder) to Bonsai's `sequencing.run_id`. This needs a Bonsai v2 database (see [Bonsai compatibility](#bonsai-compatibility)). Only Bonsai samples whose `pipeline.analysis_profile` contains `--bonsai-profile` are compared. Two CSVs are written next to `--output-file`:
 
 - **`<stem>_missing_from_bonsai.csv`** — one row per approved cgviz sample and run with no Bonsai sample of that name and run. Columns: `sample_name, cgviz_run, bonsai_runs, reason`. `reason` is `missing` (no Bonsai sample of that name) or `run_mismatch` (Bonsai only has it from other runs, listed in `bonsai_runs`).
 - **`<stem>_bonsai_unapproved.csv`** — one row per Bonsai sample that doesn't match an approved cgviz sample and run. Columns: `sample_id, sample_name, lims_id, bonsai_run, cgviz_approved_runs, cgviz_qc, reason`. `reason` is `wrong_run` (approved in cgviz, but from another run), `not_approved` (in cgviz but not QC-approved; see `cgviz_qc`) or `not_in_cgviz`.
@@ -91,7 +104,7 @@ jasentool identify-missing \
 
 ## check-backup
 
-Checks samples in the **Bonsai** MongoDB against the backup storage tree to find ones whose expected JASEN outputs aren't backed up yet. Bonsai is the authoritative list of curated samples, and each document's `sample_id` is the filename prefix used in the backup tree.
+Checks samples in a **Bonsai v2** MongoDB (read-only; see [Bonsai compatibility](#bonsai-compatibility)) against the backup storage tree to find ones whose expected JASEN outputs aren't backed up yet. Bonsai is the authoritative list of curated samples, and each document's `sample_id` is the filename prefix used in the backup tree.
 
 The backup tree is laid out as `<backup-dir>/<species_shortname>/<software_dirname>/<file>`. Species shortnames like `saureus` and `ecoli` come from `jasentool/config.py`, which lists the expected outputs per profile as `(software_name, dirname, mask, file_ext, required)` tuples plus a `species_full` long-form name. To change which outputs are checked, edit that file and reinstall the package. `file_ext` can also be a list such as `[".tsv", ".out"]`; a sample's output then counts as backed up if any of the extensions is present, which covers tools whose output extension has changed over time.
 
@@ -145,7 +158,7 @@ jasentool check-backup \
 
 ## rebuild-manifests
 
-Rebuilds `create-yaml` manifests (`<sample_id>_bonsai.yaml`) from the backup storage tree. This is handy after a `create-yaml` format change, when the backed-up manifests are still in their old format.
+Rebuilds `create-yaml` manifests (`<sample_id>_bonsai.yaml`) from the backup storage tree. This is handy after a `create-yaml` format change, when the backed-up manifests are still in their old format. Samples are looked up in a Bonsai v2 database (read-only), unless `--no-bonsai` is given; the manifests are in the bonsai-prp 2.0.0 format, for uploading to Bonsai v3 with bonsai-prp. See [Bonsai compatibility](#bonsai-compatibility).
 
 There are two ways to choose which samples to rebuild:
 
@@ -288,7 +301,7 @@ jasentool rerun-software --tool shigatyper --profile escherichia_coli \
 
 ## compare-results
 
-Compares a JASEN *M. tuberculosis* run with what a Bonsai v2 (2.1.0 or 2.1.1) database holds for the same samples, for example to see how a new JASEN or tb-profiler release changes lineage and variant calls. For every sample with a tb-profiler JSON (`tbprofiler_mergedb/<sample_id>_tbprofiler.json`) or mykrobe CSV (`mykrobe/<sample_id>_mykrobe.csv`) under `<input-dir>/mtuberculosis/`, it compares, per tool:
+Compares a JASEN *M. tuberculosis* run with what a Bonsai v2 (2.1.0, 2.1.0-patch1 or 2.1.1) database holds for the same samples, reading it only, for example to see how a new JASEN or tb-profiler release changes lineage and variant calls. For every sample with a tb-profiler JSON (`tbprofiler_mergedb/<sample_id>_tbprofiler.json`) or mykrobe CSV (`mykrobe/<sample_id>_mykrobe.csv`) under `<input-dir>/mtuberculosis/`, it compares, per tool:
 
 | Check | tb-profiler | mykrobe |
 |-------|-------------|---------|
@@ -297,7 +310,7 @@ Compares a JASEN *M. tuberculosis* run with what a Bonsai v2 (2.1.0 or 2.1.1) da
 | Same variants | matched on genome position, ref and alt; a different gene name for the same variant (such as a *fabG1*/*inhA* rename) is reported as `variant_gene` | matched on gene, position, ref and alt |
 | Database | tbdb name and version (`pipeline.db_version`) | — |
 
-The run files are parsed the way bonsai-prp 1.6.1 parsed them when they were uploaded to Bonsai v2, so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none, and mykrobe codon changes are reduced to the changed bases (`GCT2155167GGT` becomes `C>G` at 2155167). Samples are matched on `sample_id`. A Bonsai v3 document is rejected.
+The run files are parsed the way bonsai-prp parsed them when they were uploaded to Bonsai v2 (1.3.3 for 2.1.0, 1.6.1 for 2.1.1; both parse tb-profiler and mykrobe the same way), so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none, and mykrobe codon changes are reduced to the changed bases (`GCT2155167GGT` becomes `C>G` at 2155167). Samples are matched on `sample_id`. A Bonsai v3 document is rejected.
 
 ```
 jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
