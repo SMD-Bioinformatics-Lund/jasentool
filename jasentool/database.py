@@ -1,4 +1,4 @@
-"""Module for handling mongodb requests"""
+"""Read-only MongoDB access for jasentool; nothing here writes to a database."""
 import pymongo
 
 class Database:
@@ -14,14 +14,6 @@ class Database:
         client = pymongo.MongoClient(cls.uri)
         cls.db = client[db_name]
         cls.db_name = db_name
-
-    @staticmethod
-    def insert(collection, data):
-        """Insert data into mongodb"""
-        if isinstance(data, list):
-            Database.db[collection].insert_many(data)
-        else:
-            Database.db[collection].insert_one(data)
 
     @staticmethod
     def find(collection, query, fields):
