@@ -12,6 +12,8 @@ extensions = [
     'myst_parser',
 ]
 
+myst_heading_anchors = 2
+
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 html_css_files = ['custom.css']

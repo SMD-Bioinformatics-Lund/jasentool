@@ -1,8 +1,8 @@
 """Cross-check cgviz QC-approved samples against a Bonsai database.
 
-cgviz `id` corresponds to Bonsai `sample_name`, and the basename of cgviz `run`
-(the sequencing run folder) to Bonsai's sequencing run: `sequencing.run_id` in
-Bonsai v2, `sequencing.sequencing_run_id` in v3.
+Reads a Bonsai v2 (2.1.x) database. cgviz `id` corresponds to Bonsai `sample_name`,
+and the basename of cgviz `run` (the sequencing run folder) to Bonsai's
+`sequencing.run_id`.
 """
 
 import os

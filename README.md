@@ -25,6 +25,8 @@ conda activate jasentool
 
 `compare-distances` uses [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists) (from bioconda) to build its distance matrices, and `environment.yml` includes it. It isn't a pip dependency, so `pip install jasentool` won't bring it in; get it through conda or build it yourself. Without it, `compare-distances` falls back to a slower pure-Python calculation.
 
+Subcommands that read Bonsai (`check-backup`, `rebuild-manifests`, `identify-missing --compare-bonsai`, `compare-results`) support Bonsai v2 (2.1.x) and only ever read from it; `create-yaml` and `rebuild-manifests` write manifests for uploading to Bonsai v3 with bonsai-prp 2.0.0. See [Bonsai compatibility](docs/source/usage/post-run-analysis.md#bonsai-compatibility).
+
 ## Usage
 
 ```
