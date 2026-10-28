@@ -286,6 +286,50 @@ jasentool rerun-software --tool shigatyper --profile escherichia_coli \
   -i samplesheet.csv -o shigatyper_rerun/ --jobs 8
 ```
 
+## compare-results
+
+Compares a JASEN *M. tuberculosis* run with what a Bonsai v2 (2.1.0 or 2.1.1) database holds for the same samples, for example to see how a new JASEN or tb-profiler release changes lineage and variant calls. For every sample with a tb-profiler JSON (`tbprofiler_mergedb/<sample_id>_tbprofiler.json`) or mykrobe CSV (`mykrobe/<sample_id>_mykrobe.csv`) under `<input-dir>/mtuberculosis/`, it compares, per tool:
+
+| Check | tb-profiler | mykrobe |
+|-------|-------------|---------|
+| Lineage | `main_lineage` and `sub_lineage` | the `lineage` column, and its part before the first `.` as the main lineage |
+| Number of variants | `dr_variants` + `other_variants` + `qc_fail_variants` | the variants behind each resistant (`R`) call |
+| Same variants | matched on genome position, ref and alt; a different gene name for the same variant (such as a *fabG1*/*inhA* rename) is reported as `variant_gene` | matched on gene, position, ref and alt |
+| Database | tbdb name and version (`pipeline.db_version`) | — |
+
+The run files are parsed the way bonsai-prp 1.6.1 parsed them when they were uploaded to Bonsai v2, so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none, and mykrobe codon changes are reduced to the changed bases (`GCT2155167GGT` becomes `C>G` at 2155167). Samples are matched on `sample_id`. A Bonsai v3 document is rejected.
+
+```
+jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
+                          [--db-name <DB>] [--db-collection <COLLECTION>] [--address <URI>]
+                          [--sample-id <ID> ...]
+```
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--input-dir` | Yes | — | Root of a JASEN results or backup tree (the directory holding `mtuberculosis/`) |
+| `-o`/`--output-file` | Yes | — | Summary CSV; the differences go to `<stem>_differences.csv` |
+| `--db-name` | No | `bonsai` | Bonsai v2 MongoDB database |
+| `--db-collection` | No | `sample` | Bonsai v2 sample collection |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB address |
+| `--sample-id` | No | — | Only compare this sample; repeat for several |
+
+**Outputs**
+
+- **`<output-file>`** — one row per sample and tool: `sample_id, software, status, bonsai_lineage, run_lineage, bonsai_sublineage, run_sublineage, bonsai_n_variants, run_n_variants, variants_only_in_bonsai, variants_only_in_run, bonsai_database, run_database`. `status` is `identical`, `differs`, `missing_in_bonsai` (the sample, or that tool's results, aren't in Bonsai) or `missing_in_run` (Bonsai has the tool's results but the run has no output file). The database columns are filled for tb-profiler only.
+- **`<stem>_differences.csv`** — one row per difference: `sample_id, software, field, bonsai_value, run_value`. `field` is `lineage`, `sublineage`, `n_variants`, `variant` (a variant called on one side only, shown as `gene:<pos><ref>><alt> (change)`), `variant_gene` (tb-profiler only) or `database`. Header-only when everything matches.
+
+Per-tool status counts are also logged.
+
+**Example**
+
+```bash
+jasentool compare-results \
+  --input-dir /fs1/results/jasen_1.3.0_validation \
+  --db-name bonsai --address mongodb://bonsai.host:27017/ \
+  -o tb_validation.csv
+```
+
 ## compare-distances
 
 Builds pairwise cgMLST distance matrices for **two** chewBBACA allele-call tables and writes their element-wise difference. Use it to measure how sample-to-sample distances shift between two chewBBACA runs, for example before and after re-running chewBBACA on masked assemblies (see `rerun-software`), or after a schema or version change.

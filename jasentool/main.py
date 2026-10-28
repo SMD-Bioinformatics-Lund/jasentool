@@ -29,6 +29,7 @@ from jasentool.compare_bonsai import CompareBonsai
 from jasentool.rebuild_manifests import RebuildManifests
 from jasentool.rerun_software import RerunSoftware
 from jasentool.compare_distances import CompareDistances
+from jasentool.compare_results import CompareResults
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
@@ -220,6 +221,10 @@ class OptionsParser:
     def compare_distances(self, options):
         """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
         CompareDistances(options).run()
+
+    def compare_results(self, options):
+        """Compare a TB run's tb-profiler and mykrobe results with Bonsai v2."""
+        CompareResults(options).run()
 
     def parse_options(self, options):
         """Options parser"""
