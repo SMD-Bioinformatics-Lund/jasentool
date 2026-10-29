@@ -301,16 +301,16 @@ jasentool rerun-software --tool shigatyper --profile escherichia_coli \
 
 ## compare-results
 
-Compares a JASEN *M. tuberculosis* run with what a Bonsai v2 (2.1.0, 2.1.0-patch1 or 2.1.1) database holds for the same samples, reading it only, for example to see how a new JASEN or tb-profiler release changes lineage and variant calls. For every sample with a tb-profiler JSON (`tbprofiler_mergedb/<sample_id>_tbprofiler.json`) or mykrobe CSV (`mykrobe/<sample_id>_mykrobe.csv`) under `<input-dir>/mtuberculosis/`, it compares, per tool:
+Compares a JASEN *M. tuberculosis* run's tb-profiler results with what a Bonsai v2 (2.1.0, 2.1.0-patch1 or 2.1.1) database holds for the same samples, reading it only, for example to see how a new JASEN release or tbdb changes lineage and variant calls. For every sample with a tb-profiler JSON (`<input-dir>/mtuberculosis/tbprofiler_mergedb/<sample_id>_tbprofiler.json`), it compares:
 
-| Check | tb-profiler | mykrobe |
-|-------|-------------|---------|
-| Lineage | `main_lineage` and `sub_lineage` | the `lineage` column, and its part before the first `.` as the main lineage |
-| Number of variants | `dr_variants` + `other_variants` + `qc_fail_variants` | the variants behind each resistant (`R`) call |
-| Same variants | matched on genome position, ref and alt; a different gene name for the same variant (such as a *fabG1*/*inhA* rename) is reported as `variant_gene` | matched on gene, position, ref and alt |
-| Database | tbdb name and version (`pipeline.db_version`) | — |
+| Check | Compared |
+|-------|----------|
+| Lineage | `main_lineage` and `sub_lineage` |
+| Number of variants | `dr_variants` + `other_variants` + `qc_fail_variants` |
+| Same variants | matched on genome position, ref and alt; a different gene name for the same variant (such as a *fabG1*/*inhA* rename) is reported as `variant_gene` |
+| Database | tbdb name and version (`pipeline.db_version`) |
 
-The run files are parsed the way bonsai-prp parsed them when they were uploaded to Bonsai v2 (1.3.3 for 2.1.0, 1.6.1 for 2.1.1; both parse tb-profiler and mykrobe the same way), so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none, and mykrobe codon changes are reduced to the changed bases (`GCT2155167GGT` becomes `C>G` at 2155167). Samples are matched on `sample_id`. A Bonsai v3 document is rejected.
+The run files are parsed the way bonsai-prp parsed them when they were uploaded to Bonsai v2 (1.3.3 for 2.1.0, 1.6.1 for 2.1.1; both parse tb-profiler the same way), so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none. Samples are matched on `sample_id`. Bonsai's mykrobe results are ignored: every JASEN release from 0.8.0 to 1.3.0 runs the same mykrobe (0.12.2). A Bonsai v3 document is rejected.
 
 ```
 jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
@@ -329,10 +329,10 @@ jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
 
 **Outputs**
 
-- **`<output-file>`** — one row per sample and tool: `sample_id, software, status, bonsai_lineage, run_lineage, bonsai_sublineage, run_sublineage, bonsai_n_variants, run_n_variants, variants_only_in_bonsai, variants_only_in_run, bonsai_database, run_database`. `status` is `identical`, `differs`, `missing_in_bonsai` (the sample, or that tool's results, aren't in Bonsai) or `missing_in_run` (Bonsai has the tool's results but the run has no output file). The database columns are filled for tb-profiler only.
-- **`<stem>_differences.csv`** — one row per difference: `sample_id, software, field, bonsai_value, run_value`. `field` is `lineage`, `sublineage`, `n_variants`, `variant` (a variant called on one side only, shown as `gene:<pos><ref>><alt> (change)`), `variant_gene` (tb-profiler only) or `database`. Header-only when everything matches.
+- **`<output-file>`** — one row per sample: `sample_id, status, bonsai_lineage, run_lineage, bonsai_sublineage, run_sublineage, bonsai_n_variants, run_n_variants, variants_only_in_bonsai, variants_only_in_run, bonsai_database, run_database`. `status` is `identical`, `differs`, `missing_in_bonsai` (the sample, or its tb-profiler results, aren't in Bonsai) or `missing_in_run` (the run's tb-profiler JSON couldn't be parsed).
+- **`<stem>_differences.csv`** — one row per difference: `sample_id, field, bonsai_value, run_value`. `field` is `lineage`, `sublineage`, `n_variants`, `variant` (a variant called on one side only, shown as `gene:<pos><ref>><alt> (change)`), `variant_gene` or `database`. Header-only when everything matches.
 
-Per-tool status counts are also logged.
+Status counts are also logged.
 
 **Example**
 

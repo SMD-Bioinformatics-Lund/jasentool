@@ -223,7 +223,7 @@ class OptionsParser:
         CompareDistances(options).run()
 
     def compare_results(self, options):
-        """Compare a TB run's tb-profiler and mykrobe results with Bonsai v2."""
+        """Compare a TB run's tb-profiler results with Bonsai v2."""
         CompareResults(options).run()
 
     def parse_options(self, options):
