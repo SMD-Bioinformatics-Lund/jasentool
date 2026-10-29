@@ -15,6 +15,31 @@ jasentool only reads from Bonsai's MongoDB: no subcommand inserts, updates or de
 
 Bonsai v3 isn't supported by any of them: its samples have no `pipeline.analysis_profile` and its groups no `included_samples`, so the lookups find nothing. The manifests `create-yaml` and `rebuild-manifests` write are in the bonsai-prp 2.0.0 format, which bonsai-prp uploads to Bonsai v3; jasentool itself never uploads them.
 
+### Connecting to Bonsai
+
+Each of these subcommands takes the address of Bonsai's MongoDB as a MongoDB URI: `--address`/`--uri` for `check-backup`, `rebuild-manifests` and `compare-results`, and `--bonsai-address`/`--bonsai-uri` for `identify-missing --compare-bonsai`. The default, `mongodb://localhost:27017/`, is usually wrong for Bonsai v2, which runs MongoDB in its own Docker container. If another MongoDB answers on localhost, the subcommand still runs: MongoDB returns nothing for a database it doesn't have rather than an error, so every sample is reported missing from Bonsai.
+
+On the Bonsai host, find the MongoDB container's name, then its IP address:
+
+```bash
+docker ps --filter name=mongodb --format '{{.Names}}'
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' bonsai-prod_mongodb_1
+```
+
+Pass that IP as the URI, e.g. `--address mongodb://172.18.0.3:27017/`. Use a read-only user by adding its credentials, e.g. `mongodb://<user>:<password>@172.18.0.3:27017/?authSource=bonsai`.
+
+- The container name comes from the Docker Compose project (`bonsai-prod` here), so it may differ on your host.
+- The container IP is only reachable from the Docker host, and it can change when the container is recreated, so look it up again after Bonsai is redeployed.
+- If the container publishes MongoDB's port on the host, `docker port bonsai-prod_mongodb_1 27017` prints it; that host and port work too, including from other machines the firewall allows.
+
+To check the URI and database name before a run, count the samples it finds:
+
+```bash
+mongosh mongodb://172.18.0.3:27017/bonsai --quiet --eval 'db.sample.countDocuments()'
+```
+
+A count of `0` means the URI, `--db-name` (default `bonsai`) or collection (default `sample`) is wrong.
+
 ## find
 
 ```
@@ -74,7 +99,7 @@ jasentool identify-missing --output-file <FILE>
 | `--compare-bonsai` | No | False | Compare cgviz QC-approved samples with Bonsai |
 | `--bonsai-db-name` | No | `bonsai` | Bonsai MongoDB database name |
 | `--bonsai-db-collection` | No | `sample` | Bonsai MongoDB collection holding samples |
-| `--bonsai-address`/`--bonsai-uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
+| `--bonsai-address`/`--bonsai-uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address ([Connecting to Bonsai](#connecting-to-bonsai)) |
 | `--bonsai-profile` | No | `staphylococcus_aureus` | Bonsai analysis profile compared against cgviz |
 
 **Comparing cgviz with Bonsai.** With `--compare-bonsai`, identify-missing checks that Bonsai holds exactly the QC-approved cgviz samples, from the right sequencing run. A cgviz sample is approved when `metadata.QC` is `OK`. cgviz `id` is matched to Bonsai `sample_name`, and the basename of cgviz `run` (the sequencing run folder) to Bonsai's `sequencing.run_id`. This needs a Bonsai v2 database (see [Bonsai compatibility](#bonsai-compatibility)). Only Bonsai samples whose `pipeline.analysis_profile` contains `--bonsai-profile` are compared. Two CSVs are written next to `--output-file`:
@@ -127,7 +152,7 @@ jasentool check-backup --profile <PROFILE> --backup-dir <DIR>
 | `--db-collection` | Yes | — | Bonsai MongoDB collection name (samples) |
 | `--db-collection-groups` | No | `sample_group` | Bonsai MongoDB collection holding `sample_group` docs (used for the group-orphans check) |
 | `-o`/`--output-file` | Yes | — | Summary CSV; per-file missing CSV uses the same stem with `_missing.csv` suffix |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address ([Connecting to Bonsai](#connecting-to-bonsai)) |
 | `--check-orphans` | No | False | After scanning, also list files in the backup tree that don't match any expected `<sample_id><mask><file_ext>`; emits `<stem>_orphans.csv` |
 
 **Outputs**
@@ -213,7 +238,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
 | `--db-name` | Unless `--no-bonsai` | — | Bonsai MongoDB database name |
 | `--db-collection` | Unless `--no-bonsai` | — | Bonsai MongoDB collection name (samples) |
 | `--db-collection-groups` | No | `sample_group` | Bonsai MongoDB collection holding `sample_group` docs (used to resolve each sample's `groups`) |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address ([Connecting to Bonsai](#connecting-to-bonsai)) |
 | `--sample-id` | No | — | Rebuild only this one sample. Handy for a test run before doing everything. Works in both modes |
 | `--jasen-version` | No | — | JASEN release (`0.8.0`–`1.3.0`) the samples were run with, overriding the version in each sample's `analysis_meta.json`; fills a version the backup tree lacks for a tool from that release's containers (the tree always wins) |
 | `--reference-genome-accession` | No | — | Assembly accession stamped on every manifest as `reference_genome_accession` |
@@ -324,7 +349,7 @@ jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
 | `-o`/`--output-file` | Yes | — | Summary CSV; the differences go to `<stem>_differences.csv` |
 | `--db-name` | No | `bonsai` | Bonsai v2 MongoDB database |
 | `--db-collection` | No | `sample` | Bonsai v2 sample collection |
-| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB address |
+| `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB address ([Connecting to Bonsai](#connecting-to-bonsai)) |
 | `--sample-id` | No | — | Only compare this sample; repeat for several |
 
 **Outputs**
