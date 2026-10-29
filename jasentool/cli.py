@@ -569,6 +569,30 @@ def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
     _parser().rerun_software(options)
 
 
+@cli.command('compare-results')
+@click.option('--input-dir', required=True, type=click.Path(exists=True, file_okay=False),
+              help='Root of a JASEN results or backup tree; tb-profiler outputs are read from '
+                   '<input-dir>/mtuberculosis/tbprofiler_mergedb/')
+@click.option('--db-name', default='bonsai', show_default=True,
+              help='Bonsai v2 MongoDB database name')
+@click.option('--db-collection', default='sample', show_default=True,
+              help='Bonsai v2 MongoDB sample collection')
+@click.option('--address', '--uri', default='mongodb://localhost:27017/', show_default=True,
+              help='Bonsai MongoDB address')
+@click.option('--sample-id', 'sample_ids', multiple=True,
+              help='Only compare this sample; repeat for several')
+@click.option('-o', '--output-file', required=True, type=click.Path(),
+              help='Summary CSV; differences go to <stem>_differences.csv')
+def compare_results_cmd(input_dir, db_name, db_collection, address, sample_ids, output_file):
+    """Compare a TB run's tb-profiler results with Bonsai v2."""
+    _init_logging()
+    options = types.SimpleNamespace(
+        input_dir=input_dir, db_name=db_name, db_collection=db_collection,
+        address=address, sample_ids=list(sample_ids), output_file=output_file,
+    )
+    _parser().compare_results(options)
+
+
 @cli.command('compare-distances')
 @click.option('-i', '--input', 'input_files', required=True, nargs=2,
               type=click.Path(exists=True, dir_okay=False),

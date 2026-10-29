@@ -203,7 +203,7 @@ CREATE_YAML_SYMLINKED_FIELDS = {
 # (the sample's release, or --jasen-version). Used only when the backup tree has no usable version for a tool the
 # sample has an output for. Keys are the software name inside a versions.yml (what
 # create-yaml looks up), not the container image name.
-_JASEN_0_9_0 = {
+_JASEN_0_8_0 = {
     "amrfinderplus": "3.11.11",
     "blast": "2.14.0",
     "bracken": "2.8",
@@ -216,7 +216,7 @@ _JASEN_0_9_0 = {
     "mlst": "2.23.0",
     "mykrobe": "0.12.2",
     "perl-json": "4.10",
-    "postalignqc": "0.10.0",
+    "postalignqc": "0.9.3",
     "quast": "5.2.0",
     "resfinder": "4.4.2",
     "samtools": "1.17",
@@ -226,8 +226,13 @@ _JASEN_0_9_0 = {
     "snippy": "4.6.0",
     "sourmash": "4.8.2",
     "spades": "3.15.5",
-    "tb-profiler": "6.3.0",
+    "tb-profiler": "6.2.0",
     "virulencefinder": "2.0.4",
+}
+_JASEN_0_9_0 = {
+    **_JASEN_0_8_0,
+    "postalignqc": "0.10.0",
+    "tb-profiler": "6.3.0",
 }
 _JASEN_1_0_0 = {
     "amrfinderplus": "3.11.11",
@@ -302,6 +307,7 @@ _JASEN_1_3_0 = {
 }
 
 VERSIONS_FALLBACK = {
+    "0.8.0": _JASEN_0_8_0,
     "0.9.0": _JASEN_0_9_0,
     "1.0.0": _JASEN_1_0_0,
     "1.1.0": _JASEN_1_1_0,
@@ -357,6 +363,7 @@ _JASEN_1_2_0_DATABASES = {
 }
 
 DATABASE_VERSIONS_FALLBACK = {
+    "0.8.0": _JASEN_0_9_0_DATABASES,
     "0.9.0": _JASEN_0_9_0_DATABASES,
     "1.0.0": _JASEN_1_0_0_DATABASES,
     "1.1.0": _JASEN_1_1_0_DATABASES,

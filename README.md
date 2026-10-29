@@ -25,6 +25,8 @@ conda activate jasentool
 
 `compare-distances` uses [`cgmlst-dists`](https://github.com/tseemann/cgmlst-dists) (from bioconda) to build its distance matrices, and `environment.yml` includes it. It isn't a pip dependency, so `pip install jasentool` won't bring it in; get it through conda or build it yourself. Without it, `compare-distances` falls back to a slower pure-Python calculation.
 
+Subcommands that read Bonsai (`check-backup`, `rebuild-manifests`, `identify-missing --compare-bonsai`, `compare-results`) support Bonsai v2 (2.1.x) and only ever read from it; `create-yaml` and `rebuild-manifests` write manifests for uploading to Bonsai v3 with bonsai-prp 2.0.0. See [Bonsai compatibility](docs/source/usage/post-run-analysis.md#bonsai-compatibility).
+
 ## Usage
 
 ```
@@ -43,6 +45,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 | `rebuild-manifests` | Rebuild Bonsai manifests from the backup storage tree |
 | `rerun-software` | Re-run chewBBACA, AMRFinderPlus, ResFinder or ShigaTyper on backed-up inputs |
 | `compare-distances` | Build cgMLST distance matrices for two chewBBACA tables and their difference |
+| `compare-results` | Compare a TB run's tb-profiler results with a Bonsai v2 database |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |

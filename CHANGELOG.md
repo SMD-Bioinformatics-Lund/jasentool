@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `compare-results` compares a JASEN TB run's tb-profiler results with a Bonsai v2 (2.1.x) database: lineage, number of variants, which variants are called and the tbdb database, with a summary CSV and a CSV of differences.
 - `rerun-software --tool {chewbbaca,amrfinder,resfinder,shigatyper}` re-runs a JASEN tool on backed-up inputs with JASEN's arguments and output names. It replaces `rerun-chewbbaca`, which is removed; use `rerun-software --tool chewbbaca` (`--masked-assemblies` is now `-i`, `--schema-dir` is `--db`, `--chewie-bin` is `--bin` and `--profile-filter` is `--profile`).
 - `check-backup` writes `<stem>_assemblies.csv`, listing each sample's unmasked assembly for `rerun-software --tool amrfinder`.
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
 - `identify-missing --cgviz-address` sets the cgviz MongoDB host.
-- `rebuild-manifests` can fill missing tool and database versions for JASEN 0.9.0 samples.
+- `rebuild-manifests` can fill missing tool and database versions for JASEN 0.8.0 and 0.9.0 samples.
 - `rebuild-manifests --assets-dir` adds the tbdb grading rules and tbdb BED tracks to TB manifests from JASEN's assets directory.
 
 ### Fixed
@@ -22,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed the unused `Database.insert`, so jasentool has no way to write to MongoDB; a test now fails if a write call is added.
+- The docs list which Bonsai version each Bonsai-reading subcommand supports (v2, 2.1.x) and that all of them only read.
+- The docs explain how to find the URI of a Bonsai v2 MongoDB running in Docker, and how to check it finds samples.
 - `rebuild-manifests` fills missing tool versions from the JASEN release in each sample's `analysis_meta.json`; `--jasen-version` now overrides it.
 - `rebuild-manifests` skips samples whose `<sample_id>_bonsai.yaml` is already in `--output-dir`; `--force` overwrites them.
 - `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.
