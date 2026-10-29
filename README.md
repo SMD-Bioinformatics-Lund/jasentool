@@ -45,7 +45,7 @@ Run `jasentool --help` to list subcommands, or `jasentool <subcommand> --help` f
 | `rebuild-manifests` | Rebuild Bonsai manifests from the backup storage tree |
 | `rerun-software` | Re-run chewBBACA, AMRFinderPlus, ResFinder or ShigaTyper on backed-up inputs |
 | `compare-distances` | Build cgMLST distance matrices for two chewBBACA tables and their difference |
-| `compare-results` | Compare a TB run's tb-profiler and mykrobe results with a Bonsai v2 database |
+| `compare-results` | Compare a TB run's tb-profiler results with a Bonsai v2 database |
 | `find` | Query samples from MongoDB |
 | `identify-missing` | Identify samples absent from JASEN results directory |
 | `validate-pipelines` | Compare pipeline outputs against MongoDB records |

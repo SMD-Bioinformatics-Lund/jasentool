@@ -571,8 +571,8 @@ def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
 
 @cli.command('compare-results')
 @click.option('--input-dir', required=True, type=click.Path(exists=True, file_okay=False),
-              help='Root of a JASEN results or backup tree; tb-profiler and mykrobe outputs '
-                   'are read from <input-dir>/mtuberculosis/')
+              help='Root of a JASEN results or backup tree; tb-profiler outputs are read from '
+                   '<input-dir>/mtuberculosis/tbprofiler_mergedb/')
 @click.option('--db-name', default='bonsai', show_default=True,
               help='Bonsai v2 MongoDB database name')
 @click.option('--db-collection', default='sample', show_default=True,
@@ -584,7 +584,7 @@ def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
 @click.option('-o', '--output-file', required=True, type=click.Path(),
               help='Summary CSV; differences go to <stem>_differences.csv')
 def compare_results_cmd(input_dir, db_name, db_collection, address, sample_ids, output_file):
-    """Compare a TB run's tb-profiler and mykrobe results with Bonsai v2."""
+    """Compare a TB run's tb-profiler results with Bonsai v2."""
     _init_logging()
     options = types.SimpleNamespace(
         input_dir=input_dir, db_name=db_name, db_collection=db_collection,
