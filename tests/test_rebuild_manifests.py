@@ -309,7 +309,7 @@ def test_unusable_tree_version_without_fallback_is_omitted(tmp_path, backup_dir,
 
 
 @pytest.mark.parametrize("jasen_version, chewbbaca_version",
-                         [("0.9.0", "3.3.2"), ("1.1.0", "3.3.2"), ("1.3.0", "3.5.3")])
+                         [("0.8.0", "3.3.2"), ("0.9.0", "3.3.2"), ("1.1.0", "3.3.2"), ("1.3.0", "3.5.3")])
 def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, monkeypatch,
                                                        jasen_version, chewbbaca_version):
     """--jasen-version fills from that release, and only for tools the sample has an output for."""
@@ -590,6 +590,7 @@ def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monk
 
 
 @pytest.mark.parametrize("jasen_version, expected", [
+    ("0.8.0", "0.9.3"),
     ("0.9.0", "0.10.0"),
     ("1.0.0", "0.11.4"),
     ("1.1.0", "1.3.1"),
@@ -679,6 +680,24 @@ def test_tbdb_version_from_jasen_release(tmp_path, backup_dir, monkeypatch):
         {"software": "tbprofiler", "name": "tbdb",
          "version": "4907915526b52ac2f20f1324613f5d4dc951e0bd"},
     ]
+
+
+@pytest.mark.parametrize("jasen_version, expected", [("0.8.0", "6.2.0"), ("0.9.0", "6.3.0")])
+def test_tbprofiler_version_from_jasen_release(tmp_path, backup_dir, monkeypatch,
+                                               jasen_version, expected):
+    species = "mtuberculosis"
+    sample_id = "sample1"
+    _touch(backup_dir, species, "tbprofiler_mergedb", f"{sample_id}_tbprofiler.json")
+
+    fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(
+        tmp_path, backup_dir, profile="mycobacterium_tuberculosis", jasen_version=jasen_version,
+    )).run()
+
+    versions = yaml.safe_load((tmp_path / "out" / f"{sample_id}_versions.yml").read_text())
+    assert versions["jasentool_version_fallback"]["tb-profiler"] == {"version": expected}
 
 
 # ── --sample-id filtering ──────────────────────────────────────────────────────
