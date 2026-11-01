@@ -1,10 +1,18 @@
 """Read-only MongoDB access for jasentool; nothing here writes to a database."""
+import re
+import sys
+
 import pymongo
+
+from jasentool.log import get_logger
+
+logger = get_logger(__name__)
 
 class Database:
     """Class that assists in handling mongodb request"""
     uri = "mongodb://localhost:27017/"
     db = None
+    db_name = None
 
     @classmethod
     def initialize(cls, db_name, uri=None):
@@ -14,6 +22,24 @@ class Database:
         client = pymongo.MongoClient(cls.uri)
         cls.db = client[db_name]
         cls.db_name = db_name
+
+    @classmethod
+    def location(cls, collection):
+        """`<db>.<collection> at <uri>`, with any password in the URI hidden."""
+        return f"{cls.db_name}.{collection} at {re.sub(r'//[^/@]*@', '//***@', cls.uri)}"
+
+    @classmethod
+    def require_collection(cls, collection):
+        """Exit with an error unless the collection exists in the database."""
+        try:
+            found = collection in cls.db.list_collection_names()
+        except pymongo.errors.PyMongoError as exc:
+            logger.error("Could not read %s: %s", cls.location(collection), exc)
+            sys.exit(1)
+        if not found:
+            logger.error("No collection %s; check the address, database and collection names",
+                         cls.location(collection))
+            sys.exit(1)
 
     @staticmethod
     def find(collection, query, fields):

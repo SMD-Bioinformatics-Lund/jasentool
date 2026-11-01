@@ -11,6 +11,7 @@ writes one per process invocation) into a single versions file the way
 import glob
 import json
 import os
+import sys
 import types
 
 import yaml
@@ -132,12 +133,11 @@ class RebuildManifests:
             query["sample_id"] = self.options.sample_id
         projection = {"_id": 0, "sample_id": 1, "sample_name": 1, "lims_id": 1}
         samples = Database.find(self.options.db_collection, query, projection)
-        if self.options.sample_id and not samples:
-            logger.error(
-                "sample_id '%s' not found for profile '%s' in %s/%s",
-                self.options.sample_id, self.profile,
-                self.options.db_name, self.options.db_collection,
-            )
+        if not samples:
+            wanted = f"sample_id '{self.options.sample_id}'" if self.options.sample_id else "samples"
+            logger.error("No %s with profile %s in %s", wanted, self.profile,
+                         Database.location(self.options.db_collection))
+            sys.exit(1)
         return samples
 
     def _discover_samples_from_tree(self, outputs, species):
@@ -388,6 +388,8 @@ class RebuildManifests:
             samples = self._discover_samples_from_tree(outputs, species)
         else:
             Database.initialize(self.options.db_name, uri=self.options.address)
+            Database.require_collection(self.options.db_collection)
+            Database.require_collection(self.options.db_collection_groups)
             samples = self._fetch_bonsai_samples()
         if not samples:
             logger.error("No samples found to rebuild")

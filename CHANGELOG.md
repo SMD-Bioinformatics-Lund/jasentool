@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `compare-results` compares a JASEN TB run's tb-profiler results with a Bonsai v2 (2.1.x) database: lineage, number of variants, which variants are called and the tbdb database, with a summary CSV and a CSV of differences.
+- `compare-results` compares a JASEN TB run's tb-profiler results with a Bonsai v2 (2.1.x) database: lineage, number of variants, which variants are called and the tbdb database, written to `<prefix>_summary.csv` and `<prefix>_differences.csv`.
 - `rerun-software --tool {chewbbaca,amrfinder,resfinder,shigatyper}` re-runs a JASEN tool on backed-up inputs with JASEN's arguments and output names. It replaces `rerun-chewbbaca`, which is removed; use `rerun-software --tool chewbbaca` (`--masked-assemblies` is now `-i`, `--schema-dir` is `--db`, `--chewie-bin` is `--bin` and `--profile-filter` is `--profile`).
 - `check-backup` writes `<stem>_assemblies.csv`, listing each sample's unmasked assembly for `rerun-software --tool amrfinder`.
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the unused `Database.insert`, so jasentool has no way to write to MongoDB; a test now fails if a write call is added.
 - The docs list which Bonsai version each Bonsai-reading subcommand supports (v2, 2.1.x) and that all of them only read.
 - The docs explain how to find the URI of a Bonsai v2 MongoDB running in Docker, and how to check it finds samples.
+- `check-backup`, `rebuild-manifests`, `identify-missing --compare-bonsai` and `compare-results` stop with an error naming the address and database when the Bonsai collection doesn't exist there or the lookup finds no samples, instead of reporting every sample as missing.
 - `rebuild-manifests` fills missing tool versions from the JASEN release in each sample's `analysis_meta.json`; `--jasen-version` now overrides it.
 - `rebuild-manifests` skips samples whose `<sample_id>_bonsai.yaml` is already in `--output-dir`; `--force` overwrites them.
 - `identify-missing --db-name`/`--db-collection` are renamed `--cgviz-db-name`/`--cgviz-db-collection` and default to `cgviz`/`sample`; the old names still work.

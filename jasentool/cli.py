@@ -581,14 +581,14 @@ def rerun_software_cmd(tool, input_csv, output_dir, profile, db, pointfinder_db,
               help='Bonsai MongoDB address')
 @click.option('--sample-id', 'sample_ids', multiple=True,
               help='Only compare this sample; repeat for several')
-@click.option('-o', '--output-file', required=True, type=click.Path(),
-              help='Summary CSV; differences go to <stem>_differences.csv')
-def compare_results_cmd(input_dir, db_name, db_collection, address, sample_ids, output_file):
+@click.option('-o', '--output-prefix', required=True, type=click.Path(),
+              help='Writes <prefix>_summary.csv and <prefix>_differences.csv')
+def compare_results_cmd(input_dir, db_name, db_collection, address, sample_ids, output_prefix):
     """Compare a TB run's tb-profiler results with Bonsai v2."""
     _init_logging()
     options = types.SimpleNamespace(
         input_dir=input_dir, db_name=db_name, db_collection=db_collection,
-        address=address, sample_ids=list(sample_ids), output_file=output_file,
+        address=address, sample_ids=list(sample_ids), output_prefix=output_prefix,
     )
     _parser().compare_results(options)
 

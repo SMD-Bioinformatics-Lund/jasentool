@@ -140,8 +140,12 @@ def _is_bonsai_v3(doc):
 
 # ── comparison ────────────────────────────────────────────────────────────────
 
-def compare(sample_id, bonsai, run):
-    """Return (summary row, difference rows) for one sample."""
+def compare(sample_id, bonsai, run, in_bonsai=True):
+    """Return (summary row, difference rows) for one sample.
+
+    `bonsai` is None when Bonsai has no tb-profiler results for the sample; `in_bonsai`
+    says whether the sample itself is in Bonsai.
+    """
     row = dict.fromkeys(SUMMARY_FIELDS, "")
     row["sample_id"] = sample_id
     for side, result in (("bonsai", bonsai), ("run", run)):
@@ -150,8 +154,11 @@ def compare(sample_id, bonsai, run):
             row[f"{side}_sublineage"] = result.sublineage or ""
             row[f"{side}_n_variants"] = len(result.variants)
             row[f"{side}_database"] = result.database or ""
-    if bonsai is None or run is None:
-        row["status"] = "missing_in_bonsai" if bonsai is None else "missing_in_run"
+    if bonsai is None:
+        row["status"] = "no_tbprofiler_in_bonsai" if in_bonsai else "missing_in_bonsai"
+        return row, []
+    if run is None:
+        row["status"] = "missing_in_run"
         return row, []
 
     diffs = []
@@ -216,6 +223,7 @@ class CompareResults:
 
     def _bonsai_docs(self, sample_ids):
         Database.initialize(self.options.db_name, uri=self.options.address)
+        Database.require_collection(self.options.db_collection)
         projection = {"_id": 0, "sample_id": 1, "typing_result": 1,
                       "element_type_result": 1, "pipeline.softwares": 1}
         docs = {}
@@ -226,6 +234,10 @@ class CompareResults:
                              "Bonsai v2 (2.1.x) databases only", doc["sample_id"])
                 sys.exit(1)
             docs.setdefault(doc["sample_id"], doc)
+        if not docs:
+            logger.error("None of the %d samples are in %s", len(sample_ids),
+                         Database.location(self.options.db_collection))
+            sys.exit(1)
         return docs
 
     def _run_result(self, sample_id, path):
@@ -242,26 +254,31 @@ class CompareResults:
             logger.error("No tb-profiler outputs found in %s", self.run_dir)
             sys.exit(1)
         docs = self._bonsai_docs(files)
-        missing = sorted(set(files) - set(docs))
-        if missing:
-            logger.warning("%d sample(s) not in Bonsai: %s", len(missing), ", ".join(missing))
 
         summary, differences = [], []
         for sample_id in sorted(files):
             doc = docs.get(sample_id)
             bonsai = bonsai_result(doc) if doc else None
-            row, diffs = compare(sample_id, bonsai, self._run_result(sample_id, files[sample_id]))
+            run = self._run_result(sample_id, files[sample_id])
+            row, diffs = compare(sample_id, bonsai, run, in_bonsai=doc is not None)
             summary.append(row)
             differences.extend(diffs)
 
-        output = self.options.output_file
-        os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
-        differences_path = os.path.splitext(output)[0] + "_differences.csv"
-        _write_csv(output, summary, SUMMARY_FIELDS)
+        for status, text in (("missing_in_bonsai", "not in Bonsai"),
+                             ("no_tbprofiler_in_bonsai", "in Bonsai without tb-profiler results")):
+            ids = [row["sample_id"] for row in summary if row["status"] == status]
+            if ids:
+                logger.warning("%d sample(s) %s: %s", len(ids), text, ", ".join(ids))
+
+        prefix = self.options.output_prefix.removesuffix(".csv")
+        os.makedirs(os.path.dirname(os.path.abspath(prefix)), exist_ok=True)
+        summary_path, differences_path = f"{prefix}_summary.csv", f"{prefix}_differences.csv"
+        _write_csv(summary_path, summary, SUMMARY_FIELDS)
         _write_csv(differences_path, differences, DIFFERENCE_FIELDS)
         counts = {}
         for row in summary:
             counts[row["status"]] = counts.get(row["status"], 0) + 1
         logger.info("tb-profiler: %s",
                     ", ".join(f"{n} {status}" for status, n in sorted(counts.items())))
-        logger.info("Wrote %s and %s (%d differences)", output, differences_path, len(differences))
+        logger.info("Wrote %s and %s (%d differences)", summary_path, differences_path,
+                    len(differences))
