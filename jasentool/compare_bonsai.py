@@ -6,6 +6,7 @@ and the basename of cgviz `run` (the sequencing run folder) to Bonsai's
 """
 
 import os
+import sys
 from collections import Counter
 
 from jasentool.check_backup import _write_csv
@@ -113,6 +114,7 @@ class CompareBonsai:
             self.options.cgviz_db_collection, {}, {"_id": 0, "id": 1, "run": 1, "metadata.QC": 1},
         )
         Database.initialize(self.options.bonsai_db_name, uri=self.options.bonsai_address)
+        Database.require_collection(self.options.bonsai_db_collection)
         bonsai_docs = Database.find(
             self.options.bonsai_db_collection,
             {"pipeline.analysis_profile": self.options.bonsai_profile},
@@ -121,6 +123,10 @@ class CompareBonsai:
                 "sequencing.run_id": 1, "sequencing.sequencing_run_id": 1,
             },
         )
+        if not bonsai_docs:
+            logger.error("No samples with profile %s in %s", self.options.bonsai_profile,
+                         Database.location(self.options.bonsai_db_collection))
+            sys.exit(1)
         return cgviz_docs, bonsai_docs
 
     def run(self):

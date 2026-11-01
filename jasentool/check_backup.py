@@ -3,6 +3,7 @@
 import csv
 import fnmatch
 import os
+import sys
 from collections import Counter
 
 from tqdm import tqdm
@@ -187,7 +188,13 @@ class CheckBackup:
             )
 
         Database.initialize(self.options.db_name, uri=self.options.address)
+        Database.require_collection(self.options.db_collection)
+        Database.require_collection(self.options.db_collection_groups)
         samples = self.fetch_samples(self.options.db_collection, self.profile)
+        if not samples:
+            logger.error("No samples with profile %s in %s", self.profile,
+                         Database.location(self.options.db_collection))
+            sys.exit(1)
         logger.info(
             "%d bonsai samples for profile=%s (from %s/%s)",
             len(samples), self.profile, self.options.db_name, self.options.db_collection,

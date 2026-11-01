@@ -82,6 +82,7 @@ def _patch(monkeypatch):
     fake = FakeMongo({"cgviz": CGVIZ, "bonsai": BONSAI})
     monkeypatch.setattr(Database, "initialize", fake.initialize)
     monkeypatch.setattr(Database, "find", fake.find)
+    monkeypatch.setattr(Database, "require_collection", lambda *a, **kw: None)
     return fake
 
 
@@ -115,4 +116,16 @@ def test_identify_missing_skips_bonsai_comparison_by_default(tmp_path, monkeypat
 
     assert result.exit_code == 0, result.output
     assert "bonsai" not in fake.queries
+    assert not (tmp_path / "report_missing_from_bonsai.csv").exists()
+
+
+def test_identify_missing_stops_when_bonsai_has_no_samples(tmp_path, monkeypatch):
+    fake = _patch(monkeypatch)
+    fake.docs_by_db["bonsai"] = []
+
+    result = CliRunner().invoke(cli, [
+        "identify-missing", "-o", str(tmp_path / "report.csv"), "--compare-bonsai",
+    ])
+
+    assert result.exit_code == 1
     assert not (tmp_path / "report_missing_from_bonsai.csv").exists()

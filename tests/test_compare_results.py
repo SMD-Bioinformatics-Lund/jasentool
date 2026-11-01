@@ -39,10 +39,12 @@ def _run_tree(tmp_path, sample_ids=("s1",), tbprofiler_edit=None):
 def _compare(monkeypatch, tmp_path, root, docs, *extra):
     monkeypatch.setattr(Database, "initialize", lambda *a, **kw: None)
     monkeypatch.setattr(Database, "find", FakeBonsai(docs).find)
-    out = tmp_path / "out" / "compare.csv"
-    result = runner.invoke(cli, ["compare-results", "--input-dir", str(root), "-o", str(out), *extra])
-    summary = list(csv.DictReader(out.open())) if out.exists() else []
-    diffs_path = out.with_name("compare_differences.csv")
+    monkeypatch.setattr(Database, "require_collection", lambda *a, **kw: None)
+    prefix = tmp_path / "out" / "compare"
+    result = runner.invoke(cli, ["compare-results", "--input-dir", str(root), "-o", str(prefix), *extra])
+    summary_path = prefix.with_name("compare_summary.csv")
+    summary = list(csv.DictReader(summary_path.open())) if summary_path.exists() else []
+    diffs_path = prefix.with_name("compare_differences.csv")
     diffs = list(csv.DictReader(diffs_path.open())) if diffs_path.exists() else []
     return result, {r["sample_id"]: r for r in summary}, diffs
 
@@ -95,13 +97,38 @@ def test_mykrobe_results_in_bonsai_are_ignored(monkeypatch, tmp_path):
 
 
 def test_samples_missing_from_bonsai(monkeypatch, tmp_path):
-    root = _run_tree(tmp_path, sample_ids=("s1", "s2"))
+    root = _run_tree(tmp_path, sample_ids=("s1", "s2", "s3"))
+    no_tbprofiler = {**copy.deepcopy(BONSAI_DOC), "sample_id": "s3",
+                     "typing_result": [], "element_type_result": []}
 
-    result, summary, _ = _compare(monkeypatch, tmp_path, root, [BONSAI_DOC])
+    result, summary, _ = _compare(monkeypatch, tmp_path, root, [BONSAI_DOC, no_tbprofiler])
 
     assert result.exit_code == 0, result.output
     assert summary["s1"]["status"] == "identical"
     assert summary["s2"]["status"] == "missing_in_bonsai"
+    assert summary["s3"]["status"] == "no_tbprofiler_in_bonsai"
+    assert "1 sample(s) not in Bonsai: s2" in result.output
+    assert "1 sample(s) in Bonsai without tb-profiler results: s3" in result.output
+
+
+def test_no_samples_found_in_bonsai_is_an_error(monkeypatch, tmp_path):
+    result, summary, _ = _compare(monkeypatch, tmp_path, _run_tree(tmp_path), [])
+
+    assert result.exit_code == 1
+    assert "None of the 1 samples are in" in result.output
+    assert summary == {}
+
+
+def test_output_prefix_drops_csv_extension(monkeypatch, tmp_path):
+    monkeypatch.setattr(Database, "initialize", lambda *a, **kw: None)
+    monkeypatch.setattr(Database, "find", FakeBonsai([BONSAI_DOC]).find)
+    monkeypatch.setattr(Database, "require_collection", lambda *a, **kw: None)
+
+    result = runner.invoke(cli, ["compare-results", "--input-dir", str(_run_tree(tmp_path)),
+                                 "-o", str(tmp_path / "tb.csv")])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in tmp_path.glob("tb*.csv")) == ["tb_differences.csv", "tb_summary.csv"]
 
 
 def test_sample_id_filter(monkeypatch, tmp_path):

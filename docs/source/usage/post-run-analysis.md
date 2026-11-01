@@ -17,7 +17,7 @@ Bonsai v3 isn't supported by any of them: its samples have no `pipeline.analysis
 
 ### Connecting to Bonsai
 
-Each of these subcommands takes the address of Bonsai's MongoDB as a MongoDB URI: `--address`/`--uri` for `check-backup`, `rebuild-manifests` and `compare-results`, and `--bonsai-address`/`--bonsai-uri` for `identify-missing --compare-bonsai`. The default, `mongodb://localhost:27017/`, is usually wrong for Bonsai v2, which runs MongoDB in its own Docker container. If another MongoDB answers on localhost, the subcommand still runs: MongoDB returns nothing for a database it doesn't have rather than an error, so every sample is reported missing from Bonsai.
+Each of these subcommands takes the address of Bonsai's MongoDB as a MongoDB URI: `--address`/`--uri` for `check-backup`, `rebuild-manifests` and `compare-results`, and `--bonsai-address`/`--bonsai-uri` for `identify-missing --compare-bonsai`. The default, `mongodb://localhost:27017/`, is usually wrong for Bonsai v2, which runs MongoDB in its own Docker container. If the database or collection isn't at that address, or the lookup finds no samples, the subcommand stops with an error naming the address (password hidden) and database it read.
 
 On the Bonsai host, find the MongoDB container's name, then its IP address:
 
@@ -338,7 +338,7 @@ Compares a JASEN *M. tuberculosis* run's tb-profiler results with what a Bonsai 
 The run files are parsed the way bonsai-prp parsed them when they were uploaded to Bonsai v2 (1.3.3 for 2.1.0, 1.6.1 for 2.1.1; both parse tb-profiler the same way), so both sides describe each variant the same way: the tbdb version is its commit, or `<name>_<date>` when there is none. Samples are matched on `sample_id`. Bonsai's mykrobe results are ignored: every JASEN release from 0.8.0 to 1.3.0 runs the same mykrobe (0.12.2). A Bonsai v3 document is rejected.
 
 ```
-jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
+jasentool compare-results --input-dir <DIR> -o <PREFIX>
                           [--db-name <DB>] [--db-collection <COLLECTION>] [--address <URI>]
                           [--sample-id <ID> ...]
 ```
@@ -346,7 +346,7 @@ jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `--input-dir` | Yes | — | Root of a JASEN results or backup tree (the directory holding `mtuberculosis/`) |
-| `-o`/`--output-file` | Yes | — | Summary CSV; the differences go to `<stem>_differences.csv` |
+| `-o`/`--output-prefix` | Yes | — | Writes `<prefix>_summary.csv` and `<prefix>_differences.csv`; a trailing `.csv` is dropped |
 | `--db-name` | No | `bonsai` | Bonsai v2 MongoDB database |
 | `--db-collection` | No | `sample` | Bonsai v2 sample collection |
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB address ([Connecting to Bonsai](#connecting-to-bonsai)) |
@@ -354,10 +354,10 @@ jasentool compare-results --input-dir <DIR> -o <SUMMARY.csv>
 
 **Outputs**
 
-- **`<output-file>`** — one row per sample: `sample_id, status, bonsai_lineage, run_lineage, bonsai_sublineage, run_sublineage, bonsai_n_variants, run_n_variants, variants_only_in_bonsai, variants_only_in_run, bonsai_database, run_database`. `status` is `identical`, `differs`, `missing_in_bonsai` (the sample, or its tb-profiler results, aren't in Bonsai) or `missing_in_run` (the run's tb-profiler JSON couldn't be parsed).
-- **`<stem>_differences.csv`** — one row per difference: `sample_id, field, bonsai_value, run_value`. `field` is `lineage`, `sublineage`, `n_variants`, `variant` (a variant called on one side only, shown as `gene:<pos><ref>><alt> (change)`), `variant_gene` or `database`. Header-only when everything matches.
+- **`<prefix>_summary.csv`** — one row per sample: `sample_id, status, bonsai_lineage, run_lineage, bonsai_sublineage, run_sublineage, bonsai_n_variants, run_n_variants, variants_only_in_bonsai, variants_only_in_run, bonsai_database, run_database`. `status` is `identical`, `differs`, `missing_in_bonsai` (no Bonsai sample with that `sample_id`), `no_tbprofiler_in_bonsai` (the sample is in Bonsai without tb-profiler results) or `missing_in_run` (the run's tb-profiler JSON couldn't be parsed).
+- **`<prefix>_differences.csv`** — one row per difference: `sample_id, field, bonsai_value, run_value`. `field` is `lineage`, `sublineage`, `n_variants`, `variant` (a variant called on one side only, shown as `gene:<pos><ref>><alt> (change)`), `variant_gene` or `database`. Header-only when everything matches.
 
-Status counts are also logged.
+Status counts are also logged, with the samples that are `missing_in_bonsai` or `no_tbprofiler_in_bonsai` listed separately. If none of the run's samples are in Bonsai, it stops with an error instead of writing anything.
 
 **Example**
 
@@ -365,7 +365,7 @@ Status counts are also logged.
 jasentool compare-results \
   --input-dir /fs1/results/jasen_1.3.0_validation \
   --db-name bonsai --address mongodb://bonsai.host:27017/ \
-  -o tb_validation.csv
+  -o tb_validation
 ```
 
 ## compare-distances

@@ -65,6 +65,7 @@ def backup_dir(tmp_path):
 def _patch_database(monkeypatch, fake):
     monkeypatch.setattr(Database, "initialize", lambda *a, **kw: None)
     monkeypatch.setattr(Database, "find", fake.find)
+    monkeypatch.setattr(Database, "require_collection", lambda *a, **kw: None)
 
 
 # ── happy path ──────────────────────────────────────────────────────────────────
@@ -812,7 +813,7 @@ def test_unknown_sample_id_writes_nothing(tmp_path, backup_dir, monkeypatch, cap
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, sample_id="does-not-exist")
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.ERROR), pytest.raises(SystemExit):
         RebuildManifests(options).run()
 
     assert not (tmp_path / "out").exists()

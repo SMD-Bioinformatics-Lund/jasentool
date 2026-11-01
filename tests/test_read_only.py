@@ -23,5 +23,5 @@ def test_no_mongodb_write_calls_in_jasentool():
 
 def test_database_only_exposes_reads():
     public = {name for name in vars(Database) if not name.startswith("_")}
-    assert public == {"uri", "db", "initialize", "find", "find_one",
-                      "get_pvl", "get_mlst", "get_cgmlst", "get_meta_fields"}
+    assert public == {"uri", "db", "db_name", "initialize", "location", "require_collection",
+                      "find", "find_one", "get_pvl", "get_mlst", "get_cgmlst", "get_meta_fields"}
