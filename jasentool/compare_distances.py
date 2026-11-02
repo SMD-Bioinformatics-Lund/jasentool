@@ -28,6 +28,10 @@ absent.
 Samples present in only one file are written to a separate missing-samples report and
 excluded from the difference matrices, which run over the shared samples.
 
+Each file's sample and loci counts are written to a schema summary. To spot sample
+errors (the wrong reads used for a sample), pairs whose distances differ by at least
+`--large-diff` are listed, and counted per sample: a swapped sample has many such pairs.
+
 Per-file distances are computed with `cgmlst-dists` (each file is first written out
 sorted by sample id with the `ST` column dropped); if the binary is unavailable the
 in-Python `jasentool.matrix.Matrix` method is used instead. Diagnostic plots are also
@@ -247,6 +251,51 @@ class CompareDistances:
         return matrix
 
     @staticmethod
+    def _large_differences(matrix1, matrix2, threshold):
+        """Pairs whose distances differ by at least `threshold`, and a per-sample summary.
+
+        Both matrices must hold the same samples in the same order. Pairs are sorted
+        largest |diff| first; samples by their number of large-difference pairs, then
+        by their largest |diff|. A sample whose reads were swapped has many large
+        pairs, while its neighbours each have one (the pair with the swapped sample).
+        """
+        ids = list(matrix1.index)
+        dist1 = matrix1.to_numpy(dtype=float)
+        dist2 = matrix2.to_numpy(dtype=float)
+        diff = dist1 - dist2
+        rows, cols = np.triu_indices(len(ids), k=1)
+        large = np.abs(diff[rows, cols]) >= threshold
+        pairs = sorted(
+            ((ids[i], ids[j], int(dist1[i, j]), int(dist2[i, j]), int(diff[i, j]))
+             for i, j in zip(rows[large], cols[large])),
+            key=lambda pair: (-abs(pair[4]), pair[0], pair[1]),
+        )
+
+        abs_diff = np.abs(diff)
+        np.fill_diagonal(abs_diff, np.nan)
+        samples = []
+        if len(ids) > 1:
+            for i, sample_id in enumerate(ids):
+                worst = int(np.nanargmax(abs_diff[i]))
+                samples.append((
+                    sample_id,
+                    int((abs_diff[i] >= threshold).sum()),
+                    round(float(np.nanmedian(abs_diff[i])), 1),
+                    int(abs_diff[i, worst]),
+                    ids[worst],
+                ))
+        samples.sort(key=lambda row: (-row[1], -row[3], row[0]))
+        return pairs, samples
+
+    @staticmethod
+    def _write_rows(path, header, rows):
+        with open(path, "w", newline="", encoding="utf-8") as fout:
+            writer = csv.writer(fout, delimiter="\t")
+            writer.writerow(header)
+            writer.writerows(rows)
+        logger.info("Wrote %s", path)
+
+    @staticmethod
     def _read_st_map(path):
         """Read a sample_name,mlst_st table into {sample_id: st}; skips a header row."""
         delimiter = CompareDistances._detect_delimiter(path)
@@ -463,6 +512,31 @@ class CompareDistances:
             fpath = os.path.join(self.options.output_dir, name)
             _sorted(frame).to_csv(fpath, sep="\t")
             logger.info("Wrote %s", fpath)
+
+        logger.info("Schema sizes: %d loci in %s, %d loci in %s",
+                    loci1, file1_name, loci2, file2_name)
+        self._write_rows(
+            os.path.join(self.options.output_dir, f"{stem1}_vs_{stem2}_schema_summary.tsv"),
+            ["file", "n_samples", "n_loci"],
+            [(file1_name, len(calls1), loci1), (file2_name, len(calls2), loci2)],
+        )
+
+        threshold = self.options.large_diff
+        ordered = sorted(shared)
+        pairs, samples = self._large_differences(
+            matrix1.loc[ordered, ordered], matrix2.loc[ordered, ordered], threshold)
+        self._write_rows(
+            os.path.join(self.options.output_dir, f"{stem1}_vs_{stem2}_large_diffs.tsv"),
+            ["sample_a", "sample_b", f"{stem1}_distance", f"{stem2}_distance", "diff"],
+            pairs,
+        )
+        self._write_rows(
+            os.path.join(self.options.output_dir, f"{stem1}_vs_{stem2}_per_sample_diff.tsv"),
+            ["sample_id", "n_large_diffs", "median_abs_diff", "max_abs_diff",
+             "max_abs_diff_with"],
+            samples,
+        )
+        logger.info("%d sample pair(s) differ by at least %g", len(pairs), threshold)
 
         # Per-sample missing-loci counts in each file, to spot version changes in
         # missing data (missing = any non-integer call except stripped INF-<n>).

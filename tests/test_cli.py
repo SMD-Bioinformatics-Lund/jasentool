@@ -1002,6 +1002,39 @@ def test_compare_distances_verbose_points(tmp_path):
     assert (out / "file1_vs_file2_missing_vs_st_points.tsv").exists()
 
 
+def test_compare_distances_flags_swapped_sample(tmp_path):
+    calls = {
+        "a1": [1, 1, 1, 1, 1, 1], "a2": [1, 1, 1, 1, 1, 3], "a3": [1, 1, 1, 1, 3, 1],
+        "b1": [2, 2, 2, 2, 2, 2], "b2": [2, 2, 2, 2, 2, 4], "b3": [2, 2, 2, 2, 4, 2],
+    }
+    f1, f2 = tmp_path / "cgviz.tsv", tmp_path / "jasen.tsv"
+    _write_tsv(f1, [["FILE", *[f"l{i}" for i in range(6)]],
+                    *[[sid, *row] for sid, row in calls.items()]])
+    swapped = {**calls, "a1": calls["b1"]}
+    _write_tsv(f2, [["FILE", *[f"l{i}" for i in range(7)]],
+                    *[[sid, *row, 1] for sid, row in swapped.items()]])
+    out = tmp_path / "out"
+
+    result = runner.invoke(cli, ["compare-distances", "-i", str(f1), str(f2), "-o", str(out),
+                                 "--large-diff", "4", "--cgmlst-dists-bin", "absent"])
+
+    assert result.exit_code == 0, result.output
+    stem = out / "cgviz_vs_jasen"
+    schema = [r.split("\t") for r in Path(f"{stem}_schema_summary.tsv").read_text().splitlines()]
+    assert schema == [["file", "n_samples", "n_loci"],
+                      ["cgviz.tsv", "6", "6"], ["jasen.tsv", "6", "7"]]
+    pairs = [r.split("\t") for r in Path(f"{stem}_large_diffs.tsv").read_text().splitlines()]
+    assert pairs[0] == ["sample_a", "sample_b", "cgviz_distance", "jasen_distance", "diff"]
+    assert pairs[1] == ["a1", "b1", "6", "0", "6"]
+    assert len(pairs) == 6 and all("a1" in row[:2] for row in pairs[1:])
+    per_sample = [r.split("\t") for r in
+                  Path(f"{stem}_per_sample_diff.tsv").read_text().splitlines()]
+    assert per_sample[0] == ["sample_id", "n_large_diffs", "median_abs_diff",
+                             "max_abs_diff", "max_abs_diff_with"]
+    assert per_sample[1] == ["a1", "5", "5.0", "6", "b1"]
+    assert all(row[1] == "1" and row[4] == "a1" for row in per_sample[2:])
+
+
 def test_compare_distances_help():
     result = runner.invoke(cli, ["compare-distances", "--help"])
     assert result.exit_code == 0
