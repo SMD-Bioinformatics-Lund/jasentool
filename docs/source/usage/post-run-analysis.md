@@ -386,10 +386,13 @@ For each file, a sample × sample matrix is built where each cell is the number 
 
 Samples present in only one of the two files are written to a missing-samples report and left out of the difference matrices, which still run over the shared samples.
 
+**Spotting sample errors.** A sample whose reads were swapped in one run (the wrong reads used for that sample) moves away from its real neighbours and towards the sample whose reads it got. Its row of the difference matrix then holds many large values, while each of its neighbours has just one: the pair with the swapped sample. Every pair whose distances differ by at least `--large-diff` alleles is listed in `*_large_diffs.tsv`, and `*_per_sample_diff.tsv` counts them per sample, so swapped samples rise to the top. `max_abs_diff_with` usually names the sample whose reads were used. Raise `--large-diff` if many unrelated pairs are listed, for example when the two schemas have different numbers of loci and distant pairs shift with the schema size; the Bland–Altman plot shows how large that shift is.
+
 ```
 jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
                             [--mlst <SAMPLE_ST.csv>] [--cgmlst-dists-bin <PATH>]
                             [--min-mean-distance <N>] [--max-mean-distance <N>]
+                            [--large-diff <N>]
 ```
 
 | Argument | Required | Default | Description |
@@ -399,6 +402,7 @@ jasentool compare-distances -i <FILE1.tsv> <FILE2.tsv> -o <OUTPUT_DIR>
 | `--mlst` | No | — | `sample_name,mlst_st` CSV/TSV; enables the missing-loci-vs-ST plot |
 | `--cgmlst-dists-bin` | No | `cgmlst-dists` | Path/name of the cgmlst-dists executable (Python fallback if absent) |
 | `--min-mean-distance`/`--max-mean-distance` | No | — | If either is set, write an extra Bland–Altman plot zoomed to this mean-distance window (e.g. 0–100) |
+| `--large-diff` | No | `200` | Pairs whose distances differ by at least this many alleles are listed in `*_large_diffs.tsv` and counted per sample |
 | `-v`/`--verbose` | No | off | Verbose logging and write the plots' underlying point tables (`*_points.tsv`) for manual checking |
 
 > `cgmlst-dists` is a separate bioconda tool, not a Python dependency. Install it through the conda `environment.yml` (or however you prefer) to use it; without it, the Python fallback runs.
@@ -414,6 +418,9 @@ Every matrix has its rows and columns sorted by sample id, so the two distance m
 - **`<stem1>_vs_<stem2>_dash_change_matrix.tsv`** — per pair, loci comparable in exactly one of the two files (a `-` appeared/disappeared between versions). Symmetric, non-negative. Omitted if the files' loci counts differ.
 - **`<stem1>_vs_<stem2>_unexplained_matrix.tsv`** — `max(0, |diff| - dash_change)`; a lower bound on differences not attributable to missing data. Omitted if the files' loci counts differ.
 - **`<stem1>_vs_<stem2>_missing_loci_per_sample.tsv`** — per-sample missing-loci counts: `sample_id, n_missing_<stem1>, n_missing_<stem2>, delta` (delta blank for samples absent from a file). Missing = any non-integer call except stripped `INF-<n>` inferred alleles.
+- **`<stem1>_vs_<stem2>_schema_summary.tsv`** — sample and loci counts for each file: `file, n_samples, n_loci`. The loci counts are also logged.
+- **`<stem1>_vs_<stem2>_large_diffs.tsv`** — every shared sample pair whose distances differ by at least `--large-diff`: `sample_a, sample_b, <stem1>_distance, <stem2>_distance, diff` (`diff` is file 1 minus file 2), largest difference first. Header-only when no pair reaches the threshold.
+- **`<stem1>_vs_<stem2>_per_sample_diff.tsv`** — one row per shared sample: `sample_id, n_large_diffs, median_abs_diff, max_abs_diff, max_abs_diff_with`, sorted by `n_large_diffs` then `max_abs_diff`. A sample with many large-difference pairs is a likely sample error.
 - **`<stem1>_vs_<stem2>_missing_samples.tsv`** — samples present in one file but not the other, hence excluded from the diff. Columns: `sample_id, present_in, missing_from` (file basenames). Always written; header-only when both files share all samples.
 - **`<stem1>_clean.tsv`** / **`<stem2>_clean.tsv`** — each input sorted by sample id with the `ST` column dropped; these are what `cgmlst-dists` is run on.
 - **`<stem1>_vs_<stem2>_distance_scatter.png`** — scatter of every shared sample-pair's distance in file 1 (x) vs file 2 (y), with a `y=x` identity line.

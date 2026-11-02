@@ -610,18 +610,22 @@ def compare_results_cmd(input_dir, db_name, db_collection, address, sample_ids, 
 @click.option('--max-mean-distance', default=None, type=float,
               help='Upper bound on the Bland-Altman mean-distance (x) axis for an extra '
                    'zoomed plot (e.g. 50 or 100, the clinically relevant band)')
+@click.option('--large-diff', default=200, show_default=True, type=float,
+              help='Sample pairs whose distances differ by at least this many alleles are '
+                   'listed in *_large_diffs.tsv and counted per sample in '
+                   '*_per_sample_diff.tsv')
 @click.option('-v', '--verbose', is_flag=True, default=False,
               help='Verbose logging and write the underlying plot point tables (*_points.tsv) '
                    'so individual points can be checked by hand')
 def compare_distances_cmd(input_files, output_dir, mlst, cgmlst_dists_bin,
-                          min_mean_distance, max_mean_distance, verbose):
+                          min_mean_distance, max_mean_distance, large_diff, verbose):
     """Build cgMLST distance matrices for two chewBBACA tables and their difference."""
     _init_logging(verbose)
     options = types.SimpleNamespace(
         file1=input_files[0], file2=input_files[1], output_dir=output_dir,
         mlst=mlst, cgmlst_dists_bin=cgmlst_dists_bin,
         min_mean_distance=min_mean_distance, max_mean_distance=max_mean_distance,
-        verbose=verbose,
+        large_diff=large_diff, verbose=verbose,
     )
     _parser().compare_distances(options)
 

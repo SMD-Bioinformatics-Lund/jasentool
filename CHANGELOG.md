@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `compare-results` compares a JASEN TB run's tb-profiler results with a Bonsai v2 (2.1.x) database: lineage, number of variants, which variants are called and the tbdb database, written to `<prefix>_summary.csv` and `<prefix>_differences.csv`.
+- `compare-distances` writes `*_schema_summary.tsv` with each file's sample and loci counts, and lists sample pairs whose distances differ by at least `--large-diff` (default 200) in `*_large_diffs.tsv`, counted per sample in `*_per_sample_diff.tsv`, to spot samples run on the wrong reads.
 - `rerun-software --tool {chewbbaca,amrfinder,resfinder,shigatyper}` re-runs a JASEN tool on backed-up inputs with JASEN's arguments and output names. It replaces `rerun-chewbbaca`, which is removed; use `rerun-software --tool chewbbaca` (`--masked-assemblies` is now `-i`, `--schema-dir` is `--db`, `--chewie-bin` is `--bin` and `--profile-filter` is `--profile`).
 - `check-backup` writes `<stem>_assemblies.csv`, listing each sample's unmasked assembly for `rerun-software --tool amrfinder`.
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
