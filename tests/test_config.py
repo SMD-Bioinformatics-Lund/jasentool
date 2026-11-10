@@ -2,7 +2,7 @@
 
 import pytest
 
-from jasentool.config import PROFILES, get_profile
+from jasentool.config import PROFILES, get_profile, made_by_release
 
 
 PROFILE_KEYS = {"profile", "species", "species_full", "outputs"}
@@ -89,3 +89,32 @@ def test_ecoli_profile_includes_ecoli_specific_tools():
     software = {o["software_name"] for o in ecoli["outputs"]}
     assert "shigatyper" in software
     assert "serotypefinder_json" in software
+
+
+@pytest.mark.parametrize("release, expected", [
+    ("1.0.0", (True, True, False)),
+    ("0.9.0", (True, False, False)),
+    ("1.3.0", (True, True, True)),
+    ("v1.4.1", (True, True, False)),
+    ("1.4.1-dev", (True, True, False)),
+    (None, (True, False, False)),
+    ("not-a-release", (True, False, False)),
+])
+def test_made_by_release(release, expected):
+    always = {"software_name": "quast"}
+    since = {"software_name": "ska", "since": "1.0.0"}
+    window = {"software_name": "post_align_qc", "since": "1.1.0", "until": "1.3.0"}
+    assert tuple(made_by_release(o, release) for o in (always, since, window)) == expected
+
+
+def test_species_typing_is_optional_and_shared_outputs_required():
+    typing = {"sccmec", "spatyper", "emmtyper", "serotypefinder_json", "serotypefinder_meta",
+              "shigatyper", "kleborate", "kleborate_hamronization"}
+    shared = {"quast", "sourmash", "gambitcore", "ska", "save_analysis_metadata",
+              "samtools_stats", "post_align_qc"}
+    for profile in PROFILES:
+        for output in profile["outputs"]:
+            if output["software_name"] in typing:
+                assert not output["required"], output["software_name"]
+            if output["software_name"] in shared:
+                assert output["required"], output["software_name"]
