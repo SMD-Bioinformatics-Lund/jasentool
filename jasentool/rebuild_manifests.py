@@ -17,7 +17,13 @@ import types
 import yaml
 from tqdm import tqdm
 
-from jasentool.check_backup import _as_list, _glob_matches
+from jasentool.check_backup import (
+    _RUN_METADATA_SOFTWARE,
+    _as_list,
+    _format_glob,
+    _glob_matches,
+    _write_csv,
+)
 from jasentool.config import (
     CREATE_YAML_ASSET_FIELDS,
     CREATE_YAML_DATABASE_INFO,
@@ -27,6 +33,7 @@ from jasentool.config import (
     CREATE_YAML_VCF_PRIORITY,
     VERSIONS_FALLBACK,
     get_profile,
+    made_by_release,
 )
 from jasentool.create_yaml import (
     _ANALYSIS_TOOLS,
@@ -52,7 +59,12 @@ _FIELD_TO_VERSION_KEY = {
     for field, software, _ in _ANALYSIS_TOOLS
 }
 _FALLBACK_PROCESS_KEY = "jasentool_version_fallback"
-_RUN_METADATA_SOFTWARE = "save_analysis_metadata"
+_MANIFEST_SOFTWARE = (
+    set(CREATE_YAML_FIELD_MAP) | set(CREATE_YAML_VCF_PRIORITY)
+    | set(CREATE_YAML_DATABASE_INFO) | {_RUN_METADATA_SOFTWARE}
+)
+FAILED_FILENAME = "rebuild_manifests_failed.csv"
+FAILED_FIELDS = ["sample_id", "sample_name", "missing_output", "expected_path"]
 
 
 def _load_versions_file(path):
@@ -145,13 +157,14 @@ class RebuildManifests:
 
         A filename ending in a declared `<mask><file_ext>` suffix contributes its
         stripped prefix as a sample_id, unioned across all outputs. Wildcard-mask
-        outputs and `_versions.yml` files are skipped. sample_name/lims_id are left
-        unset here; the run metadata JSON supplies them later if present.
+        outputs, the old manifests (`<sample_id>_bonsai.yaml` also matches
+        `<sample_id>.yaml`) and `_versions.yml` files are skipped. sample_name/lims_id
+        are left unset here; the run metadata JSON supplies them later if present.
         """
         sample_ids = set()
         for output in outputs:
             mask = output.get("mask", "")
-            if "*" in mask:
+            if "*" in mask or output["software_name"].startswith("create_yaml"):
                 continue
             search_dir = os.path.join(self.backup_dir, species, output["dirname"])
             if not os.path.isdir(search_dir):
@@ -201,25 +214,59 @@ class RebuildManifests:
                 return matches[0]
         return None
 
-    def _resolve_field_path(self, output, species, sample_id):
-        """Resolve symlinked create-yaml fields from --symlink-dir, everything else from backup."""
+    def _search_location(self, output):
+        """(root, dirname) an output is read from: --symlink-dir for symlinked fields, else backup."""
         software_name = output["software_name"]
         if software_name in CREATE_YAML_VCF_PRIORITY:
             field = "vcf"
         else:
             field = CREATE_YAML_FIELD_MAP.get(software_name)
-        if not self.symlink_dir or field not in CREATE_YAML_SYMLINKED_FIELDS:
+        if self.symlink_dir and field in CREATE_YAML_SYMLINKED_FIELDS:
+            return self.symlink_dir, CREATE_YAML_SYMLINKED_FIELDS[field]
+        return self.backup_dir, output["dirname"]
+
+    def _expected_path(self, output, species, sample_id):
+        root, dirname = self._search_location(output)
+        return os.path.join(root, species, dirname,
+                            _format_glob(sample_id, output.get("mask", ""), output["file_ext"]))
+
+    def _resolve_field_path(self, output, species, sample_id):
+        """Resolve symlinked create-yaml fields from --symlink-dir, everything else from backup."""
+        root, dirname = self._search_location(output)
+        if root == self.backup_dir:
             return self._resolve_output_path(output, species, sample_id)
-        path = self._resolve_output_path(
-            output, species, sample_id,
-            root=self.symlink_dir, dirname=CREATE_YAML_SYMLINKED_FIELDS[field],
-        )
+        path = self._resolve_output_path(output, species, sample_id, root=root, dirname=dirname)
         if not path and self._resolve_output_path(output, species, sample_id):
             logger.warning(
                 "%s: %s is in the backup tree but not under %s; leaving it out",
-                sample_id, software_name, self.symlink_dir,
+                sample_id, output["software_name"], self.symlink_dir,
             )
         return path
+
+    def _missing_required(self, outputs, species, sample_id, found, release):
+        """[(missing_output, expected_path)] for required manifest inputs the sample lacks.
+
+        Only outputs made by the sample's JASEN `release` count. The manifest has one vcf
+        slot, so the vcf sources count as a single requirement that any one of them meets.
+        """
+        missing = []
+        vcf_outputs = []
+        for output in outputs:
+            software_name = output["software_name"]
+            if (not output.get("required", True) or software_name not in _MANIFEST_SOFTWARE
+                    or not made_by_release(output, release)):
+                continue
+            if software_name in CREATE_YAML_VCF_PRIORITY:
+                vcf_outputs.append(output)
+            elif software_name not in found:
+                missing.append((software_name,
+                                self._expected_path(output, species, sample_id)))
+        if vcf_outputs and not found & set(CREATE_YAML_VCF_PRIORITY):
+            missing.append((
+                "vcf (" + " or ".join(o["software_name"] for o in vcf_outputs) + ")",
+                " or ".join(self._expected_path(o, species, sample_id) for o in vcf_outputs),
+            ))
+        return missing
 
     def _resolve_run_metadata(self, outputs, species, sample_id):
         """Return (path, parsed_dict) for the sample's run metadata, or (None, {}).
@@ -304,10 +351,11 @@ class RebuildManifests:
         )
 
     def _resolve_fields(self, outputs, species, sample_id):
-        """Return ({create-yaml field: path}, [database-info path, ...]) for the backup tree."""
+        """Return ({create-yaml field: path}, [database-info path, ...], {found software})."""
         fields = {}
         database_info = []
         vcf_candidates = {}
+        found = set()
         for output in outputs:
             software_name = output["software_name"]
             known = (
@@ -320,6 +368,7 @@ class RebuildManifests:
             path = self._resolve_field_path(output, species, sample_id)
             if not path:
                 continue
+            found.add(software_name)
             if software_name in CREATE_YAML_DATABASE_INFO:
                 database_info.append(path)
             elif software_name in CREATE_YAML_VCF_PRIORITY:
@@ -336,20 +385,31 @@ class RebuildManifests:
                     "%s: ignoring %s, superseded by %s", sample_id, old_field, preferred
                 )
                 del fields[old_field]
-        return fields, database_info
+        return fields, database_info, found
 
     def _manifest_path(self, sample_id):
         return os.path.join(self.output_dir, f"{sample_id}_bonsai.yaml")
 
     def _build_sample_yaml(self, doc, outputs, species, groups_by_sample):
+        """Write the sample's manifest and versions file.
+
+        Returns (missing, has_versions). Nothing is written when `missing`, the
+        required manifest inputs the sample lacks, is non-empty.
+        """
         sample_id = doc["sample_id"]
-        fields, database_info = self._resolve_fields(outputs, species, sample_id)
+        fields, database_info, found = self._resolve_fields(outputs, species, sample_id)
+        metadata_path, metadata = self._resolve_run_metadata(outputs, species, sample_id)
+        if metadata_path:
+            found.add(_RUN_METADATA_SOFTWARE)
+        release = self._sample_release(sample_id, metadata)
+        missing = self._missing_required(outputs, species, sample_id, found, release)
+        if missing:
+            return missing, False
+
         needed_keys = {
             _FIELD_TO_VERSION_KEY[field]
             for field in fields if field in _FIELD_TO_VERSION_KEY
         }
-        metadata_path, metadata = self._resolve_run_metadata(outputs, species, sample_id)
-        release = self._sample_release(sample_id, metadata)
         versions_path = self._merge_versions(
             species, sample_id, needed_keys, VERSIONS_FALLBACK.get(release, {}),
         )
@@ -376,7 +436,7 @@ class RebuildManifests:
         create_yaml_options.output = self._manifest_path(sample_id)
 
         CreateYaml().run(create_yaml_options)
-        return bool(fields), versions_path is not None, metadata_path is not None
+        return [], versions_path is not None
 
     def run(self):
         """Entry point: resolve profile, fetch samples, rebuild each manifest."""
@@ -403,9 +463,9 @@ class RebuildManifests:
 
         n_written = 0
         n_skipped = 0
-        n_no_fields = 0
         n_no_versions = 0
-        n_no_metadata = 0
+        failed_samples = []
+        failed_rows = []
         progress = tqdm(
             samples, total=len(samples),
             desc=f"rebuild-manifests [{self.profile}]", unit="sample",
@@ -418,31 +478,33 @@ class RebuildManifests:
             if not self.force and os.path.exists(self._manifest_path(sample_id)):
                 n_skipped += 1
                 continue
-            has_fields, has_versions, has_metadata = self._build_sample_yaml(
+            missing, has_versions = self._build_sample_yaml(
                 doc, outputs, species, groups_by_sample,
             )
+            if missing:
+                logger.warning("%s: no manifest written; missing required output(s): %s",
+                               sample_id, ", ".join(name for name, _ in missing))
+                failed_samples.append(sample_id)
+                failed_rows.extend(
+                    {"sample_id": sample_id, "sample_name": doc.get("sample_name") or "",
+                     "missing_output": name, "expected_path": path}
+                    for name, path in missing
+                )
+                continue
             n_written += 1
-            if not has_fields:
-                logger.warning("%s: no analysis-result files found under %s", sample_id, self.backup_dir)
-                n_no_fields += 1
             if not has_versions:
                 n_no_versions += 1
-            if not has_metadata:
-                logger.warning(
-                    "%s: no analysis_meta.json found; manifest will lack nextflow_run_info "
-                    "and lims_id (bonsai-prp requires both)", sample_id,
-                )
-                n_no_metadata += 1
 
+        failed_path = os.path.join(self.output_dir, FAILED_FILENAME)
+        _write_csv(failed_path, failed_rows, FAILED_FIELDS)
         logger.info("%d manifests written to %s", n_written, self.output_dir)
         if n_skipped:
             logger.info(
                 "%d samples skipped: manifest already in %s (use --force to overwrite)",
                 n_skipped, self.output_dir,
             )
-        if n_no_fields:
-            logger.warning("%d samples had no analysis-result files found", n_no_fields)
+        if failed_samples:
+            logger.warning("%d samples failed (required outputs missing, no manifest written); "
+                           "see %s", len(failed_samples), failed_path)
         if n_no_versions:
             logger.warning("%d samples had no per-process _versions.yml files found", n_no_versions)
-        if n_no_metadata:
-            logger.warning("%d samples had no analysis_meta.json (missing run info + lims_id)", n_no_metadata)

@@ -1,14 +1,17 @@
 """Tests for jasentool.rebuild_manifests (rebuild-manifests subcommand)."""
+import csv
 import json
 import logging
 import os
 import types
+from pathlib import Path
 
 import pytest
 import yaml
 
+from jasentool.config import CREATE_YAML_VCF_PRIORITY, get_profile, made_by_release
 from jasentool.database import Database
-from jasentool.rebuild_manifests import RebuildManifests
+from jasentool.rebuild_manifests import _MANIFEST_SOFTWARE, FAILED_FILENAME, RebuildManifests
 
 
 class FakeMongo:
@@ -57,6 +60,50 @@ def _touch(backup_dir, species, dirname, filename, content=""):
     return path
 
 
+def _add_missing_required_outputs(rebuild, sample_ids):
+    """Create the required manifest inputs a test left out, so its sample isn't failed.
+
+    Only outputs the sample's JASEN release made are added. Files a test made are kept;
+    the vcf slot is filled only when no vcf source exists.
+    """
+    profile = get_profile(rebuild.profile)
+    species = profile["species"]
+    for sample_id in sample_ids:
+        _, metadata = rebuild._resolve_run_metadata(profile["outputs"], species, sample_id)
+        release = rebuild.jasen_version or metadata.get("version")
+        missing = []
+        has_vcf = False
+        for output in profile["outputs"]:
+            name = output["software_name"]
+            if name not in _MANIFEST_SOFTWARE:
+                continue
+            root, dirname = rebuild._search_location(output)
+            if rebuild._resolve_output_path(output, species, sample_id, root=root, dirname=dirname):
+                has_vcf = has_vcf or name in CREATE_YAML_VCF_PRIORITY
+            elif output["required"] and made_by_release(output, release):
+                missing.append((output, root, dirname))
+        for output, root, dirname in missing:
+            if has_vcf and output["software_name"] in CREATE_YAML_VCF_PRIORITY:
+                continue
+            ext = output["file_ext"] if isinstance(output["file_ext"], str) else output["file_ext"][0]
+            path = Path(root) / species / dirname / f"{sample_id}{output['mask']}{ext}"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}" if ext == ".json" else "")
+            has_vcf = has_vcf or output["software_name"] in CREATE_YAML_VCF_PRIORITY
+
+
+def _rebuild(options):
+    """Run rebuild-manifests after adding any required inputs the test didn't create."""
+    rebuild = RebuildManifests(options)
+    profile = get_profile(options.profile)
+    if options.no_bonsai:
+        samples = rebuild._discover_samples_from_tree(profile["outputs"], profile["species"])
+    else:
+        samples = rebuild._fetch_bonsai_samples()
+    _add_missing_required_outputs(rebuild, [s["sample_id"] for s in samples])
+    rebuild.run()
+
+
 @pytest.fixture()
 def backup_dir(tmp_path):
     return tmp_path / "backup"
@@ -93,7 +140,7 @@ def test_writes_manifest_and_merged_versions(tmp_path, backup_dir, monkeypatch):
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir)
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     out_dir = tmp_path / "out"
     manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
@@ -136,7 +183,7 @@ def test_malformed_versions_file_is_skipped_not_fatal(tmp_path, backup_dir, monk
     _patch_database(monkeypatch, fake)
 
     with caplog.at_level(logging.WARNING):
-        RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+        _rebuild(_make_options(tmp_path, backup_dir))
 
     out_dir = tmp_path / "out"
     # the run completed and the good version file still made it into the merge
@@ -174,7 +221,7 @@ def test_versions_file_with_end_versions_sentinel_is_salvaged(tmp_path, backup_d
     )
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     out_dir = tmp_path / "out"
     versions = yaml.safe_load((out_dir / f"{sample_id}_versions.yml").read_text())
@@ -205,7 +252,7 @@ def test_versions_file_with_stray_bare_version_line_is_salvaged(tmp_path, backup
     )
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     out_dir = tmp_path / "out"
     versions = yaml.safe_load((out_dir / f"{sample_id}_versions.yml").read_text())
@@ -250,7 +297,7 @@ def test_versions_fallback_fills_missing_and_db_only(tmp_path, backup_dir, monke
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, jasen_version="test")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     results = {e["software"]: e for e in manifest["analysis_result"]}
@@ -281,7 +328,7 @@ def test_unusable_tree_version_replaced_by_fallback(tmp_path, backup_dir, monkey
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version="test")).run()
+    _rebuild(_make_options(tmp_path, backup_dir, jasen_version="test"))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     results = {e["software"]: e for e in manifest["analysis_result"]}
@@ -302,7 +349,7 @@ def test_unusable_tree_version_without_fallback_is_omitted(tmp_path, backup_dir,
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     results = {e["software"]: e for e in manifest["analysis_result"]}
@@ -325,7 +372,7 @@ def test_versions_fallback_only_fills_relevant_software(tmp_path, backup_dir, mo
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, jasen_version=jasen_version)
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     versions = yaml.safe_load((tmp_path / "out" / f"{sample_id}_versions.yml").read_text())
     fallback_block = versions["jasentool_version_fallback"]
@@ -356,7 +403,7 @@ def test_run_metadata_populates_nextflow_run_info_and_lims_id(tmp_path, backup_d
     _patch_database(monkeypatch, fake)
 
     # no-bonsai so name/lims_id come purely from the metadata JSON
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["lims_id"] == "CMD1111A222"
@@ -383,7 +430,7 @@ def test_bonsai_lims_id_wins_over_metadata(tmp_path, backup_dir, monkeypatch):
     )
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["lims_id"] == "BONSAI_LIMS"
@@ -403,7 +450,7 @@ def test_reference_genome_accession_from_flag(tmp_path, backup_dir, monkeypatch)
 
     options = _make_options(tmp_path, backup_dir, no_bonsai=True,
                             reference_genome_accession="GCF_000012045.1")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["reference_genome_accession"] == "GCF_000012045.1"
@@ -418,7 +465,7 @@ def test_reference_genome_accession_omitted_when_not_provided(tmp_path, backup_d
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert "reference_genome_accession" not in manifest
@@ -437,7 +484,7 @@ def test_run_metadata_left_untouched(tmp_path, backup_dir, monkeypatch):
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     # manifest references the original file, which is left exactly as-is
@@ -454,16 +501,18 @@ def test_skips_outputs_with_no_create_yaml_field(tmp_path, backup_dir, monkeypat
     _touch(backup_dir, species, "resfinder", f"{sample_id}_resfinder_meta.json")
     _touch(backup_dir, species, "mask", f"{sample_id}_mask.fasta")
     _touch(backup_dir, species, "analysis_result", f"{sample_id}_result.json")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json", "{}")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    software_names = {e["software"] for e in manifest["analysis_result"]}
-    assert software_names == {"quast"}
+    uris = [e["uri"] for e in manifest["analysis_result"]]
+    assert any(uri.endswith("_quast.tsv") for uri in uris)
+    assert not any(uri.endswith(("_mask.fasta", "_result.json", "_analysis_meta.json"))
+                   for uri in uris)
 
 
 def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, monkeypatch):
@@ -473,12 +522,12 @@ def test_alignment_qc_outputs_resolved_with_subcommands(tmp_path, backup_dir, mo
     _touch(backup_dir, species, "coverage", f"{sample_id}_bwa_mapcoverage.txt")
     _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
     _touch(backup_dir, species, "samtools_bedcov", f"{sample_id}.bedcov.tsv")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json", "{}")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {
@@ -504,7 +553,7 @@ def test_klebsiella_profile_resolves_kleborate_and_serotypefinder(tmp_path, back
     fake = FakeMongo(samples=[_sample(sample_id, "klebsiella")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, profile="klebsiella")).run()
+    _rebuild(_make_options(tmp_path, backup_dir, profile="klebsiella"))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
@@ -525,7 +574,7 @@ def test_staphylococcus_profile_resolves_staph_typing(tmp_path, backup_dir, monk
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, profile="staphylococcus")).run()
+    _rebuild(_make_options(tmp_path, backup_dir, profile="staphylococcus"))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
@@ -546,9 +595,9 @@ def test_alignment_qc_resolved_for_spyogenes(tmp_path, backup_dir, monkeypatch):
     fake = FakeMongo(samples=[_sample(sample_id, "streptococcus_pyogenes")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(
+    _rebuild(_make_options(
         tmp_path, backup_dir, profile="streptococcus_pyogenes",
-    )).run()
+    ))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
@@ -567,10 +616,10 @@ def test_alignment_qc_not_resolved_for_generic_streptococcus(tmp_path, backup_di
     fake = FakeMongo(samples=[_sample(sample_id, "streptococcus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, profile="streptococcus")).run()
+    _rebuild(_make_options(tmp_path, backup_dir, profile="streptococcus"))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    assert {e["software"] for e in manifest["analysis_result"]} == {"quast"}
+    assert not any(e["uri"].endswith(".stats") for e in manifest["analysis_result"])
 
 
 def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monkeypatch):
@@ -578,12 +627,12 @@ def test_legacy_postalignqc_used_when_samtools_absent(tmp_path, backup_dir, monk
     species = "saureus"
     sample_id = "sample1"
     _touch(backup_dir, species, "postalignqc", f"{sample_id}_qc.json")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json", "{}")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {(e["software"], e.get("subcommand")) for e in manifest["analysis_result"]}
@@ -609,7 +658,7 @@ def test_legacy_postalignqc_version_from_fallback(tmp_path, backup_dir, monkeypa
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version=jasen_version)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, jasen_version=jasen_version))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entry = next(e for e in manifest["analysis_result"] if e["software"] == "postalignqc")
@@ -624,12 +673,12 @@ def test_samtools_supersedes_legacy_postalignqc(tmp_path, backup_dir, monkeypatc
     _touch(backup_dir, species, "coverage", f"{sample_id}_bwa_mapcoverage.txt")
     _touch(backup_dir, species, "samtools_stats", f"{sample_id}.stats")
     _touch(backup_dir, species, "samtools_bedcov", f"{sample_id}.bedcov.tsv")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json", "{}")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     softwares = {e["software"] for e in manifest["analysis_result"]}
@@ -653,7 +702,7 @@ def test_database_versions_read_from_meta_files(tmp_path, backup_dir, monkeypatc
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert "software_info" not in manifest
@@ -672,9 +721,9 @@ def test_tbdb_version_from_jasen_release(tmp_path, backup_dir, monkeypatch):
     fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(
+    _rebuild(_make_options(
         tmp_path, backup_dir, profile="mycobacterium_tuberculosis", jasen_version="1.3.0",
-    )).run()
+    ))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["database_info"] == [
@@ -693,9 +742,9 @@ def test_tbprofiler_version_from_jasen_release(tmp_path, backup_dir, monkeypatch
     fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(
+    _rebuild(_make_options(
         tmp_path, backup_dir, profile="mycobacterium_tuberculosis", jasen_version=jasen_version,
-    )).run()
+    ))
 
     versions = yaml.safe_load((tmp_path / "out" / f"{sample_id}_versions.yml").read_text())
     assert versions["jasentool_version_fallback"]["tb-profiler"] == {"version": expected}
@@ -716,7 +765,7 @@ def test_symlinked_fields_taken_from_symlink_dir(tmp_path, backup_dir, monkeypat
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     artifacts = manifest["index_artifacts"]
@@ -739,9 +788,9 @@ def test_symlinked_bam_and_bai_taken_from_symlink_dir(tmp_path, backup_dir, monk
     fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(
+    _rebuild(_make_options(
         tmp_path, backup_dir, profile="mycobacterium_tuberculosis", symlink_dir=symlink_dir,
-    )).run()
+    ))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     bam_track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
@@ -760,32 +809,36 @@ def test_snippy_vcf_taken_from_vcf_dir_in_symlink_tree(tmp_path, backup_dir, mon
     fake = FakeMongo(samples=[_sample(sample_id, "mycobacterium_tuberculosis")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(
+    _rebuild(_make_options(
         tmp_path, backup_dir, profile="mycobacterium_tuberculosis", symlink_dir=symlink_dir,
-    )).run()
+    ))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     vcf_track = next(t for t in manifest["igv_annotations"] if t["type"] == "variant")
     assert vcf_track["uri"] == str(symlink_dir / species / "vcf" / f"{sample_id}_snippy.vcf")
 
 
-def test_symlinked_field_missing_from_symlink_dir_is_left_out(tmp_path, backup_dir,
-                                                               monkeypatch, caplog):
+def test_symlinked_field_missing_from_symlink_dir_fails_sample(tmp_path, backup_dir,
+                                                                monkeypatch, caplog):
     """Falling back to the backup path would give Bonsai a path it cannot read."""
     species = "saureus"
     sample_id = "sample1"
     symlink_dir = tmp_path / "access"
-    symlink_dir.mkdir()
     _touch(backup_dir, species, "vcf", f"{sample_id}_freebayes.vcf")
-
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
+    rebuild = RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir))
+    _add_missing_required_outputs(rebuild, [sample_id])
+    (symlink_dir / species / "vcf" / f"{sample_id}_freebayes.vcf").unlink()
 
     with caplog.at_level(logging.WARNING):
-        RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+        rebuild.run()
 
-    manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
-    assert not any(t["type"] == "variant" for t in manifest["igv_annotations"])
+    assert not (tmp_path / "out" / f"{sample_id}_bonsai.yaml").exists()
+    assert _failed_rows(tmp_path) == [{
+        "sample_id": sample_id, "sample_name": "", "missing_output": "vcf (freebayes)",
+        "expected_path": str(symlink_dir / species / "vcf" / f"{sample_id}_freebayes.vcf"),
+    }]
     assert "not under" in caplog.text
 
 
@@ -801,7 +854,7 @@ def test_sample_id_filters_to_one_sample(tmp_path, backup_dir, monkeypatch):
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, sample_id="sample2")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     out_dir = tmp_path / "out"
     assert not (out_dir / "sample1_bonsai.yaml").exists()
@@ -814,16 +867,23 @@ def test_unknown_sample_id_writes_nothing(tmp_path, backup_dir, monkeypatch, cap
 
     options = _make_options(tmp_path, backup_dir, sample_id="does-not-exist")
     with caplog.at_level(logging.ERROR), pytest.raises(SystemExit):
-        RebuildManifests(options).run()
+        _rebuild(options)
 
     assert not (tmp_path / "out").exists()
     assert "does-not-exist" in caplog.text
 
 
-# ── missing files degrade gracefully ───────────────────────────────────────────
+# ── missing required outputs fail the sample ───────────────────────────────────
 
-def test_sample_with_no_backed_up_files_still_writes_minimal_manifest(tmp_path, backup_dir, monkeypatch, caplog):
+def _failed_rows(tmp_path):
+    with open(tmp_path / "out" / FAILED_FILENAME, encoding="utf-8") as fin:
+        return list(csv.DictReader(fin))
+
+
+def test_sample_missing_required_outputs_is_failed(tmp_path, backup_dir, monkeypatch, caplog):
     sample_id = "sample1"
+    _touch(backup_dir, "saureus", "quast", f"{sample_id}_quast.tsv")
+    _touch(backup_dir, "saureus", "kraken", f"{sample_id}_bracken.out")
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus", sample_name="Sample One")])
     _patch_database(monkeypatch, fake)
 
@@ -831,11 +891,116 @@ def test_sample_with_no_backed_up_files_still_writes_minimal_manifest(tmp_path, 
         RebuildManifests(_make_options(tmp_path, backup_dir)).run()
 
     out_dir = tmp_path / "out"
-    manifest = yaml.safe_load((out_dir / f"{sample_id}_bonsai.yaml").read_text())
-    assert manifest["analysis_result"] == []
+    assert not (out_dir / f"{sample_id}_bonsai.yaml").exists()
     assert not (out_dir / f"{sample_id}_versions.yml").exists()
-    assert "no analysis-result files found" in caplog.text
-    assert "no per-process _versions.yml files found" in caplog.text
+    rows = _failed_rows(tmp_path)
+    assert {r["sample_name"] for r in rows} == {"Sample One"}
+    assert [r["missing_output"] for r in rows] == [
+        "sourmash", "save_analysis_metadata", "amrfinderplus", "resfinder_json",
+        "resfinder_meta", "virulencefinder_json", "virulencefinder_meta", "chewbbaca",
+        "mlst_json", "vcf (freebayes)",
+    ]
+    by_output = {r["missing_output"]: r["expected_path"] for r in rows}
+    assert by_output["amrfinderplus"] == str(
+        backup_dir / "saureus" / "amrfinderplus" / f"{sample_id}_amrfinder.tsv|"
+        f"{sample_id}_amrfinder.out")
+    assert "1 samples failed" in caplog.text
+
+
+@pytest.mark.parametrize("release, required, not_required", [
+    ("0.9.0", {"post_align_qc"},
+     {"ska", "gambitcore", "samtools_coverage", "samtools_stats", "samtools_bedcov"}),
+    ("1.3.0", {"ska", "gambitcore", "samtools_coverage", "post_align_qc"},
+     {"samtools_stats", "samtools_bedcov"}),
+    ("1.4.1", {"ska", "gambitcore", "samtools_coverage", "samtools_stats", "samtools_bedcov"},
+     {"post_align_qc"}),
+])
+def test_required_outputs_follow_jasen_release(tmp_path, backup_dir, monkeypatch,
+                                               release, required, not_required):
+    _touch(backup_dir, "saureus", "analysis_metadata", "sample1_analysis_meta.json",
+           json.dumps({"version": release}))
+    fake = FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+
+    missing = {r["missing_output"] for r in _failed_rows(tmp_path)}
+    assert required <= missing
+    assert not missing & not_required
+
+
+def test_species_typing_is_optional(tmp_path, backup_dir, monkeypatch):
+    _touch(backup_dir, "ecoli", "analysis_metadata", "sample1_analysis_meta.json",
+           json.dumps({"version": "1.4.1"}))
+    fake = FakeMongo(samples=[_sample("sample1", "escherichia_coli")])
+    _patch_database(monkeypatch, fake)
+
+    _rebuild(_make_options(tmp_path, backup_dir, profile="escherichia_coli"))
+
+    assert (tmp_path / "out" / "sample1_bonsai.yaml").exists()
+    assert not (backup_dir / "ecoli" / "shigatyper" / "sample1.tsv").exists()
+    assert not (backup_dir / "ecoli" / "serotypefinder").exists()
+
+
+def test_tb_tools_are_required(tmp_path, backup_dir, monkeypatch):
+    fake = FakeMongo(samples=[_sample("sample1", "mycobacterium_tuberculosis")])
+    _patch_database(monkeypatch, fake)
+
+    RebuildManifests(_make_options(tmp_path, backup_dir,
+                                   profile="mycobacterium_tuberculosis")).run()
+
+    missing = {r["missing_output"] for r in _failed_rows(tmp_path)}
+    assert {"tbprofiler_json", "tbprofiler_bam", "tbprofiler_bai", "mykrobe"} <= missing
+    assert any(m.startswith("vcf (") for m in missing)
+
+
+def test_no_bonsai_ignores_old_manifests(tmp_path, backup_dir, monkeypatch):
+    _forbid_database(monkeypatch)
+    _touch(backup_dir, "saureus", "quast", "sample1_quast.tsv")
+    _touch(backup_dir, "saureus", "analysis_yaml", "sample1_bonsai.yaml")
+    _touch(backup_dir, "saureus", "analysis_yaml", "sample2.yaml")
+
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
+
+    assert sorted(p.name for p in (tmp_path / "out").glob("*_bonsai.yaml")) == [
+        "sample1_bonsai.yaml"]
+
+
+def test_only_incomplete_samples_fail(tmp_path, backup_dir, monkeypatch):
+    fake = FakeMongo(samples=[_sample("complete", "staphylococcus_aureus"),
+                              _sample("incomplete", "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+    rebuild = RebuildManifests(_make_options(tmp_path, backup_dir))
+    _add_missing_required_outputs(rebuild, ["complete", "incomplete"])
+    (backup_dir / "saureus" / "chewbbaca" / "incomplete_chewbbaca.tsv").unlink()
+
+    rebuild.run()
+
+    assert (tmp_path / "out" / "complete_bonsai.yaml").exists()
+    assert not (tmp_path / "out" / "incomplete_bonsai.yaml").exists()
+    assert [(r["sample_id"], r["missing_output"]) for r in _failed_rows(tmp_path)] == [
+        ("incomplete", "chewbbaca")]
+
+
+def test_unreadable_run_metadata_fails_sample(tmp_path, backup_dir, monkeypatch):
+    fake = FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+    _touch(backup_dir, "saureus", "analysis_metadata", "sample1_analysis_meta.json", "not json")
+
+    _rebuild(_make_options(tmp_path, backup_dir))
+
+    assert [r["missing_output"] for r in _failed_rows(tmp_path)] == ["save_analysis_metadata"]
+
+
+def test_failed_summary_written_when_nothing_fails(tmp_path, backup_dir, monkeypatch):
+    fake = FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")])
+    _patch_database(monkeypatch, fake)
+
+    _rebuild(_make_options(tmp_path, backup_dir))
+
+    assert (tmp_path / "out" / "sample1_bonsai.yaml").exists()
+    assert (tmp_path / "out" / FAILED_FILENAME).read_text().splitlines() == [
+        "sample_id,sample_name,missing_output,expected_path"]
 
 
 # ── TB vcf priority (tbprofiler_vcf > snippy_vcf) ──────────────────────────────
@@ -850,7 +1015,7 @@ def test_tb_prefers_tbprofiler_vcf_over_snippy(tmp_path, backup_dir, monkeypatch
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, profile="mycobacterium_tuberculosis")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     variants = next(e for e in manifest["igv_annotations"] if e["name"] == "Predicted variants")
@@ -866,7 +1031,7 @@ def test_tb_falls_back_to_snippy_vcf_when_tbprofiler_vcf_missing(tmp_path, backu
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, profile="mycobacterium_tuberculosis")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     variants = next(e for e in manifest["igv_annotations"] if e["name"] == "Predicted variants")
@@ -882,7 +1047,7 @@ def test_bwa_bam_and_bai_resolved(tmp_path, backup_dir, monkeypatch):
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
@@ -901,7 +1066,7 @@ def test_bwa_bam_and_bai_taken_from_symlink_dir(tmp_path, backup_dir, monkeypatc
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, symlink_dir=symlink_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     track = next(t for t in manifest["igv_annotations"] if t["type"] == "alignment")
@@ -919,7 +1084,7 @@ def test_tb_bam_and_bai_resolved(tmp_path, backup_dir, monkeypatch):
     _patch_database(monkeypatch, fake)
 
     options = _make_options(tmp_path, backup_dir, profile="mycobacterium_tuberculosis")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     coverage = next(e for e in manifest["igv_annotations"] if e["name"] == "Read coverage")
@@ -941,7 +1106,7 @@ def test_groups_reverse_lookup_multiple_groups(tmp_path, backup_dir, monkeypatch
     )
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["groups"] == ["saureus", "wgs", "outbreak_2026"]
@@ -952,7 +1117,7 @@ def test_sample_in_no_groups_gets_profile_group(tmp_path, backup_dir, monkeypatc
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")], groups=[])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["groups"] == ["saureus"]
@@ -971,7 +1136,7 @@ def test_profile_converted_to_group_without_bonsai(tmp_path, backup_dir, monkeyp
     _touch(backup_dir, species, "quast", f"{sample_id}_quast.tsv")
     _forbid_database(monkeypatch)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, profile=profile, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, profile=profile, no_bonsai=True))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["groups"] == [group]
@@ -985,7 +1150,7 @@ def test_duplicate_profile_group_from_bonsai_not_repeated(tmp_path, backup_dir, 
     )
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     assert manifest["groups"] == ["saureus"]
@@ -998,17 +1163,17 @@ def test_bracken_output_resolved_from_kraken_dir(tmp_path, backup_dir, monkeypat
     _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.out")
     _touch(backup_dir, species, "kraken", f"{sample_id}_bracken.report")
     _touch(backup_dir, species, "kraken", f"{sample_id}_kraken.report")
-    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json")
+    _touch(backup_dir, species, "analysis_metadata", f"{sample_id}_analysis_meta.json", "{}")
 
     fake = FakeMongo(samples=[_sample(sample_id, "staphylococcus_aureus")])
     _patch_database(monkeypatch, fake)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir)).run()
+    _rebuild(_make_options(tmp_path, backup_dir))
 
     manifest = yaml.safe_load((tmp_path / "out" / f"{sample_id}_bonsai.yaml").read_text())
     entries = {e["software"]: e["uri"] for e in manifest["analysis_result"]}
-    assert set(entries) == {"bracken"}
     assert entries["bracken"].endswith(f"{sample_id}_bracken.out")
+    assert not any(uri.endswith("_kraken.report") for uri in entries.values())
 
 
 # ── --no-bonsai: discover samples from the tree, no Mongo ────────────────────────
@@ -1032,7 +1197,7 @@ def test_no_bonsai_discovers_samples_from_tree(tmp_path, backup_dir, monkeypatch
         )
     _forbid_database(monkeypatch)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     out_dir = tmp_path / "out"
     for sid in ("sampleA", "sample_with_underscores"):
@@ -1053,7 +1218,7 @@ def test_no_bonsai_sample_id_filters(tmp_path, backup_dir, monkeypatch):
     _forbid_database(monkeypatch)
 
     options = _make_options(tmp_path, backup_dir, no_bonsai=True, sample_id="sample2")
-    RebuildManifests(options).run()
+    _rebuild(options)
 
     out_dir = tmp_path / "out"
     assert not (out_dir / "sample1_bonsai.yaml").exists()
@@ -1066,7 +1231,7 @@ def test_no_bonsai_unknown_sample_id_writes_nothing(tmp_path, backup_dir, monkey
 
     options = _make_options(tmp_path, backup_dir, no_bonsai=True, sample_id="nope")
     with caplog.at_level(logging.ERROR):
-        RebuildManifests(options).run()
+        _rebuild(options)
 
     assert not (tmp_path / "out").exists()
     assert "nope" in caplog.text
@@ -1083,7 +1248,7 @@ def test_no_bonsai_ignores_wildcard_and_versions_files(tmp_path, backup_dir, mon
     )
     _forbid_database(monkeypatch)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     out_dir = tmp_path / "out"
     assert (out_dir / "realSample_bonsai.yaml").exists()
@@ -1102,7 +1267,7 @@ def _stale_manifest_setup(tmp_path, backup_dir):
 def test_existing_manifest_skipped_without_force(tmp_path, backup_dir):
     out = _stale_manifest_setup(tmp_path, backup_dir)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True))
 
     assert (out / "S1_bonsai.yaml").read_text() == "stale\n"
     assert yaml.safe_load((out / "S2_bonsai.yaml").read_text())["sample_id"] == "S2"
@@ -1111,7 +1276,7 @@ def test_existing_manifest_skipped_without_force(tmp_path, backup_dir):
 def test_force_overwrites_existing_manifest(tmp_path, backup_dir):
     out = _stale_manifest_setup(tmp_path, backup_dir)
 
-    RebuildManifests(_make_options(tmp_path, backup_dir, no_bonsai=True, force=True)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, no_bonsai=True, force=True))
 
     assert yaml.safe_load((out / "S1_bonsai.yaml").read_text())["sample_id"] == "S1"
     assert yaml.safe_load((out / "S2_bonsai.yaml").read_text())["sample_id"] == "S2"
@@ -1122,7 +1287,7 @@ def _tb_variant_track(tmp_path, backup_dir, monkeypatch, symlink_dir=None):
     _patch_database(monkeypatch, fake)
     options = _make_options(tmp_path, backup_dir, profile="mycobacterium_tuberculosis",
                             symlink_dir=symlink_dir)
-    RebuildManifests(options).run()
+    _rebuild(options)
     manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
     return next(e for e in manifest["igv_annotations"] if e["name"] == "Predicted variants")
 
@@ -1150,7 +1315,7 @@ def _igv_tracks(tmp_path, backup_dir, monkeypatch, profile, **kwargs):
     fake = FakeMongo(samples=[_sample("sample1", profile)])
     _patch_database(monkeypatch, fake)
     _touch(backup_dir, species, "vcf", "sample1_annotated_delly.vcf")
-    RebuildManifests(_make_options(tmp_path, backup_dir, profile=profile, **kwargs)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, profile=profile, **kwargs))
     manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
     return manifest["igv_annotations"]
 
@@ -1163,7 +1328,7 @@ def test_tb_bed_tracks_taken_from_assets_dir(tmp_path, backup_dir, monkeypatch):
     tracks = _igv_tracks(tmp_path, backup_dir, monkeypatch, "mycobacterium_tuberculosis",
                          assets_dir=assets_dir, symlink_dir=symlink_dir)
 
-    assert tracks == [
+    assert [t for t in tracks if t["type"] != "alignment"] == [
         {"name": "tbdb grading rules bed", "type": "bed",
          "uri": str(assets_dir / "tb_info" / "bed" / "tb_grading_rules.bed")},
         {"name": "tbdb bed", "type": "bed",
@@ -1175,7 +1340,7 @@ def test_tb_bed_tracks_taken_from_assets_dir(tmp_path, backup_dir, monkeypatch):
 def test_tb_bed_tracks_left_out_without_assets_dir(tmp_path, backup_dir, monkeypatch):
     tracks = _igv_tracks(tmp_path, backup_dir, monkeypatch, "mycobacterium_tuberculosis")
 
-    assert [t["type"] for t in tracks] == ["variant"]
+    assert "bed" not in [t["type"] for t in tracks]
 
 
 def test_assets_dir_adds_nothing_for_non_tb_profile(tmp_path, backup_dir, monkeypatch):
@@ -1194,7 +1359,7 @@ def _release_fallback_run(tmp_path, backup_dir, monkeypatch, meta_version, jasen
         {"1.1.0": {"chewbbaca": "3.3.2"}, "1.3.0": {"chewbbaca": "3.5.3"}},
     )
     _patch_database(monkeypatch, FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")]))
-    RebuildManifests(_make_options(tmp_path, backup_dir, jasen_version=jasen_version)).run()
+    _rebuild(_make_options(tmp_path, backup_dir, jasen_version=jasen_version))
     manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
     return {e["software"]: e for e in manifest["analysis_result"]}["chewbbaca"]
 

@@ -2,17 +2,20 @@
 
 import csv
 import fnmatch
+import json
 import os
 import sys
 from collections import Counter
 
 from tqdm import tqdm
 
-from jasentool.config import get_profile
+from jasentool.config import get_profile, made_by_release
 from jasentool.database import Database
 from jasentool.log import get_logger
 
 logger = get_logger(__name__)
+
+_RUN_METADATA_SOFTWARE = "save_analysis_metadata"
 
 
 class CheckBackup:
@@ -23,6 +26,7 @@ class CheckBackup:
         self.profile = options.profile
         self.backup_dir = options.backup_dir
         self.output_file = options.output_file
+        self.expected_counts = Counter()
 
     @staticmethod
     def fetch_samples(db_collection, profile):
@@ -68,14 +72,37 @@ class CheckBackup:
             missing_rows.extend(doc_missing)
         return summary_rows, missing_rows
 
+    def _sample_release(self, sample_id, outputs, species):
+        """JASEN release from the sample's analysis_meta.json, or None."""
+        for output in outputs:
+            if output["software_name"] != _RUN_METADATA_SOFTWARE:
+                continue
+            search_dir = os.path.join(self.backup_dir, species, output["dirname"])
+            for ext in _as_list(output["file_ext"]):
+                for path in _glob_matches(search_dir, sample_id, output.get("mask", ""), ext):
+                    try:
+                        with open(path, encoding="utf-8") as fin:
+                            return str(json.load(fin).get("version") or "").strip() or None
+                    except (OSError, ValueError, AttributeError):
+                        return None
+        return None
+
     def _scan_sample(self, doc, outputs, species):
-        """Scan one bonsai doc; return (summary_row, list_of_missing_rows)."""
+        """Scan one bonsai doc; return (summary_row, list_of_missing_rows).
+
+        Only outputs made by the sample's JASEN release (from its analysis_meta.json)
+        are checked.
+        """
         sample_id = doc["sample_id"]
         sample_name = doc.get("sample_name", "")
         lims_id = doc.get("lims_id", "")
+        release = self._sample_release(sample_id, outputs, species)
         counters = {"req_total": 0, "req_found": 0, "opt_total": 0, "opt_found": 0}
         doc_missing = []
         for output in outputs:
+            if not made_by_release(output, release):
+                continue
+            self.expected_counts[output["software_name"]] += 1
             self._check_one_output(sample_id, output, species, counters, doc_missing,
                                    sample_name=sample_name, lims_id=lims_id)
         status = (
@@ -88,6 +115,7 @@ class CheckBackup:
             "sample_name": sample_name,
             "lims_id": lims_id,
             "profile": self.profile,
+            "jasen_release": release or "",
             "required_expected": counters["req_total"],
             "required_found": counters["req_found"],
             "optional_expected": counters["opt_total"],
@@ -203,7 +231,7 @@ class CheckBackup:
         summary_rows, missing_rows = self.scan(samples, outputs, species, species_full)
 
         _write_csv(self.output_file, summary_rows, fieldnames=[
-            "sample_id", "sample_name", "lims_id", "profile",
+            "sample_id", "sample_name", "lims_id", "profile", "jasen_release",
             "required_expected", "required_found",
             "optional_expected", "optional_found",
             "missing_software_output", "status",
@@ -215,7 +243,7 @@ class CheckBackup:
             "expected_glob", "searched_path", "required",
         ])
 
-        stats_rows = _per_output_stats(outputs, missing_rows, total=len(summary_rows))
+        stats_rows = _per_output_stats(outputs, missing_rows, self.expected_counts)
         stats_fpath = os.path.splitext(self.output_file)[0] + "_stats.csv"
         _write_csv(stats_fpath, stats_rows, fieldnames=[
             "software_name", "dirname", "mask", "file_ext", "required",
@@ -275,10 +303,11 @@ class CheckBackup:
                         len(orphans), orphan_fpath)
 
 
-def _per_output_stats(outputs, missing_rows, total):
+def _per_output_stats(outputs, missing_rows, expected_counts):
     """Return one row per declared output with miss/found counts and percentage.
 
-    Sorted by `n_missing` descending so the worst offenders are at the top.
+    `expected_counts` is, per output, how many samples' releases made it. Sorted by
+    `n_missing` descending so the worst offenders are at the top.
     """
     miss_counts = {}
     for row in missing_rows:
@@ -288,6 +317,7 @@ def _per_output_stats(outputs, missing_rows, total):
     for output in outputs:
         sw = output["software_name"]
         n_missing = miss_counts.get(sw, 0)
+        total = expected_counts.get(sw, 0)
         pct = (n_missing / total * 100) if total else 0.0
         ext_value = output["file_ext"]
         ext_display = "|".join(_as_list(ext_value))
