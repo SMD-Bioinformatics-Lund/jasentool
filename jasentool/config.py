@@ -8,14 +8,22 @@ goes between `<sample_id>` and `<file_ext>` -- usually `_<software>` for the
 canonical JASEN naming, sometimes empty (e.g. sourmash `<sample>.sig`) or a
 literal `*` for cases where the suffix has historically varied.
 
-Set `required=False` for outputs that are conditional on a feature flag
-(`params.use_skesa`, `params.use_kraken`, ...) or platform (`nanopore` vs
-`illumina` vs `iontorrent`). Missing required outputs flip a sample's status
-to FAIL; missing non-required outputs are logged + tracked but do not.
+Outputs shared across profiles are required; species-specific typing (sccmec,
+spatyper, emmtyper, serotypefinder, shigatyper, kleborate) and outputs that
+depend on a run setting (`params.use_kraken`) or platform are `required=False`.
+TB's own tools are required for TB. `since`/`until` give the first/last JASEN
+release that made an output; a sample is only checked for outputs its release
+made (see `made_by_release`). Missing required outputs flip a sample's status
+to FAIL in `check-backup` and stop `rebuild-manifests` writing its manifest;
+missing non-required outputs are logged + tracked but do not.
+
+`check-backup` and `rebuild-manifests` share these declarations.
 """
 
+import re
 
-def _out(software_name, dirname, mask, file_ext, required=True):
+
+def _out(software_name, dirname, mask, file_ext, required=True, since=None, until=None):
     """Compact constructor for a per-output entry."""
     return {
         "software_name": software_name,
@@ -23,17 +31,38 @@ def _out(software_name, dirname, mask, file_ext, required=True):
         "mask": mask,
         "file_ext": file_ext,
         "required": required,
+        "since": since,
+        "until": until,
     }
+
+
+def _release_tuple(release):
+    match = re.match(r"v?(\d+)\.(\d+)\.(\d+)", str(release or "").strip())
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def made_by_release(output, release):
+    """Whether JASEN `release` made `output`.
+
+    With an unknown release, only outputs every release made (no `since`/`until`) count.
+    """
+    version = _release_tuple(release)
+    since, until = output.get("since"), output.get("until")
+    if version is None:
+        return since is None and until is None
+    return ((since is None or version >= _release_tuple(since))
+            and (until is None or version <= _release_tuple(until)))
 
 
 # Outputs that run for every JASEN profile.
 _COMMON_OUTPUTS = [
     _out("quast", "quast", "_quast", ".tsv"),
     _out("sourmash", "sourmash", "", ".sig"),
-    _out("gambitcore", "gambitcore", "_gambitcore", ".tsv", required=False),
-    _out("ska", "ska", "_ska_index", ".skf"),
-    _out("create_yaml", "analysis_yaml", "_bonsai", ".yaml"),
-    _out("format_jasen", "analysis_result", "_result", ".json"),
+    _out("gambitcore", "gambitcore", "_gambitcore", ".tsv", since="1.1.0"),
+    _out("ska", "ska", "_ska_index", ".skf", since="1.0.0"),
+    _out("create_yaml_bonsai", "analysis_yaml", "_bonsai", ".yaml", until="1.1.2"),
+    _out("create_yaml", "analysis_yaml", "", ".yaml", since="1.2.0"),
+    _out("format_jasen", "analysis_result", "_result", ".json", until="1.3.0"),
     _out("format_cdm", "cdm_input", "_qc_result", ".json"),
     _out("export_to_cdm", "qc", "", ".cdmpy"),
     _out("save_analysis_metadata", "analysis_metadata", "_analysis_meta", ".json"),
@@ -108,9 +137,10 @@ _ECOLI_OUTPUTS = [
     # _out("kleborate", "kleborate", "_kleborate", ".txt", required=False),
     # _out("kleborate_hamronization", "kleborate",
     #      "_kleborate_hAMRonization", ".txt", required=False),
-    _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json"),
-    _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json"),
-    _out("shigatyper", "shigatyper", "", ".tsv"),
+    _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json", required=False),
+    _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json",
+         required=False),
+    _out("shigatyper", "shigatyper", "", ".tsv", required=False, since="1.4.0"),
 ]
 
 # Streptococcus pyogenes / streptococcus-specific outputs.
@@ -118,20 +148,21 @@ _KLEBSIELLA_OUTPUTS = [
     _out("kleborate", "kleborate", "_kleborate", ".txt", required=False),
     _out("kleborate_hamronization", "kleborate",
          "_kleborate_hAMRonization", ".txt", required=False),
-    _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json"),
-    _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json"),
+    _out("serotypefinder_json", "serotypefinder", "_serotypefinder", ".json", required=False),
+    _out("serotypefinder_meta", "serotypefinder", "_serotypefinder_meta", ".json",
+         required=False),
 ]
 
 _STREP_OUTPUTS = [
-    _out("emmtyper", "emmtyper", "_emmtyper", ".tsv"),
+    _out("emmtyper", "emmtyper", "_emmtyper", ".tsv", required=False),
 ]
 
 # Alignment QC outputs; run for non-Streptococcus profiles only.
 _POST_ALIGN_QC = [
-    _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt", required=False),
-    _out("samtools_stats", "samtools_stats", "", ".stats", required=False),
-    _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv", required=False),
-    _out("post_align_qc", "postalignqc", "_qc", ".json", required=False),
+    _out("samtools_coverage", "coverage", "_*_mapcoverage", ".txt", since="1.2.0"),
+    _out("samtools_stats", "samtools_stats", "", ".stats", since="1.4.0"),
+    _out("samtools_bedcov", "samtools_bedcov", ".bedcov", ".tsv", since="1.4.0"),
+    _out("post_align_qc", "postalignqc", "_qc", ".json", until="1.3.0"),
 ]
 
 

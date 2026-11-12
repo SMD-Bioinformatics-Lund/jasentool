@@ -480,7 +480,8 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='Reference genome assembly accession (e.g. GCF_000012045.1) to stamp on '
                    'every manifest. Must match a reference genome registered in Bonsai.')
 @click.option('-o', '--output-dir', required=True, type=click.Path(),
-              help='Directory to write <sample_id>_bonsai.yaml and <sample_id>_versions.yml')
+              help='Directory to write <sample_id>_bonsai.yaml, <sample_id>_versions.yml and '
+                   'rebuild_manifests_failed.csv (samples missing required outputs)')
 @click.option('--force', is_flag=True, default=False,
               help='Overwrite manifests already in --output-dir. By default a sample whose '
                    '<sample_id>_bonsai.yaml already exists is skipped.')
