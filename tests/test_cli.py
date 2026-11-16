@@ -182,6 +182,21 @@ def test_rebuild_manifests_no_bonsai_allows_missing_db(tmp_path):
     assert "No samples found to rebuild" in result.output
 
 
+def test_rebuild_manifests_rejects_unknown_tool_version(tmp_path):
+    backup = tmp_path / "backup"
+    backup.mkdir()
+    result = runner.invoke(cli, [
+        "rebuild-manifests",
+        "--profile", "staphylococcus_aureus",
+        "--backup-dir", str(backup),
+        "--no-bonsai",
+        "--tool-version", "chewie=3.5.4",
+        "-o", str(tmp_path / "out"),
+    ])
+    assert result.exit_code != 0
+    assert "unknown tool 'chewie'" in result.output
+
+
 # ── concatenate-files ──────────────────────────────────────────────────────────
 
 def test_concatenate_files(versions_yaml_a, versions_yaml_b, tmp_path):

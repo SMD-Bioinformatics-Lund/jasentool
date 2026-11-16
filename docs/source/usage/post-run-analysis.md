@@ -231,6 +231,8 @@ VERSIONS_FALLBACK = {
 
 The tree always wins: a fallback value is used only when a tool the sample has an output file for has no version from the tree. Keys are the software name as it appears *inside* a versions.yml (what `create-yaml` looks up), not the container image name, so `amrfinderplus` rather than `ncbi-amrfinderplus`, `bracken` for kraken/bracken, and `tb-profiler`. Only versions relevant to the sample's outputs are applied; other entries in the release's map are ignored. Each fill is logged (`<sample_id>: filled N version(s) from fallback: ...`). Without `--jasen-version`, a sample with no `analysis_meta.json` gets no fills. A release missing from `VERSIONS_FALLBACK` is warned about once and gets no fills either. To support a new release, add its container versions to `VERSIONS_FALLBACK`.
 
+**Setting a tool's version (`--tool-version`).** After `rerun-software`, the tree and the release fallback still give the version the tool originally ran with. Pass `--tool-version TOOL=VERSION` (repeatable) to record a version for that tool in every manifest of the run, replacing both. It only applies to samples that have an output for that tool, so rebuild rerun samples in their own run (e.g. with `--sample-id`, or a backup tree holding only them) if others weren't rerun. `TOOL` is the versions.yml name (`chewbbaca`, `amrfinderplus`, `tb-profiler`) or the `create-yaml` field (`amrfinder`, `tbprofiler`); an unknown name is rejected. The versions go into `<sample_id>_versions.yml` under `jasentool_version_override`.
+
 **Files Bonsai reads from disk (`--symlink-dir`).** The BAM, BAI, VCF, sourmash signature and SKA index aren't uploaded to Bonsai; the manifest only records their paths and the API serves them from disk. JASEN symlinks these into `params.symlink_dir` (`/access/jasen` at CMD), which is what the API mounts, so pass `--symlink-dir` to have the manifest point there rather than into the backup tree. Only those five fields are affected; everything else still comes from `--backup-dir`. The symlink tree groups by file type rather than by tool, so they are looked up under `bam/`, `vcf/`, `ska/` and `sourmash/` — snippy's VCF lives in `vcf/`, not `snippy/`. A file that is in the backup tree but missing from the symlink tree is left out with a warning, because a backup path is one the API rejects with `Outside allowed directory`; if it's a required output, the sample fails.
 
 **IGV tracks.** The manifest's IGV tracks are the sample's own data: the BAM and BAI, and the VCF. The tbdb grading rules and tbdb BED files are reference data rather than sample data, so rebuilt manifests leave them out. Bonsai only attaches IGV tracks to a sample with a reference genome, so pass `--reference-genome-accession` for them to be used.
@@ -242,6 +244,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
                             [--symlink-dir <DIR>] [--address <URI>]
                             [--db-collection-groups <COLLECTION>]
                             [--sample-id <ID>] [--jasen-version <RELEASE>]
+                            [--tool-version <TOOL=VERSION> ...]
                             [--reference-genome-accession <ACC>] [--force]
 ```
 
@@ -258,6 +261,7 @@ jasentool rebuild-manifests --profile <PROFILE> --backup-dir <DIR>
 | `--address`/`--uri` | No | `mongodb://localhost:27017/` | Bonsai MongoDB host address ([Connecting to Bonsai](#connecting-to-bonsai)) |
 | `--sample-id` | No | — | Rebuild only this one sample. Handy for a test run before doing everything. Works in both modes |
 | `--jasen-version` | No | — | JASEN release (`0.8.0`–`1.3.0`) the samples were run with, overriding the version in each sample's `analysis_meta.json`; fills a version the backup tree lacks for a tool from that release's containers (the tree always wins) |
+| `--tool-version` | No | — | `TOOL=VERSION` to record for that tool in every manifest, replacing the backup tree's version and the release fallback (e.g. after `rerun-software`). Repeatable |
 | `--reference-genome-accession` | No | — | Assembly accession stamped on every manifest as `reference_genome_accession` |
 | `--force` | No | False | Overwrite manifests already in `--output-dir`. Without it, a sample whose `<sample_id>_bonsai.yaml` already exists is skipped |
 

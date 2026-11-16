@@ -11,7 +11,9 @@ import yaml
 
 from jasentool.config import CREATE_YAML_VCF_PRIORITY, get_profile, made_by_release
 from jasentool.database import Database
-from jasentool.rebuild_manifests import _MANIFEST_SOFTWARE, FAILED_FILENAME, RebuildManifests
+from jasentool.rebuild_manifests import (
+    _MANIFEST_SOFTWARE, FAILED_FILENAME, RebuildManifests, parse_tool_versions,
+)
 
 
 class FakeMongo:
@@ -40,13 +42,15 @@ def _sample(sample_id, profile, sample_name="", lims_id=None):
 
 def _make_options(tmp_path, backup_dir, profile="staphylococcus_aureus",
                   sample_id=None, no_bonsai=False, jasen_version=None,
-                  reference_genome_accession=None, symlink_dir=None, force=False):
+                  reference_genome_accession=None, symlink_dir=None, force=False,
+                  tool_versions=None):
     return types.SimpleNamespace(
         profile=profile, backup_dir=str(backup_dir), output_dir=str(tmp_path / "out"),
         db_name="db", db_collection="samples", db_collection_groups="sample_group",
         address="mongodb://localhost:27017/", no_bonsai=no_bonsai, sample_id=sample_id,
         jasen_version=jasen_version, reference_genome_accession=reference_genome_accession,
         symlink_dir=None if symlink_dir is None else str(symlink_dir), force=force,
+        tool_versions=tool_versions or {},
     )
 
 
@@ -1324,7 +1328,8 @@ def test_tb_manifest_has_no_reference_bed_tracks(tmp_path, backup_dir, monkeypat
     assert [t["type"] for t in tracks] == ["alignment", "variant"]
 
 
-def _release_fallback_run(tmp_path, backup_dir, monkeypatch, meta_version, jasen_version=None):
+def _release_fallback_run(tmp_path, backup_dir, monkeypatch, meta_version, jasen_version=None,
+                          tool_versions=None):
     _touch(backup_dir, "saureus", "chewbbaca", "sample1_chewbbaca.tsv")
     _touch(backup_dir, "saureus", "analysis_metadata", "sample1_analysis_meta.json",
            json.dumps({"version": meta_version, "lims_id": "L1"}))
@@ -1333,7 +1338,8 @@ def _release_fallback_run(tmp_path, backup_dir, monkeypatch, meta_version, jasen
         {"1.1.0": {"chewbbaca": "3.3.2"}, "1.3.0": {"chewbbaca": "3.5.3"}},
     )
     _patch_database(monkeypatch, FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")]))
-    _rebuild(_make_options(tmp_path, backup_dir, jasen_version=jasen_version))
+    _rebuild(_make_options(tmp_path, backup_dir, jasen_version=jasen_version,
+                           tool_versions=tool_versions))
     manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
     return {e["software"]: e for e in manifest["analysis_result"]}["chewbbaca"]
 
@@ -1358,3 +1364,46 @@ def test_unknown_release_leaves_version_missing(tmp_path, backup_dir, monkeypatc
 
     assert "software_version" not in chewbbaca
     assert "release 9.9.9 has no versions fallback" in caplog.text
+
+
+def test_tool_version_replaces_release_fallback(tmp_path, backup_dir, monkeypatch):
+    chewbbaca = _release_fallback_run(tmp_path, backup_dir, monkeypatch, "1.3.0",
+                                      tool_versions={"chewbbaca": "3.5.4"})
+
+    assert chewbbaca["software_version"] == "3.5.4"
+    versions = yaml.safe_load((tmp_path / "out" / "sample1_versions.yml").read_text())
+    assert versions == {"jasentool_version_override": {"chewbbaca": {"version": "3.5.4"}}}
+
+
+def test_tool_version_replaces_tree_version(tmp_path, backup_dir, monkeypatch):
+    _touch(backup_dir, "saureus", "amrfinderplus", "sample1_SCREENING_amrfinderplus_versions.yml",
+           "SCREENING:amrfinderplus:\n amrfinderplus:\n  version: 3.11.11\n"
+           " amrfinderplus_db:\n  version: 2023-04-17.1\n")
+    _patch_database(monkeypatch, FakeMongo(samples=[_sample("sample1", "staphylococcus_aureus")]))
+
+    _rebuild(_make_options(tmp_path, backup_dir,
+                           tool_versions={"amrfinderplus": "4.0.3", "shigatyper": "2.0.5"}))
+
+    manifest = yaml.safe_load((tmp_path / "out" / "sample1_bonsai.yaml").read_text())
+    results = {e["software"]: e for e in manifest["analysis_result"]}
+    assert results["amrfinder"]["software_version"] == "4.0.3"
+    versions = yaml.safe_load((tmp_path / "out" / "sample1_versions.yml").read_text())
+    assert versions["SCREENING:amrfinderplus"] == {
+        "amrfinderplus_db": {"version": "2023-04-17.1"}}
+    assert versions["jasentool_version_override"] == {"amrfinderplus": {"version": "4.0.3"}}
+
+
+@pytest.mark.parametrize("values, expected", [
+    (["chewbbaca=3.5.4"], {"chewbbaca": "3.5.4"}),
+    (["amrfinder=4.0.3"], {"amrfinderplus": "4.0.3"}),
+    ([" tbprofiler = 6.6.0 "], {"tb-profiler": "6.6.0"}),
+    ([], {}),
+])
+def test_parse_tool_versions(values, expected):
+    assert parse_tool_versions(values) == expected
+
+
+@pytest.mark.parametrize("value", ["chewbbaca", "chewbbaca=", "=3.5.4", "chewie=3.5.4"])
+def test_parse_tool_versions_rejects_bad_values(value):
+    with pytest.raises(ValueError):
+        parse_tool_versions([value])
