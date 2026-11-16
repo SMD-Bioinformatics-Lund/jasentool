@@ -10,7 +10,7 @@ literal `*` for cases where the suffix has historically varied.
 
 Outputs shared across profiles are required; species-specific typing (sccmec,
 spatyper, emmtyper, serotypefinder, shigatyper, kleborate) and outputs that
-depend on a run setting (`params.use_kraken`) or platform are `required=False`.
+depend on a run setting (`params.use_kraken`) are `required=False`.
 TB's own tools are required for TB. `since`/`until` give the first/last JASEN
 release that made an output; a sample is only checked for outputs its release
 made (see `made_by_release`). Missing required outputs flip a sample's status
@@ -107,9 +107,6 @@ _NON_TB_OUTPUTS = [
     # _out("skesa", "fasta", "_skesa", ".fasta", required=False),
     # _out("flye", "fasta", "_flye", ".fasta", required=False),
     # _out("medaka", "fasta", "_medaka", ".fasta", required=False),
-    # Non-TB alignment / variant ancillaries (gated by platform / use_masking)
-    _out("bwa_mem_ref", "bam", "_bwa", ".bam", required=False),
-    _out("samtools_index_ref", "bam", "_bwa.bam", ".bai", required=False),
     # _out("clair3_ref", "vcf", "_clair3", ".vcf.gz", required=False),
     _out("mask_polymorph", "mask", "_mask", ".fasta"),
 ]
@@ -155,6 +152,12 @@ _KLEBSIELLA_OUTPUTS = [
 
 _STREP_OUTPUTS = [
     _out("emmtyper", "emmtyper", "_emmtyper", ".tsv", required=False),
+]
+
+# Read alignment to the profile's reference genome, for non-TB profiles that have one.
+_REFERENCE_ALIGNMENT = [
+    _out("bwa_mem_ref", "bam", "_bwa", ".bam"),
+    _out("samtools_index_ref", "bam", "_bwa.bam", ".bai"),
 ]
 
 # Alignment QC outputs; run for non-Streptococcus profiles only.
@@ -211,14 +214,6 @@ CREATE_YAML_DATABASE_INFO = [
 
 # create-yaml has one IGV vcf slot; prefer these sources in order.
 CREATE_YAML_VCF_PRIORITY = ["annotate_delly", "tbprofiler_vcf", "snippy_vcf", "freebayes"]
-
-# create-yaml fields JASEN passes from params.assets_dir, per profile, relative to it.
-CREATE_YAML_ASSET_FIELDS = {
-    "mycobacterium_tuberculosis": {
-        "tb_grading_rules_bed": "tb_info/bed/tb_grading_rules.bed",
-        "tbdb_bed": "tbdb/converged_who_fohm_tbdb.bed.gz",
-    },
-}
 
 # create-yaml fields JASEN passes from params.symlink_dir, and the directory each sits in
 # there. The symlink tree groups by file type, so e.g. snippy's vcf is under vcf/, not snippy/.
@@ -419,6 +414,7 @@ PROFILES = [
         "species_full": "Staphylococcus aureus",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STAPH_OUTPUTS, _POST_ALIGN_QC,
+            _REFERENCE_ALIGNMENT,
         ),
     },
     {
@@ -427,6 +423,7 @@ PROFILES = [
         "species_full": "Escherichia coli",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _ECOLI_OUTPUTS, _POST_ALIGN_QC,
+            _REFERENCE_ALIGNMENT,
         ),
     },
     {
@@ -441,6 +438,7 @@ PROFILES = [
         "species_full": "Streptococcus pyogenes",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STREP_OUTPUTS, _POST_ALIGN_QC,
+            _REFERENCE_ALIGNMENT,
         ),
     },
     {
@@ -449,6 +447,7 @@ PROFILES = [
         "species_full": "Staphylococcus",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _STAPH_OUTPUTS, _POST_ALIGN_QC,
+            _REFERENCE_ALIGNMENT,
         ),
     },
     {
@@ -457,6 +456,7 @@ PROFILES = [
         "species_full": "Klebsiella",
         "outputs": _build_outputs(
             _COMMON_OUTPUTS, _NON_TB_OUTPUTS, _KLEBSIELLA_OUTPUTS, _POST_ALIGN_QC,
+            _REFERENCE_ALIGNMENT,
         ),
     },
     {
