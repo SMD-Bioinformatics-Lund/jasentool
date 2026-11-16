@@ -118,3 +118,18 @@ def test_species_typing_is_optional_and_shared_outputs_required():
                 assert not output["required"], output["software_name"]
             if output["software_name"] in shared:
                 assert output["required"], output["software_name"]
+
+
+@pytest.mark.parametrize("profile, expected", [
+    ("staphylococcus_aureus", True),
+    ("escherichia_coli", True),
+    ("streptococcus_pyogenes", True),
+    ("staphylococcus", True),
+    ("klebsiella", True),
+    ("mycobacterium_tuberculosis", False),
+    ("streptococcus", False),
+])
+def test_reference_bam_required_for_profiles_with_a_reference(profile, expected):
+    outputs = {o["software_name"]: o for o in get_profile(profile)["outputs"]}
+    for name in ("bwa_mem_ref", "samtools_index_ref"):
+        assert (name in outputs and outputs[name]["required"]) == expected

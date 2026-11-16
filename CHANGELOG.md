@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `identify-missing --compare-bonsai` compares cgviz QC-approved samples with a Bonsai database (`--bonsai-db-name`, default `bonsai`), listing approved samples missing from Bonsai or present only from another sequencing run, and Bonsai samples from the wrong run, not approved, or not in cgviz.
 - `identify-missing --cgviz-address` sets the cgviz MongoDB host.
 - `rebuild-manifests` can fill missing tool and database versions for JASEN 0.8.0 and 0.9.0 samples.
-- `rebuild-manifests --assets-dir` adds the tbdb grading rules and tbdb BED tracks to TB manifests from JASEN's assets directory.
 
 ### Fixed
 
@@ -27,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `rebuild-manifests` fails a sample that lacks a required manifest input made by its JASEN release (a required output, the run metadata, or any one of the profile's VCF sources): no manifest or versions file is written for it, and its missing outputs are listed in `rebuild_manifests_failed.csv` in the output directory. Previously a manifest was written with the missing fields left out.
 - `check-backup` and `rebuild-manifests` check each sample only for outputs its JASEN release made, read from the sample's `analysis_meta.json`; `jasentool/config.py` records the first and last release that made each output. `check-backup` adds a `jasen_release` column, and its stats count each output only over the samples whose release made it.
+- The reference-aligned BAM and its index (`bwa_mem_ref`, `samtools_index_ref`) are required for every non-TB profile with a reference genome, like the other sample-specific IGV data (the VCF and TB's tbprofiler BAM).
 - Outputs shared across profiles are required (gambitcore from JASEN 1.1.0, samtools coverage from 1.2.0, samtools stats and bedcov from 1.4.0, postalignqc up to 1.3.0); species-specific typing (serotypefinder, shigatyper, emmtyper, along with sccmec, spatyper and kleborate) is optional. TB's tools stay required.
 - Removed the unused `Database.insert`, so jasentool has no way to write to MongoDB; a test now fails if a write call is added.
 - The docs list which Bonsai version each Bonsai-reading subcommand supports (v2, 2.1.x) and that all of them only read.
