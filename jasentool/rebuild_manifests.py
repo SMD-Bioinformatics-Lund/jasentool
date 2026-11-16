@@ -58,6 +58,7 @@ _FIELD_TO_VERSION_KEY = {
     for field, software, _ in _ANALYSIS_TOOLS
 }
 _FALLBACK_PROCESS_KEY = "jasentool_version_fallback"
+_OVERRIDE_PROCESS_KEY = "jasentool_version_override"
 _MANIFEST_SOFTWARE = (
     set(CREATE_YAML_FIELD_MAP) | set(CREATE_YAML_VCF_PRIORITY)
     | set(CREATE_YAML_DATABASE_INFO) | {_RUN_METADATA_SOFTWARE}
@@ -88,6 +89,25 @@ def _load_versions_file(path):
         logger.warning("Skipping unparseable versions file %s: %s", path, exc)
         return None
 
+
+def parse_tool_versions(values):
+    """Parse `TOOL=VERSION` strings into {versions.yml software name: version}.
+
+    TOOL is a versions.yml software name (e.g. amrfinderplus) or a create-yaml field
+    (e.g. amrfinder). Raises ValueError for a malformed value or an unknown tool.
+    """
+    known = set(_FIELD_TO_VERSION_KEY.values())
+    versions = {}
+    for value in values or ():
+        tool, sep, version = value.partition("=")
+        tool, version = tool.strip(), version.strip()
+        if not sep or not tool or not version:
+            raise ValueError(f"expected TOOL=VERSION, got {value!r}")
+        key = _FIELD_TO_VERSION_KEY.get(tool, tool)
+        if key not in known:
+            raise ValueError(f"unknown tool {tool!r}; choose from {', '.join(sorted(known))}")
+        versions[key] = version
+    return versions
 
 
 def _drop_unusable_versions(merged, sample_id):
@@ -122,6 +142,7 @@ class RebuildManifests:
             options, "reference_genome_accession", None
         )
         self.jasen_version = getattr(options, "jasen_version", None)
+        self.tool_versions = getattr(options, "tool_versions", None) or {}
         self._releases_without_fallback = set()
 
     def _fetch_bonsai_samples(self):
@@ -304,6 +325,7 @@ class RebuildManifests:
                 merged.update(data)
         _drop_unusable_versions(merged, sample_id)
         self._apply_versions_fallback(merged, sample_id, needed_keys, versions_fallback)
+        self._apply_tool_versions(merged, needed_keys)
         if not merged:
             return None
         dest = os.path.join(self.output_dir, f"{sample_id}_versions.yml")
@@ -334,6 +356,25 @@ class RebuildManifests:
             "%s: filled %d version(s) from fallback: %s", sample_id, len(filled),
             ", ".join(f"{k}={v}" for k, v in sorted(filled.items())),
         )
+
+    def _apply_tool_versions(self, merged, needed_keys):
+        """Replace the versions of `needed_keys` given by --tool-version, in place."""
+        overrides = {
+            key: version for key, version in self.tool_versions.items() if key in needed_keys
+        }
+        if not overrides:
+            return
+        for process in list(merged):
+            process_data = merged[process]
+            if not isinstance(process_data, dict):
+                continue
+            for key in overrides:
+                process_data.pop(key, None)
+            if not process_data:
+                del merged[process]
+        merged[_OVERRIDE_PROCESS_KEY] = {
+            key: {"version": version} for key, version in overrides.items()
+        }
 
     def _resolve_fields(self, outputs, species, sample_id):
         """Return ({create-yaml field: path}, [database-info path, ...], {found software})."""
@@ -436,6 +477,9 @@ class RebuildManifests:
             Database.require_collection(self.options.db_collection)
             Database.require_collection(self.options.db_collection_groups)
             samples = self._fetch_bonsai_samples()
+        if self.tool_versions:
+            logger.info("Using these tool versions for every sample: %s", ", ".join(
+                f"{tool}={version}" for tool, version in sorted(self.tool_versions.items())))
         if not samples:
             logger.error("No samples found to rebuild")
             return

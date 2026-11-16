@@ -11,6 +11,7 @@ from jasentool import __version__
 from jasentool.config import VERSIONS_FALLBACK
 from jasentool.log import setup_logging
 from jasentool.main import OptionsParser
+from jasentool.rebuild_manifests import parse_tool_versions
 from jasentool.rerun_software import RERUN_TOOLS
 
 
@@ -21,6 +22,13 @@ def _parser():
 def _init_logging(verbose=False):
     """Configure logging to stdout. Subcommands call this as their first body line."""
     setup_logging(level=logging.DEBUG if verbose else logging.INFO)
+
+
+def _parse_tool_versions(_ctx, _param, values):
+    try:
+        return parse_tool_versions(values)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc)) from exc
 
 
 @click.group()
@@ -473,6 +481,10 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
               help='JASEN release the samples were run with, overriding the version in each '
                    "sample's analysis_meta.json. Fills a tool or database version the backup "
                    'tree lacks from what that release pinned (the tree always wins).')
+@click.option('--tool-version', 'tool_versions', multiple=True, metavar='TOOL=VERSION',
+              callback=_parse_tool_versions,
+              help='Version to record for TOOL in every manifest, replacing the backup tree '
+                   "and the release's pinned version, e.g. after rerun-software. Repeatable.")
 @click.option('--reference-genome-accession', default=None,
               help='Reference genome assembly accession (e.g. GCF_000012045.1) to stamp on '
                    'every manifest. Must match a reference genome registered in Bonsai.')
@@ -484,7 +496,7 @@ def check_backup_cmd(profile, backup_dir, db_name, db_collection, db_collection_
                    '<sample_id>_bonsai.yaml already exists is skipped.')
 def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collection,
                           db_collection_groups, address, no_bonsai, sample_id, jasen_version,
-                          reference_genome_accession, output_dir, force):
+                          tool_versions, reference_genome_accession, output_dir, force):
     """Rebuild Bonsai manifest YAMLs (and merged versions.yml) from the backup storage tree."""
     _init_logging()
     if not no_bonsai and not (db_name and db_collection):
@@ -496,6 +508,7 @@ def rebuild_manifests_cmd(profile, backup_dir, symlink_dir, db_name, db_collecti
         db_name=db_name,
         db_collection=db_collection, db_collection_groups=db_collection_groups,
         address=address, no_bonsai=no_bonsai, sample_id=sample_id, jasen_version=jasen_version,
+        tool_versions=tool_versions,
         reference_genome_accession=reference_genome_accession, output_dir=output_dir,
         force=force,
     )
